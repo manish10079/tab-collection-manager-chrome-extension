@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tab Collection Manager</title>
+  <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1><i class="fas fa-layer-group"></i> Tab Collections</h1>
+      <p class="subtitle">Auto‑save & organize your browsing sessions</p>
+    </header>
+
+    <div class="scrollable-content">
+      <div class="controls">
+        <div class="input-group">
+          <input type="text" id="newCollectionName" placeholder="New collection name" maxlength="50">
+          <button id="createCollection" class="btn-primary">
+            <i class="fas fa-plus"></i> Create
+          </button>
+        </div>
+        <div class="auto-save-section">
+          <label class="checkbox-label">
+            <input type="checkbox" id="autoSaveToggle">
+            <span>Enable Auto‑Save to Current Session</span>
+          </label>
+        </div>
+      </div>
+      
+      <div class="backup-container hidden" id="backupContainer">
+        <div class="backup-card">
+          <div class="backup-info">
+            <!-- Populated by JS -->
+          </div>
+          <button id="restoreBackupBtn" class="btn-success">
+            <i class="fas fa-undo"></i> Restore
+          </button>
+        </div>
+      </div>
+
+      <div class="collections-container" id="collectionsContainer">
+        <!-- Collections will be rendered here -->
+        <div class="empty-state" id="emptyState">
+          <i class="fas fa-inbox"></i>
+          <h3>No collections yet</h3>
+          <p>Create your first collection to start organizing tabs</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <div class="modal-overlay" id="addTabsModal" style="display: none;">
+      <div class="modal">
+        <div class="modal-header">
+          <h3><i class="fas fa-plus-circle"></i> Add Tabs</h3>
+          <button class="close-modal" id="closeModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="tab-mode-selector">
+            <button class="mode-btn active" data-mode="manual">Manual</button>
+            <button class="mode-btn" data-mode="multi">Multi‑Select</button>
+          </div>
+
+          <div class="tab-form manual-form" id="manualForm">
+            <div class="form-group">
+              <label for="tabTitle">Title</label>
+              <input type="text" id="tabTitle" placeholder="Enter tab title">
+            </div>
+            <div class="form-group">
+              <label for="tabUrl">URL</label>
+              <input type="url" id="tabUrl" placeholder="https://example.com">
+            </div>
+            <button class="btn-secondary" id="addManualTab">
+              <i class="fas fa-plus"></i> Add Tab
+            </button>
+          </div>
+
+          <div class="tab-form multi-form" id="multiForm" style="display: none;">
+            <div class="select-all-row">
+              <label class="checkbox-label">
+                <input type="checkbox" id="selectAllTabs">
+                <span>Select All Tabs</span>
+              </label>
+            </div>
+            <div class="open-tabs-list" id="openTabsList">
+              <!-- Open tabs will be listed here -->
+            </div>
+            <button class="btn-secondary" id="addSelectedTabs">
+              <i class="fas fa-check-double"></i> Add Selected
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-outline" id="cancelModal">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <template id="collectionTemplate">
+    <div class="collection" data-id="">
+      <div class="collection-header">
+        <div class="collection-info">
+          <button class="expand-btn">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+          <input type="text" class="collection-name" value="" maxlength="50" readonly>
+          <div class="collection-meta">
+            <span class="tab-count">0 tabs</span>
+            <span class="updated-time">just now</span>
+          </div>
+        </div>
+        <div class="collection-actions">
+          <button class="icon-btn open-all-tabs-btn" title="Open all tabs">
+            <i class="fas fa-external-link-square-alt"></i>
+          </button>
+          <button class="icon-btn add-tabs-btn" title="Add tabs">
+            <i class="fas fa-plus"></i>
+          </button>
+          <button class="icon-btn edit-collection-btn" title="Edit collection name">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="icon-btn delete-collection-btn" title="Delete collection">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+      <div class="collection-tabs" style="display: none;">
+        <div class="tabs-list">
+          <!-- Tabs will be inserted here -->
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <template id="tabTemplate">
+    <div class="tab-item" data-id="">
+      <div class="tab-icon">
+        <i class="fas fa-file-alt"></i>
+      </div>
+      <div class="tab-content">
+        <input type="text" class="tab-title" value="" placeholder="Untitled" readonly>
+        <div class="tab-url" title=""></div>
+      </div>
+      <button class="icon-btn edit-tab-btn" title="Edit tab title">
+        <i class="fas fa-edit"></i>
+      </button>
+      <button class="icon-btn open-tab-btn" title="Open tab">
+        <i class="fas fa-external-link-alt"></i>
+      </button>
+      <button class="icon-btn remove-tab-btn" title="Remove tab">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </template>
+
+  <template id="openTabTemplate">
+    <div class="open-tab-item">
+      <label class="checkbox-label">
+        <input type="checkbox" class="tab-checkbox" data-id="" data-title="" data-url="">
+        <span class="tab-title"></span>
+        <span class="tab-url"></span>
+      </label>
+    </div>
+  </template>
+
+  <script src="popup.js"></script>
+</body>
+</html>
