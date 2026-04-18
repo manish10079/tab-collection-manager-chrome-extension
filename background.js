@@ -1,6 +1,6 @@
 // Background Service Worker - Auto‑Save Engine
 // Handles Chrome tab events and auto‑save logic with debounce
-
+// checking git is working or not
 // ==================== STORAGE HELPERS ====================
 async function getState() {
   const result = await api.storage.local.get(['collections', 'autoSaveCollectionId', 'lastSessionBackup']);
