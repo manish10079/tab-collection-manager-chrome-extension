@@ -17,6 +17,9 @@
 
     <div class="scrollable-content">
       <div class="controls">
+        <div class="search-bar">
+          <input type="text" id="searchBox" placeholder="Search collections or tabs…" autocomplete="off" spellcheck="false" />
+        </div>
         <div class="input-group">
           <input type="text" id="newCollectionName" placeholder="New collection name" maxlength="50">
           <button id="createCollection" class="btn-primary">
@@ -131,6 +134,9 @@
         </div>
       </div>
       <div class="collection-tabs" style="display: none;">
+        <div class="collection-tab-search">
+          <input type="text" class="collection-tab-search-input" placeholder="Search tabs…" autocomplete="off" spellcheck="false" />
+        </div>
         <div class="tabs-list">
           <!-- Tabs will be inserted here -->
         </div>

@@ -135,7 +135,8 @@ const elements = {
   tabUrl: document.getElementById('tabUrl'),
   addManualTab: document.getElementById('addManualTab'),
   openTabsList: document.getElementById('openTabsList'),
-  addSelectedTabs: document.getElementById('addSelectedTabs')
+  addSelectedTabs: document.getElementById('addSelectedTabs'),
+  searchBox: document.getElementById('searchBox')
 };
 
 // ==================== STATE VARIABLES ====================
@@ -517,6 +518,29 @@ function renderCollection(collection, autoSaveCollectionId) {
     tabsContainer.style.display = 'none';
   }
 
+  // Per-collection tab search bar
+  const tabSearchInput = collectionEl.querySelector('.collection-tab-search-input');
+  if (tabSearchInput) {
+    // Prevent header click-to-toggle when interacting with the search input
+    tabSearchInput.addEventListener('click', (e) => e.stopPropagation());
+
+    tabSearchInput.addEventListener('input', () => {
+      // Debounce per collection
+      clearTimeout(tabSearchDebounceTimers[collection.id]);
+      tabSearchDebounceTimers[collection.id] = setTimeout(() => {
+        filterTabsInCollection(collectionEl, tabSearchInput.value);
+      }, 150);
+    });
+
+    tabSearchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        tabSearchInput.value = '';
+        filterTabsInCollection(collectionEl, '');
+        tabSearchInput.blur();
+      }
+    });
+  }
+
   // Auto‑save indicator
   if (collection.id === autoSaveCollectionId) {
     collectionEl.style.borderLeft = '4px solid var(--accent)';
@@ -558,6 +582,22 @@ function renderCollection(collection, autoSaveCollectionId) {
     }
   });
   
+  nameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      nameInput.readOnly = true;
+      editBtn.querySelector('i').className = 'fas fa-edit';
+      editBtn.title = 'Edit collection name';
+      renameCollection(collection.id, nameInput.value);
+      nameInput.blur();
+    } else if (e.key === 'Escape') {
+      nameInput.value = collection.name; // Revert to original
+      nameInput.readOnly = true;
+      editBtn.querySelector('i').className = 'fas fa-edit';
+      editBtn.title = 'Edit collection name';
+      nameInput.blur();
+    }
+  });
   nameInput.addEventListener('change', (e) => renameCollection(collection.id, e.target.value));
   nameInput.addEventListener('blur', (e) => {
     // If we're editing and blur, save and switch back to edit icon
@@ -776,6 +816,114 @@ function renderAutoSaveSelect(collections, autoSaveCollectionId) {
   elements.autoSaveToggle.checked = !!autoSaveCollectionId;
 }
 
+// ==================== SEARCH / FILTER ====================
+let searchDebounceTimer = null;
+let tabSearchDebounceTimers = {};
+
+/**
+ * Live‑filter collections shown in the DOM by collection name only.
+ * Hides collections whose name doesn't match the query.
+ * Shows a "no results" message when nothing matches.
+ */
+function filterResults(query) {
+  const q = (query || '').trim().toLowerCase();
+  const container = elements.collectionsContainer;
+
+  // Remove any previous "no results" banner
+  const oldNoResults = container.querySelector('.search-no-results');
+  if (oldNoResults) oldNoResults.remove();
+
+  const collectionEls = container.querySelectorAll('.collection');
+
+  // If the query is empty, show everything and bail out
+  if (!q) {
+    collectionEls.forEach(el => {
+      el.classList.remove('search-hidden', 'search-fade-in');
+    });
+    // Re‑show empty state if needed
+    elements.emptyState.classList.toggle('hidden', collectionEls.length > 0);
+    return;
+  }
+
+  let anyVisible = false;
+
+  collectionEls.forEach(el => {
+    const nameInput = el.querySelector('.collection-name');
+    const collName = (nameInput ? nameInput.value : '').toLowerCase();
+    const nameMatches = collName.includes(q);
+
+    if (nameMatches) {
+      el.classList.remove('search-hidden');
+      el.classList.add('search-fade-in');
+      anyVisible = true;
+    } else {
+      el.classList.add('search-hidden');
+      el.classList.remove('search-fade-in');
+    }
+  });
+
+  // Hide the default empty state; show a search‑specific message instead
+  elements.emptyState.classList.add('hidden');
+
+  if (!anyVisible) {
+    const noResults = document.createElement('div');
+    noResults.className = 'search-no-results';
+    noResults.innerHTML = '<i class="fas fa-search"></i>No collections match your search.';
+    container.insertBefore(noResults, elements.emptyState);
+  }
+}
+
+/**
+ * Live‑filter tabs within a single expanded collection.
+ * Walks every `.tab-item` inside the given collection element,
+ * matching tab title and URL against the query.
+ */
+function filterTabsInCollection(collectionEl, query) {
+  const q = (query || '').trim().toLowerCase();
+  const tabsList = collectionEl.querySelector('.tabs-list');
+  if (!tabsList) return;
+
+  // Remove any previous per-collection "no results" banner
+  const oldNoResults = collectionEl.querySelector('.collection-tabs-no-results');
+  if (oldNoResults) oldNoResults.remove();
+
+  const tabItems = tabsList.querySelectorAll('.tab-item');
+
+  // If the query is empty, show all tabs
+  if (!q) {
+    tabItems.forEach(tabEl => {
+      tabEl.classList.remove('search-hidden', 'search-highlight');
+    });
+    return;
+  }
+
+  let anyVisible = false;
+
+  tabItems.forEach(tabEl => {
+    const titleInput = tabEl.querySelector('.tab-title');
+    const urlDiv = tabEl.querySelector('.tab-url');
+    const title = (titleInput ? titleInput.value : '').toLowerCase();
+    const url = (urlDiv ? (urlDiv.title || urlDiv.textContent) : '').toLowerCase();
+
+    if (title.includes(q) || url.includes(q)) {
+      tabEl.classList.remove('search-hidden');
+      tabEl.classList.add('search-highlight');
+      anyVisible = true;
+    } else {
+      tabEl.classList.add('search-hidden');
+      tabEl.classList.remove('search-highlight');
+    }
+  });
+
+  if (!anyVisible) {
+    const noResults = document.createElement('div');
+    noResults.className = 'collection-tabs-no-results';
+    noResults.textContent = 'No tabs match your search.';
+    const tabsContainer = collectionEl.querySelector('.collection-tabs');
+    tabsContainer.appendChild(noResults);
+  }
+}
+
 async function renderOpenTabsList() {
   const tabs = await api.tabs.query({ currentWindow: true });
   const container = elements.openTabsList;
@@ -828,6 +976,25 @@ function switchTabMode(mode) {
 
 // ==================== EVENT LISTENERS ====================
 function setupEventListeners() {
+  // Search box – live filter with debounce
+  if (elements.searchBox) {
+    elements.searchBox.addEventListener('input', () => {
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => {
+        filterResults(elements.searchBox.value);
+      }, 150);
+    });
+
+    // Allow Escape to clear the search
+    elements.searchBox.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        elements.searchBox.value = '';
+        filterResults('');
+        elements.searchBox.blur();
+      }
+    });
+  }
+
   // Create collection
   elements.createCollection.addEventListener('click', async () => {
     const name = elements.newCollectionName.value;
@@ -915,6 +1082,10 @@ function setupEventListeners() {
         // Refresh the UI with updated state
         getState().then(state => {
           renderCollections(state);
+          // Re‑apply active search filter after the re‑render
+          if (elements.searchBox && elements.searchBox.value.trim()) {
+            filterResults(elements.searchBox.value);
+          }
         });
       }
     }

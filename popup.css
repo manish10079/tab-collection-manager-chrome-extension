@@ -71,6 +71,102 @@ body {
   font-weight: 400;
 }
 
+/* Search Bar */
+.search-bar {
+  position: relative;
+  flex-shrink: 0;
+  margin-bottom: 24px;
+}
+
+.search-bar::before {
+  content: '\f002'; /* Font Awesome magnifying glass */
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  font-size: 14px;
+  pointer-events: none;
+  transition: color 0.25s ease;
+  z-index: 1;
+}
+
+.search-bar:focus-within::before {
+  color: var(--accent);
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 12px 18px 12px 42px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 400;
+  transition: var(--transition);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.search-bar input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+.search-bar input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.18), 0 4px 16px rgba(108, 99, 255, 0.08);
+}
+
+/* Search filter animations */
+.collection.search-hidden,
+.tab-item.search-hidden {
+  display: none !important;
+}
+
+.collection.search-fade-in {
+  animation: searchFadeIn 0.25s ease forwards;
+}
+
+.tab-item.search-highlight {
+  border-color: rgba(108, 99, 255, 0.4);
+  background: rgba(108, 99, 255, 0.06);
+}
+
+@keyframes searchFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* No-results message inside collections container */
+.search-no-results {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0;
+  animation: searchFadeIn 0.3s ease 0.05s forwards;
+}
+
+.search-no-results i {
+  font-size: 32px;
+  margin-bottom: 12px;
+  display: block;
+  opacity: 0.4;
+}
+
 /* Scrollable content area */
 .scrollable-content {
   flex: 1;
@@ -418,12 +514,23 @@ body {
   max-width: 320px;
   flex: 1;
   transition: var(--transition);
+  cursor: default;
+  pointer-events: none;
 }
 
-.collection-name:focus {
+.collection-name:not([readonly]) {
+  cursor: text;
+  pointer-events: auto;
+}
+
+.collection-name:not([readonly]):focus {
   outline: none;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--accent);
+}
+
+.collection-name[readonly]:focus {
+  outline: none;
 }
 
 .collection-meta {
@@ -445,6 +552,65 @@ body {
   border-top: 1px solid var(--border);
   max-height: 350px;
   overflow-y: auto;
+}
+
+/* Per-collection tab search */
+.collection-tab-search {
+  position: relative;
+  margin: 12px 0 4px;
+}
+
+.collection-tab-search::before {
+  content: '\f002';
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  font-size: 11px;
+  pointer-events: none;
+  transition: color 0.25s ease;
+  z-index: 1;
+}
+
+.collection-tab-search:focus-within::before {
+  color: var(--accent);
+}
+
+.collection-tab-search-input {
+  width: 100%;
+  padding: 8px 14px 8px 32px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 400;
+  transition: var(--transition);
+}
+
+.collection-tab-search-input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+.collection-tab-search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.15);
+}
+
+/* No-results inside a collection */
+.collection-tabs-no-results {
+  text-align: center;
+  padding: 16px 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  opacity: 0;
+  animation: searchFadeIn 0.25s ease 0.05s forwards;
 }
 
 .tabs-list {
