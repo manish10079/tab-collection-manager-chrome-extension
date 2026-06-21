@@ -56,13 +56,13 @@ function validateUrl(url) {
 // ==================== AUTO‑SAVE LOGIC ====================
 let autoSaveTimer = null;
 let isRestoring = false;
-let startupTime = Date.now();
+let startupTime = 0; // Initialize to 0; only set to Date.now() on browser startup/installation
 
 function triggerAutoSave() {
   // Prevent any auto-save for the first few seconds of extension startup
   // This allows Chrome to restore tabs without intermediate partial saves
   const STABILIZATION_PERIOD = 8000; // 8 seconds
-  if (isRestoring || (Date.now() - startupTime < STABILIZATION_PERIOD)) {
+  if (isRestoring || (startupTime > 0 && (Date.now() - startupTime < STABILIZATION_PERIOD))) {
     console.log('Auto-save deferred: Extension is in stabilization/restoring phase');
     return;
   }
@@ -88,8 +88,11 @@ async function saveSession() {
     return;
   }
 
-  // Get all open tabs in all windows (including incognito if permitted)
-  const tabs = await api.tabs.query({});
+  // Get open tabs in the last focused window
+  const tabs = await api.tabs.query({ lastFocusedWindow: true });
+  console.log(`[saveSession] Query returned ${tabs.length} tabs total.`);
+  tabs.forEach((t, i) => console.log(`[saveSession] Raw Tab [${i}]: title="${t.title}", url="${t.url}"`));
+
   const tabObjects = tabs
     .filter(tab => validateUrl(tab.url))
     .map(tab => ({
@@ -246,7 +249,7 @@ api.runtime.onInstalled.addListener(async () => {
   
   // After installation/update, perform an initial auto‑save (but only if tabs exist)
   setTimeout(async () => {
-    const tabs = await api.tabs.query({});
+    const tabs = await api.tabs.query({ lastFocusedWindow: true });
     const validTabs = tabs.filter(tab => validateUrl(tab.url));
     if (validTabs.length > 0) {
       saveSession();
@@ -274,7 +277,7 @@ api.runtime.onStartup.addListener(async () => {
       tabs: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      isExpanded: true,
+      isExpanded: false,
       isCurrentSession: true,
       windowGroups: {}
     });
@@ -295,19 +298,14 @@ api.runtime.onStartup.addListener(async () => {
   // Wait for tabs to restore
   setTimeout(async () => {
     isRestoring = false; // Allow auto-saves now
-    const tabs = await api.tabs.query({});
+    const tabs = await api.tabs.query({ lastFocusedWindow: true });
     const validTabs = tabs.filter(tab => validateUrl(tab.url));
     
-    // Only save if we have valid tabs AND the Current Session is currently empty
-    // OR if the current tabs look significantly more complete than what we have.
-    const currentState = await getState();
-    const currentSession = currentState.collections?.find(c => c.id === CURRENT_SESSION_ID);
-    
-    if (validTabs.length > 0 && (!currentSession || currentSession.tabs.length === 0)) {
-      console.log('Startup: Saving restored tabs to Current Session');
+    if (validTabs.length > 0) {
+      console.log('Startup: Syncing current open tabs to Current Session');
       saveSession();
     } else {
-      console.log('Startup restoration complete. Current session tabs preserved.');
+      console.log('Startup restoration complete. No valid tabs to sync.');
     }
   }, 10000); // 10 seconds to allow for full restoration
 });
@@ -316,8 +314,13 @@ api.runtime.onStartup.addListener(async () => {
 // Expose restore functionality to popup
 api.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.command === 'forceAutoSave') {
-    saveSession();
-    sendResponse({ success: true });
+    saveSession().then(() => {
+      sendResponse({ success: true });
+    }).catch(err => {
+      console.error('Error in forceAutoSave handler:', err);
+      sendResponse({ success: false });
+    });
+    return true; // Keep message channel open for async response
   }
   
   if (request.command === 'restoreSession') {

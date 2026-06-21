@@ -26,7 +26,7 @@
 }
 
 body {
-  width: 500px;
+  width: 650px;
   height: 600px; /* Standard extension height */
   background: var(--bg-gradient);
   color: var(--text-primary);
@@ -49,25 +49,25 @@ body {
 /* Header */
 .header {
   text-align: center;
-  margin-bottom: 20px;
-  padding: 20px 0; /* Add top padding */
+  margin-bottom: 12px;
+  padding: 10px 0;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
 .header h1 {
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 700;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .header .subtitle {
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 400;
 }
 
@@ -374,7 +374,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px;
+  padding: 12px 16px;
+  gap: 16px;
   cursor: pointer;
 }
 
@@ -409,12 +410,12 @@ body {
   background: transparent;
   border: none;
   color: var(--text-primary);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
-  padding: 4px 8px;
+  padding: 2px 6px;
   border-radius: 6px;
   min-width: 120px;
-  max-width: 200px;
+  max-width: 320px;
   flex: 1;
   transition: var(--transition);
 }
@@ -442,24 +443,24 @@ body {
 .collection-tabs {
   padding: 0 20px 20px;
   border-top: 1px solid var(--border);
-  max-height: 250px;
+  max-height: 350px;
   overflow-y: auto;
 }
 
 .tabs-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 16px;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .tab-item {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
+  gap: 12px;
+  padding: 8px 12px;
   background: rgba(255, 255, 255, 0.03);
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid var(--border);
   transition: var(--transition);
 }
@@ -469,32 +470,32 @@ body {
 }
 
 .tab-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   background: rgba(108, 99, 255, 0.1);
   color: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 13px;
 }
 
 .tab-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
 }
 
 .tab-title {
   background: transparent;
   border: none;
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
-  padding: 4px 8px;
-  border-radius: 6px;
+  padding: 2px 6px;
+  border-radius: 4px;
   width: 100%;
   transition: var(--transition);
 }
@@ -506,10 +507,11 @@ body {
 }
 
 .tab-url {
-  font-size: 13px;
+  font-size: 11px;
   color: var(--text-secondary);
   word-break: break-all;
   opacity: 0.8;
+  padding-left: 6px;
 }
 
 /* Modal */
@@ -648,7 +650,7 @@ body {
 }
 
 .open-tabs-list {
-  max-height: 300px;
+  max-height: 400px;
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -784,19 +786,57 @@ body {
 
 /* Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 4px;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--accent);
-  border-radius: 4px;
+  background: rgba(108, 99, 255, 0.3);
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-hover);
+  background: var(--accent);
+}
+
+/* Drag and Drop Styling */
+.collection, .tab-item {
+  user-select: none;
+}
+
+.collection-header {
+  cursor: grab;
+}
+
+.collection-header:active {
+  cursor: grabbing;
+}
+
+.tab-item {
+  cursor: grab;
+}
+
+.tab-item:active {
+  cursor: grabbing;
+}
+
+.collection.dragging, .tab-item.dragging {
+  opacity: 0.4;
+  border: 1px dashed var(--accent);
+}
+
+.collection.drag-over {
+  border: 2px dashed var(--accent) !important;
+  transform: scale(1.01);
+  box-shadow: 0 4px 20px rgba(108, 99, 255, 0.2);
+}
+
+.tab-item.drag-over {
+  border: 2px dashed var(--accent) !important;
+  transform: scale(1.01);
+  box-shadow: 0 4px 12px rgba(108, 99, 255, 0.15);
 }

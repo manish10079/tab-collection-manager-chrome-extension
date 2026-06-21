@@ -141,6 +141,7 @@ const elements = {
 // ==================== STATE VARIABLES ====================
 let currentCollectionId = null; // For modal context
 let editingTabId = null; // Local UI state only
+let draggedItem = null; // Drag and drop state
 
 // ==================== COLLECTION OPERATIONS ====================
 async function createCollection(name) {
@@ -571,6 +572,62 @@ function renderCollection(collection, autoSaveCollectionId) {
   addTabsBtn.addEventListener('click', () => openAddTabsModal(collection.id));
   deleteBtn.addEventListener('click', () => deleteCollection(collection.id));
 
+  // Drag and drop events for collections
+  collectionEl.addEventListener('dragstart', (e) => {
+    if (e.target.classList.contains('collection')) {
+      draggedItem = {
+        type: 'collection',
+        id: collection.id
+      };
+      e.dataTransfer.effectAllowed = 'move';
+      collectionEl.classList.add('dragging');
+      e.stopPropagation();
+    }
+  });
+
+  collectionEl.addEventListener('dragend', (e) => {
+    collectionEl.classList.remove('dragging');
+    draggedItem = null;
+    document.querySelectorAll('.collection').forEach(c => c.classList.remove('drag-over'));
+  });
+
+  collectionEl.addEventListener('dragover', (e) => {
+    if (draggedItem && draggedItem.type === 'collection' && draggedItem.id !== collection.id) {
+      e.preventDefault();
+      collectionEl.classList.add('drag-over');
+    }
+    if (draggedItem && draggedItem.type === 'tab' && draggedItem.sourceCollectionId !== collection.id) {
+      e.preventDefault();
+      collectionEl.classList.add('drag-over');
+    }
+  });
+
+  collectionEl.addEventListener('dragleave', () => {
+    collectionEl.classList.remove('drag-over');
+  });
+
+  collectionEl.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    collectionEl.classList.remove('drag-over');
+    
+    if (draggedItem) {
+      if (draggedItem.type === 'collection') {
+        const sourceId = draggedItem.id;
+        const targetId = collection.id;
+        if (sourceId !== targetId) {
+          await reorderCollections(sourceId, targetId);
+        }
+      } else if (draggedItem.type === 'tab') {
+        const sourceTabId = draggedItem.id;
+        const sourceCollId = draggedItem.sourceCollectionId;
+        const targetCollId = collection.id;
+        if (sourceCollId !== targetCollId) {
+          await moveTabToCollection(sourceTabId, sourceCollId, targetCollId);
+        }
+      }
+    }
+  });
+
   return collectionEl;
 }
 
@@ -597,7 +654,7 @@ function renderTab(tab, collectionId) {
   const removeBtn = tabEl.querySelector('.remove-tab-btn');
 
   titleInput.value = tab.title;
-  urlSpan.textContent = tab.url;
+  urlSpan.textContent = tab.url.length > 50 ? tab.url.slice(0, 50) + '...' : tab.url;
   urlSpan.title = tab.url;
 
   // Editing state
@@ -663,6 +720,55 @@ function renderTab(tab, collectionId) {
 
   removeBtn.addEventListener('click', () => removeTab(collectionId, tab.id));
 
+  // Drag and drop events for tabs
+  tabEl.addEventListener('dragstart', (e) => {
+    draggedItem = {
+      type: 'tab',
+      id: tab.id,
+      sourceCollectionId: collectionId
+    };
+    e.dataTransfer.effectAllowed = 'move';
+    tabEl.classList.add('dragging');
+    e.stopPropagation();
+  });
+
+  tabEl.addEventListener('dragend', (e) => {
+    tabEl.classList.remove('dragging');
+    draggedItem = null;
+    document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('drag-over'));
+  });
+
+  tabEl.addEventListener('dragover', (e) => {
+    if (draggedItem && draggedItem.type === 'tab') {
+      e.preventDefault();
+      tabEl.classList.add('drag-over');
+    }
+  });
+
+  tabEl.addEventListener('dragleave', () => {
+    tabEl.classList.remove('drag-over');
+  });
+
+  tabEl.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    tabEl.classList.remove('drag-over');
+    
+    if (draggedItem && draggedItem.type === 'tab') {
+      const sourceTabId = draggedItem.id;
+      const sourceCollId = draggedItem.sourceCollectionId;
+      const targetTabId = tab.id;
+      const targetCollId = collectionId;
+      
+      if (sourceCollId === targetCollId) {
+        if (sourceTabId !== targetTabId) {
+          await reorderTabsWithinCollection(sourceCollId, sourceTabId, targetTabId);
+        }
+      } else {
+        await moveTabToCollectionAtPosition(sourceTabId, sourceCollId, targetCollId, targetTabId);
+      }
+    }
+  });
+
   return tabEl;
 }
 
@@ -671,7 +777,7 @@ function renderAutoSaveSelect(collections, autoSaveCollectionId) {
 }
 
 async function renderOpenTabsList() {
-  const tabs = await api.tabs.query({});
+  const tabs = await api.tabs.query({ currentWindow: true });
   const container = elements.openTabsList;
   container.innerHTML = '';
 
@@ -689,7 +795,8 @@ async function renderOpenTabsList() {
     checkbox.dataset.title = displayTitle;
     checkbox.dataset.url = tab.url;
     titleSpan.textContent = displayTitle;
-    urlSpan.textContent = tab.url;
+    urlSpan.textContent = tab.url.length > 50 ? tab.url.slice(0, 50) + '...' : tab.url;
+    urlSpan.title = tab.url;
 
     fragment.appendChild(item);
   });
@@ -818,6 +925,14 @@ function setupEventListeners() {
 async function init() {
   console.log('--- POPUP INIT ---');
   setupEventListeners();
+  
+  // Force an auto-save to ensure the Current Session is completely up-to-date
+  try {
+    await api.runtime.sendMessage({ command: 'forceAutoSave' });
+  } catch (err) {
+    console.warn('Failed to force auto-save on popup init:', err);
+  }
+  
   const state = await getState();
   
   // Debug logging
@@ -828,6 +943,15 @@ async function init() {
     backupTabCount: state.lastSessionBackup?.tabs?.length || 0,
     currentSessionExists: state.collections?.some(c => c.id === CURRENT_SESSION_ID) || false
   });
+  
+  const currentSession = state.collections?.find(c => c.id === CURRENT_SESSION_ID);
+  if (currentSession) {
+    console.log('=== POPUP: CURRENT SESSION TABS ===');
+    currentSession.tabs.forEach((t, i) => {
+      console.log(`  Saved Tab [${i}]: title="${t.title}", url="${t.url}"`);
+    });
+    console.log('===================================');
+  }
   
   if (state.collections) {
     state.collections.forEach((c, i) => {
@@ -840,16 +964,16 @@ async function init() {
     });
   }
   
-  // Ensure Current Session collection is expanded by default for better UX
   let needsUpdate = false;
+  
+  // Collapse all collections by default whenever the popup is opened
   if (state.collections) {
-    const currentSession = state.collections.find(c => c.id === CURRENT_SESSION_ID);
-    // Expand if not already expanded (isExpanded is false, undefined, or any falsy value)
-    if (currentSession && currentSession.isExpanded !== true) {
-      console.log('Expanding Current Session collection by default (was:', currentSession.isExpanded, ')');
-      currentSession.isExpanded = true;
-      needsUpdate = true;
-    }
+    state.collections.forEach(c => {
+      if (c.isExpanded) {
+        c.isExpanded = false;
+        needsUpdate = true;
+      }
+    });
   }
   
   // Clean up any stale auto‑save collection IDs (safety check)
@@ -874,3 +998,85 @@ async function init() {
 
 // Start the extension
 document.addEventListener('DOMContentLoaded', init);
+
+// ==================== DRAG AND DROP HELPERS ====================
+async function reorderCollections(sourceId, targetId) {
+  const newState = await updateState(state => {
+    const sourceIdx = state.collections.findIndex(c => c.id === sourceId);
+    const targetIdx = state.collections.findIndex(c => c.id === targetId);
+    if (sourceIdx !== -1 && targetIdx !== -1 && sourceIdx !== targetIdx) {
+      const [movedCollection] = state.collections.splice(sourceIdx, 1);
+      state.collections.splice(targetIdx, 0, movedCollection);
+    }
+  });
+  renderCollections(newState);
+}
+
+async function moveTabToCollection(tabId, sourceCollId, targetCollId) {
+  let canMove = true;
+  const newState = await updateState(state => {
+    const sourceColl = state.collections.find(c => c.id === sourceCollId);
+    const targetColl = state.collections.find(c => c.id === targetCollId);
+    if (sourceColl && targetColl) {
+      if (targetColl.tabs.length >= MAX_TABS_PER_COLLECTION) {
+        canMove = false;
+        return;
+      }
+      const tabIdx = sourceColl.tabs.findIndex(t => t.id === tabId);
+      if (tabIdx !== -1) {
+        const [movedTab] = sourceColl.tabs.splice(tabIdx, 1);
+        targetColl.tabs.push(movedTab);
+        sourceColl.updatedAt = Date.now();
+        targetColl.updatedAt = Date.now();
+      }
+    }
+  });
+  if (!canMove) {
+    alert(`Cannot move tab. Maximum ${MAX_TABS_PER_COLLECTION} tabs per collection.`);
+  } else {
+    renderCollections(newState);
+  }
+}
+
+async function reorderTabsWithinCollection(collectionId, sourceTabId, targetTabId) {
+  const newState = await updateState(state => {
+    const collection = state.collections.find(c => c.id === collectionId);
+    if (collection) {
+      const sourceIdx = collection.tabs.findIndex(t => t.id === sourceTabId);
+      const targetIdx = collection.tabs.findIndex(t => t.id === targetTabId);
+      if (sourceIdx !== -1 && targetIdx !== -1 && sourceIdx !== targetIdx) {
+        const [movedTab] = collection.tabs.splice(sourceIdx, 1);
+        collection.tabs.splice(targetIdx, 0, movedTab);
+        collection.updatedAt = Date.now();
+      }
+    }
+  });
+  renderCollections(newState);
+}
+
+async function moveTabToCollectionAtPosition(tabId, sourceCollId, targetCollId, targetTabId) {
+  let canMove = true;
+  const newState = await updateState(state => {
+    const sourceColl = state.collections.find(c => c.id === sourceCollId);
+    const targetColl = state.collections.find(c => c.id === targetCollId);
+    if (sourceColl && targetColl) {
+      if (targetColl.tabs.length >= MAX_TABS_PER_COLLECTION) {
+        canMove = false;
+        return;
+      }
+      const sourceTabIdx = sourceColl.tabs.findIndex(t => t.id === tabId);
+      const targetTabIdx = targetColl.tabs.findIndex(t => t.id === targetTabId);
+      if (sourceTabIdx !== -1 && targetTabIdx !== -1) {
+        const [movedTab] = sourceColl.tabs.splice(sourceTabIdx, 1);
+        targetColl.tabs.splice(targetTabIdx, 0, movedTab);
+        sourceColl.updatedAt = Date.now();
+        targetColl.updatedAt = Date.now();
+      }
+    }
+  });
+  if (!canMove) {
+    alert(`Cannot move tab. Maximum ${MAX_TABS_PER_COLLECTION} tabs per collection.`);
+  } else {
+    renderCollections(newState);
+  }
+}
