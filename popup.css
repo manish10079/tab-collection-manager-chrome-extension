@@ -645,6 +645,13 @@ body {
   align-items: center;
   justify-content: center;
   font-size: 13px;
+  flex-shrink: 0;
+}
+
+.tab-number {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .tab-content {

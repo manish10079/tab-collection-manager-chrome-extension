@@ -673,25 +673,29 @@ function renderCollection(collection, autoSaveCollectionId) {
 
 function renderTabs(collection, container) {
   const fragment = document.createDocumentFragment();
-  collection.tabs.forEach(tab => {
-    const tabEl = renderTab(tab, collection.id);
+  collection.tabs.forEach((tab, index) => {
+    const tabEl = renderTab(tab, collection.id, index + 1);
     fragment.appendChild(tabEl);
   });
   container.innerHTML = '';
   container.appendChild(fragment);
 }
 
-function renderTab(tab, collectionId) {
+function renderTab(tab, collectionId, tabNumber) {
   const template = document.getElementById('tabTemplate');
   const clone = template.content.cloneNode(true);
   const tabEl = clone.querySelector('.tab-item');
   tabEl.dataset.id = tab.id;
 
+  const tabIcon = tabEl.querySelector('.tab-icon');
   const titleInput = tabEl.querySelector('.tab-title');
   const urlSpan = tabEl.querySelector('.tab-url');
   const editBtn = tabEl.querySelector('.edit-tab-btn');
   const openBtn = tabEl.querySelector('.open-tab-btn');
   const removeBtn = tabEl.querySelector('.remove-tab-btn');
+
+  // Replace icon with tab number
+  tabIcon.innerHTML = `<span class="tab-number">${tabNumber}</span>`;
 
   titleInput.value = tab.title;
   urlSpan.textContent = tab.url.length > 50 ? tab.url.slice(0, 50) + '...' : tab.url;
