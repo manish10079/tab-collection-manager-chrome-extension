@@ -199,6 +199,127 @@ chrome.windows.onFocusChanged.addListener(() => {
   triggerAutoSave();
 });
 
+// ==================== CONTEXT MENU ====================
+const CONTEXT_MENU_PARENT_ID = 'add-to-collection';
+
+/**
+ * Build (or rebuild) the "Add to Collection" context‑menu tree.
+ * Creates a parent item and one child per user collection.
+ * Current Session is excluded since it auto‑saves.
+ */
+async function buildContextMenus() {
+  // Remove all existing menus first to avoid duplicates
+  await chrome.contextMenus.removeAll();
+
+  const state = await getState();
+  const collections = (state.collections || []).filter(
+    c => c.id !== CURRENT_SESSION_ID
+  );
+
+  // Only create the menu if there are user collections
+  if (collections.length === 0) {
+    // Create a single disabled item so users know where to look
+    chrome.contextMenus.create({
+      id: CONTEXT_MENU_PARENT_ID,
+      title: 'Add to Collection (no collections yet)',
+      contexts: ['page', 'link'],
+      enabled: false
+    });
+    return;
+  }
+
+  // Parent menu
+  chrome.contextMenus.create({
+    id: CONTEXT_MENU_PARENT_ID,
+    title: 'Add to Collection',
+    contexts: ['page', 'link']
+  });
+
+  // One child per collection
+  collections.forEach(collection => {
+    chrome.contextMenus.create({
+      id: `collection-${collection.id}`,
+      parentId: CONTEXT_MENU_PARENT_ID,
+      title: collection.name,
+      contexts: ['page', 'link']
+    });
+  });
+
+  console.log(`Context menus built: ${collections.length} collection(s)`);
+}
+
+/**
+ * Handle a context‑menu click.
+ * Extracts the tab's title & URL (or the link URL for link context)
+ * and adds it to the chosen collection.
+ */
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  const menuId = info.menuItemId;
+  if (typeof menuId !== 'string' || !menuId.startsWith('collection-')) return;
+
+  const collectionId = menuId.replace('collection-', '');
+
+  // Determine title & URL — if user right-clicked a link, use the link URL
+  const url = info.linkUrl || info.pageUrl || (tab ? tab.url : '');
+  const title = info.linkUrl
+    ? (info.selectionText || info.linkUrl)        // link context: use selected text or raw URL
+    : (tab ? tab.title : 'Untitled');              // page context: use tab title
+
+  if (!url) {
+    console.warn('Context menu: no URL to add');
+    return;
+  }
+
+  // Validate URL
+  if (!validateUrl(url)) {
+    console.warn('Context menu: invalid URL skipped:', url);
+    return;
+  }
+
+  // Add the tab to the collection
+  let added = false;
+  await updateState(state => {
+    const collection = state.collections.find(c => c.id === collectionId);
+    if (!collection) return;
+    if (collection.tabs.length >= MAX_TABS_PER_COLLECTION) {
+      console.warn(`Context menu: collection "${collection.name}" is full (${MAX_TABS_PER_COLLECTION} tabs)`);
+      return;
+    }
+    collection.tabs.push({
+      id: crypto.randomUUID(),
+      title: (title || '').trim() || 'Untitled',
+      url: url,
+      pinned: false,
+      index: collection.tabs.length,
+      windowId: tab ? tab.windowId : 0,
+      active: false,
+      discarded: false,
+      highlighted: false
+    });
+    collection.updatedAt = Date.now();
+    added = true;
+  });
+
+  if (added) {
+    // Show a badge on the extension icon briefly as confirmation
+    try {
+      await chrome.action.setBadgeBackgroundColor({ color: '#4ecdc4' });
+      await chrome.action.setBadgeText({ text: '✓' });
+      setTimeout(() => chrome.action.setBadgeText({ text: '' }), 2000);
+    } catch (e) {
+      // Badge API may not be available in all contexts
+    }
+    console.log(`Context menu: added "${title}" to collection ${collectionId}`);
+  }
+});
+
+// Rebuild context menus whenever collections change in storage
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'local' && changes.collections) {
+    buildContextMenus();
+  }
+});
+
 // ==================== INSTALL / UPDATE ====================
 api.runtime.onInstalled.addListener(async () => {
   console.log('Tab Collection Manager installed/updated');
@@ -246,6 +367,9 @@ api.runtime.onInstalled.addListener(async () => {
   if (needsUpdate) {
     await setState(state);
   }
+
+  // Build context menus on install/update
+  await buildContextMenus();
   
   // After installation/update, perform an initial auto‑save (but only if tabs exist)
   setTimeout(async () => {
@@ -294,6 +418,9 @@ api.runtime.onStartup.addListener(async () => {
   if (needsUpdate) {
     await setState(state);
   }
+
+  // Build context menus on startup
+  await buildContextMenus();
   
   // Wait for tabs to restore
   setTimeout(async () => {

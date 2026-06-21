@@ -5,7 +5,8 @@
   "description": "Auto-save and manage tab collections with premium dark mode UI",
   "permissions": [
     "tabs",
-    "storage"
+    "storage",
+    "contextMenus"
   ],
   "action": {
     "default_popup": "popup.html",
