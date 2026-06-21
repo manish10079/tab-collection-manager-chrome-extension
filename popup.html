@@ -103,6 +103,26 @@
         </div>
       </div>
     </div>
+
+    <!-- Duplicate URL Confirmation Dialog -->
+    <div class="modal-overlay" id="duplicateUrlDialog" style="display: none;">
+      <div class="modal duplicate-dialog">
+        <div class="modal-header">
+          <h3><i class="fas fa-exclamation-triangle"></i> Duplicate URL Found</h3>
+          <button class="close-modal" id="closeDuplicateDialog">&times;</button>
+        </div>
+        <div class="modal-body duplicate-dialog-body">
+          <div id="duplicateUrlMessage" class="duplicate-message"></div>
+          <div id="duplicateUrlList" class="duplicate-collection-list"></div>
+        </div>
+        <div class="modal-footer duplicate-dialog-footer">
+          <button class="btn-outline" id="duplicateCancelBtn">Cancel</button>
+          <button class="btn-secondary" id="duplicateConfirmBtn">
+            <i class="fas fa-plus"></i> Add Anyway
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <template id="collectionTemplate">
@@ -133,7 +153,7 @@
           </button>
         </div>
       </div>
-      <div class="collection-tabs" style="display: none;">
+      <div class="collection-tabs">
         <div class="collection-tab-search">
           <input type="text" class="collection-tab-search-input" placeholder="Search tabs…" autocomplete="off" spellcheck="false" />
         </div>

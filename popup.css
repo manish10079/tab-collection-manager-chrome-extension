@@ -498,6 +498,10 @@ body {
   justify-content: center;
 }
 
+.expand-btn {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .expand-btn.rotated {
   transform: rotate(90deg);
 }
@@ -550,8 +554,26 @@ body {
 .collection-tabs {
   padding: 0 20px 20px;
   border-top: 1px solid var(--border);
-  max-height: 350px;
+  /* Collapsed state — hidden but animatable */
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity    0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    transform  0.3s  cubic-bezier(0.4, 0, 0.2, 1);
+  /* Prevent border flash while collapsed */
+  border-top-color: transparent;
+}
+
+/* Expanded state */
+.collection-tabs.expanded {
+  max-height: 400px;
   overflow-y: auto;
+  opacity: 1;
+  transform: translateY(0);
+  border-top-color: var(--border);
 }
 
 /* Per-collection tab search */
@@ -1012,4 +1034,84 @@ body {
   border: 2px dashed var(--accent) !important;
   transform: scale(1.01);
   box-shadow: 0 4px 12px rgba(108, 99, 255, 0.15);
+}
+
+/* ==================== DUPLICATE URL DIALOG ==================== */
+.duplicate-dialog {
+  max-width: 400px;
+}
+
+.duplicate-dialog .modal-header h3 {
+  color: #f59e0b;
+}
+
+.duplicate-dialog .modal-header h3 i {
+  color: #f59e0b;
+}
+
+.duplicate-dialog-body {
+  min-height: auto !important;
+  padding: 20px 24px !important;
+}
+
+.duplicate-message {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.duplicate-message strong {
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.duplicate-collection-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.duplicate-collection-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.duplicate-collection-item i {
+  color: #f59e0b;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.duplicate-collection-item .dup-collection-name {
+  font-weight: 600;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.duplicate-dialog-footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 16px 24px !important;
+}
+
+.duplicate-dialog-footer .btn-secondary {
+  background: #f59e0b;
+  border-color: #f59e0b;
+}
+
+.duplicate-dialog-footer .btn-secondary:hover {
+  background: #d97706;
+  border-color: #d97706;
 }

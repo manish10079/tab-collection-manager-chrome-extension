@@ -117,6 +117,86 @@ function validateUrl(url) {
   }
 }
 
+/**
+ * Check if a URL already exists in any collection.
+ * Returns an array of { collectionName, collectionId } where the URL was found.
+ */
+function findDuplicateUrlsAcrossCollections(url, collections) {
+  const normalizedUrl = url.trim().toLowerCase().replace(/\/+$/, '');
+  const duplicates = [];
+
+  for (const collection of collections) {
+    // Exclude Current Session — it dynamically mirrors all open tabs,
+    // so any URL currently open will always appear there. Including it
+    // would produce a false-positive duplicate warning on every add.
+    if (collection.id === CURRENT_SESSION_ID) continue;
+
+    const found = collection.tabs.some(tab => {
+      const tabUrl = tab.url.trim().toLowerCase().replace(/\/+$/, '');
+      return tabUrl === normalizedUrl;
+    });
+    if (found) {
+      duplicates.push({
+        collectionId: collection.id,
+        collectionName: collection.name
+      });
+    }
+  }
+
+  return duplicates;
+}
+
+/**
+ * Show a styled confirmation dialog when a duplicate URL is detected.
+ * Returns a Promise that resolves to true (add anyway) or false (cancel).
+ */
+function showDuplicateUrlConfirm(url, duplicates) {
+  return new Promise(resolve => {
+    const dialog = document.getElementById('duplicateUrlDialog');
+    const messageEl = document.getElementById('duplicateUrlMessage');
+    const listEl = document.getElementById('duplicateUrlList');
+    const confirmBtn = document.getElementById('duplicateConfirmBtn');
+    const cancelBtn = document.getElementById('duplicateCancelBtn');
+    const closeBtn = document.getElementById('closeDuplicateDialog');
+
+    // Truncate URL for display
+    const displayUrl = url.length > 60 ? url.slice(0, 60) + '…' : url;
+
+    messageEl.innerHTML = `This URL already exists in ${duplicates.length === 1 ? 'another collection' : 'other collections'}:<br><strong>${displayUrl}</strong>`;
+
+    listEl.innerHTML = duplicates.map(d =>
+      `<div class="duplicate-collection-item">
+        <i class="fas fa-folder"></i>
+        <span class="dup-collection-name" title="${d.collectionName}">${d.collectionName}</span>
+      </div>`
+    ).join('');
+
+    // Cleanup function to remove listeners and hide dialog
+    function cleanup() {
+      confirmBtn.removeEventListener('click', onConfirm);
+      cancelBtn.removeEventListener('click', onCancel);
+      closeBtn.removeEventListener('click', onCancel);
+      dialog.style.display = 'none';
+    }
+
+    function onConfirm() {
+      cleanup();
+      resolve(true);
+    }
+
+    function onCancel() {
+      cleanup();
+      resolve(false);
+    }
+
+    confirmBtn.addEventListener('click', onConfirm);
+    cancelBtn.addEventListener('click', onCancel);
+    closeBtn.addEventListener('click', onCancel);
+
+    dialog.style.display = 'flex';
+  });
+}
+
 // ==================== DOM ELEMENTS ====================
 const elements = {
   newCollectionName: document.getElementById('newCollectionName'),
@@ -231,13 +311,42 @@ async function renameCollection(collectionId, newName) {
 }
 
 async function toggleCollectionExpanded(collectionId) {
-  const newState = await updateState(state => {
-    const collection = state.collections.find(c => c.id === collectionId);
-    if (collection) {
-      collection.isExpanded = !collection.isExpanded;
+  // Find the already-rendered DOM elements so we can animate in-place.
+  // We avoid calling renderCollections() here because it destroys+rebuilds
+  // the entire DOM, which kills any in-progress CSS transition.
+  const collectionEl = document.querySelector(`[data-id="${collectionId}"]`);
+  if (!collectionEl) return;
+
+  const tabsContainer = collectionEl.querySelector('.collection-tabs');
+  const expandBtn     = collectionEl.querySelector('.expand-btn');
+  if (!tabsContainer) return;
+
+  // Capture intent from current DOM state BEFORE any async work
+  const isExpanding = !tabsContainer.classList.contains('expanded');
+
+  if (isExpanding) {
+    // If tabs haven't been rendered into the list yet, populate them first.
+    // The await below naturally yields to the browser, giving the CSS
+    // transition a chance to start from the collapsed baseline.
+    const tabsList = tabsContainer.querySelector('.tabs-list');
+    if (tabsList && tabsList.children.length === 0) {
+      const state = await getState();
+      const collection = state.collections.find(c => c.id === collectionId);
+      if (collection) renderTabs(collection, tabsList);
     }
+    tabsContainer.classList.add('expanded');
+    if (expandBtn) expandBtn.classList.add('rotated');
+  } else {
+    tabsContainer.classList.remove('expanded');
+    if (expandBtn) expandBtn.classList.remove('rotated');
+  }
+
+  // Persist to storage using deterministic isExpanding flag
+  // (avoids mismatch if storage and DOM ever diverge)
+  await updateState(state => {
+    const collection = state.collections.find(c => c.id === collectionId);
+    if (collection) collection.isExpanded = isExpanding;
   });
-  renderCollections(newState);
 }
 
 // ==================== TAB OPERATIONS ====================
@@ -248,6 +357,14 @@ async function addManualTab(collectionId, title, url) {
   if (!validateUrl(trimmedUrl)) {
     alert('Please enter a valid URL (e.g., https://example.com)');
     return false;
+  }
+
+  // Check for duplicate URLs across all collections
+  const currentState = await getState();
+  const duplicates = findDuplicateUrlsAcrossCollections(trimmedUrl, currentState.collections);
+  if (duplicates.length > 0) {
+    const proceed = await showDuplicateUrlConfirm(trimmedUrl, duplicates);
+    if (!proceed) return false;
   }
 
   let canAdd = true;
@@ -284,6 +401,51 @@ async function addManualTab(collectionId, title, url) {
 async function addTabsFromSelection(collectionId, tabsArray) {
   if (!tabsArray.length) return;
 
+  // Check for duplicate URLs across all collections
+  const currentState = await getState();
+  const duplicateTabs = [];
+  const cleanTabs = [];
+
+  for (const tab of tabsArray) {
+    if (!validateUrl(tab.url)) continue;
+    const duplicates = findDuplicateUrlsAcrossCollections(tab.url, currentState.collections);
+    if (duplicates.length > 0) {
+      duplicateTabs.push({ tab, duplicates });
+    } else {
+      cleanTabs.push(tab);
+    }
+  }
+
+  // If there are duplicate tabs, ask user for confirmation
+  let confirmedDupTabs = [];
+  if (duplicateTabs.length > 0) {
+    // Consolidate all duplicate info for the dialog
+    // Show each duplicate tab and which collections it exists in
+    const allDuplicateCollections = [];
+    const seenCollections = new Set();
+    for (const { tab, duplicates } of duplicateTabs) {
+      for (const dup of duplicates) {
+        const key = `${dup.collectionId}-${tab.url}`;
+        if (!seenCollections.has(key)) {
+          seenCollections.add(key);
+          allDuplicateCollections.push(dup);
+        }
+      }
+    }
+
+    const displayUrl = duplicateTabs.length === 1
+      ? duplicateTabs[0].tab.url
+      : `${duplicateTabs.length} URLs`;
+
+    const proceed = await showDuplicateUrlConfirm(displayUrl, allDuplicateCollections);
+    if (proceed) {
+      confirmedDupTabs = duplicateTabs.map(d => d.tab);
+    }
+  }
+
+  const tabsToAdd = [...cleanTabs, ...confirmedDupTabs];
+  if (tabsToAdd.length === 0) return;
+
   let addedCount = 0;
   let skippedDueToLimit = 0;
   let skippedDueToInvalidUrl = 0;
@@ -293,7 +455,7 @@ async function addTabsFromSelection(collectionId, tabsArray) {
     if (collection) {
       const availableSlots = MAX_TABS_PER_COLLECTION - collection.tabs.length;
       
-      tabsArray.forEach(tab => {
+      tabsToAdd.forEach(tab => {
         // Validate URL before adding
         if (!validateUrl(tab.url)) {
           skippedDueToInvalidUrl++;
@@ -512,10 +674,10 @@ function renderCollection(collection, autoSaveCollectionId) {
   // Expanded state
   if (collection.isExpanded) {
     if (expandBtn) expandBtn.classList.add('rotated');
-    tabsContainer.style.display = 'block';
+    tabsContainer.classList.add('expanded');
     renderTabs(collection, tabsContainer.querySelector('.tabs-list'));
   } else {
-    tabsContainer.style.display = 'none';
+    tabsContainer.classList.remove('expanded');
   }
 
   // Per-collection tab search bar

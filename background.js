@@ -249,9 +249,34 @@ async function buildContextMenus() {
 }
 
 /**
+ * Check if a URL already exists in any collection (including Current Session).
+ * Returns an array of collection names where the URL was found.
+ * @param {string} url - The URL to check
+ * @param {Array} collections - All collections to search through
+ * @returns {string[]} Array of collection names that already contain this URL
+ */
+function findDuplicateCollections(url, collections) {
+  const normalizedUrl = url.trim().toLowerCase().replace(/\/+$/, '');
+  const found = [];
+  for (const collection of collections) {
+    // Exclude Current Session — it dynamically mirrors all open tabs,
+    // so any open tab will always appear there. Flagging it as a duplicate
+    // would produce false-positive warnings on every context-menu add.
+    if (collection.id === CURRENT_SESSION_ID) continue;
+    if (!collection.tabs) continue;
+    const exists = collection.tabs.some(
+      t => t.url.trim().toLowerCase().replace(/\/+$/, '') === normalizedUrl
+    );
+    if (exists) found.push(collection.name);
+  }
+  return found;
+}
+
+/**
  * Handle a context‑menu click.
  * Extracts the tab's title & URL (or the link URL for link context)
  * and adds it to the chosen collection.
+ * Includes duplicate detection across ALL collections (including Current Session).
  */
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   const menuId = info.menuItemId;
@@ -275,6 +300,24 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     console.warn('Context menu: invalid URL skipped:', url);
     return;
   }
+
+  // ── Duplicate Detection ──────────────────────────────────────────────────
+  // Check the URL against ALL collections, including Current Session (Task 2).
+  // This prevents silently adding a tab that already lives in any collection.
+  const currentState = await getState();
+  const duplicateIn = findDuplicateCollections(url, currentState.collections);
+  if (duplicateIn.length > 0) {
+    const names = duplicateIn.join(', ');
+    console.warn(`Context menu: duplicate URL already exists in: ${names}. Skipping add.`);
+    // Flash a red badge to inform the user without a blocking dialog
+    try {
+      await chrome.action.setBadgeBackgroundColor({ color: '#e74c3c' });
+      await chrome.action.setBadgeText({ text: '!' });
+      setTimeout(() => chrome.action.setBadgeText({ text: '' }), 3000);
+    } catch (e) { /* Badge API may not be available in all contexts */ }
+    return; // Do not add the duplicate
+  }
+  // ────────────────────────────────────────────────────────────────────────
 
   // Add the tab to the collection
   let added = false;
