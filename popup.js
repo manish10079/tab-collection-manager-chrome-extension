@@ -310,6 +310,201 @@ async function renameCollection(collectionId, newName) {
   return true;
 }
 
+async function exportAllCollections() {
+  const state = await getState();
+  if (!state.collections || state.collections.length === 0) {
+    alert('No collections to export.');
+    return;
+  }
+  const dataStr = JSON.stringify(state.collections, null, 2);
+  const blob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const filename = `tab_collections_backup.json`;
+
+  if (api.downloads && api.downloads.download) {
+    api.downloads.download({
+      url: url,
+      filename: filename,
+      saveAs: true
+    }, () => {
+      URL.revokeObjectURL(url);
+      showToast('All collections exported successfully');
+    });
+  } else {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+    showToast('All collections exported successfully');
+  }
+}
+
+function importAllCollections() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async event => {
+      try {
+        const importedCollections = JSON.parse(event.target.result);
+        if (!Array.isArray(importedCollections)) {
+          alert('Invalid format. File must contain an array of collections.');
+          return;
+        }
+
+        const validCollections = importedCollections.filter(c => c && typeof c === 'object' && c.name && Array.isArray(c.tabs));
+        if (validCollections.length === 0) {
+          alert('No valid collections found in the file.');
+          return;
+        }
+
+        let addedCount = 0;
+        let mergedCount = 0;
+
+        await updateState(state => {
+          validCollections.forEach(imported => {
+            if (imported.id === CURRENT_SESSION_ID) return;
+
+            // Find if a collection with the same name already exists
+            const existing = state.collections.find(c => c.name.toLowerCase() === imported.name.toLowerCase());
+            if (existing) {
+              // Merge tabs into existing collection
+              let tabAddedCount = 0;
+              imported.tabs.forEach(tab => {
+                if (!tab.url) return;
+                const existsInTarget = existing.tabs.some(t => t.url.trim().toLowerCase().replace(/\/+$/, '') === tab.url.trim().toLowerCase().replace(/\/+$/, ''));
+                if (!existsInTarget && existing.tabs.length < MAX_TABS_PER_COLLECTION) {
+                  existing.tabs.push({
+                    id: generateId(),
+                    title: tab.title || 'Untitled',
+                    url: tab.url,
+                    pinned: !!tab.pinned,
+                    index: existing.tabs.length,
+                    windowId: 0,
+                    active: false,
+                    discarded: false,
+                    highlighted: false
+                  });
+                  tabAddedCount++;
+                }
+              });
+              if (tabAddedCount > 0) {
+                existing.updatedAt = Date.now();
+                mergedCount++;
+              }
+            } else {
+              // Add as a new collection
+              state.collections.push({
+                id: generateId(),
+                name: imported.name,
+                tabs: imported.tabs.filter(t => t.url).map(t => ({
+                  id: generateId(),
+                  title: t.title || 'Untitled',
+                  url: t.url,
+                  pinned: !!t.pinned,
+                  index: 0,
+                  windowId: 0,
+                  active: false,
+                  discarded: false,
+                  highlighted: false
+                })).slice(0, MAX_TABS_PER_COLLECTION),
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+                isExpanded: false
+              });
+              addedCount++;
+            }
+          });
+        });
+
+        const newState = await getState();
+        renderCollections(newState);
+        showToast(`Import completed: Created ${addedCount} and merged ${mergedCount} collections.`);
+      } catch (err) {
+        console.error('Error importing collections:', err);
+        alert('Failed to parse file. Make sure it is a valid JSON file.');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function exportCollection(collection) {
+  if (!collection || !collection.tabs || collection.tabs.length === 0) {
+    alert('No tabs to export in this collection.');
+    return;
+  }
+  const dataStr = JSON.stringify(collection.tabs, null, 2);
+  const blob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const filename = `${collection.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_tabs.json`;
+
+  if (api.downloads && api.downloads.download) {
+    api.downloads.download({
+      url: url,
+      filename: filename,
+      saveAs: true
+    }, () => {
+      URL.revokeObjectURL(url);
+      showToast('Collection exported successfully');
+    });
+  } else {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+    showToast('Collection exported successfully');
+  }
+}
+
+function importCollection(collectionId) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async event => {
+      try {
+        const tabs = JSON.parse(event.target.result);
+        if (!Array.isArray(tabs)) {
+          alert('Invalid file format. The file must contain an array of tabs.');
+          return;
+        }
+        
+        // Filter out invalid tabs
+        const validTabs = tabs.filter(t => t && typeof t === 'object' && t.url);
+        if (validTabs.length === 0) {
+          alert('No valid tabs found in the imported file.');
+          return;
+        }
+
+        // Add them to the collection
+        await addTabsFromSelection(collectionId, validTabs);
+        const state = await getState();
+        renderCollections(state);
+        showToast(`Imported ${validTabs.length} tabs successfully`);
+      } catch (err) {
+        console.error('Error importing tabs:', err);
+        alert('Failed to parse file. Make sure it is a valid JSON file.');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
 async function toggleCollectionExpanded(collectionId) {
   // Find the already-rendered DOM elements so we can animate in-place.
   // We avoid calling renderCollections() here because it destroys+rebuilds
@@ -703,9 +898,33 @@ function renderCollection(collection, autoSaveCollectionId) {
     });
   }
 
+  // Import / Export button listeners inside tab search row
+  const importBtn = collectionEl.querySelector('.import-tabs-btn');
+  const exportBtn = collectionEl.querySelector('.export-tabs-btn');
+
+  if (importBtn) {
+    importBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+    if (collection.id === CURRENT_SESSION_ID) {
+      importBtn.style.display = 'none'; // Current Session is dynamic/readonly
+    } else {
+      importBtn.addEventListener('click', () => {
+        importCollection(collection.id);
+      });
+    }
+  }
+
+  if (exportBtn) {
+    exportBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      exportCollection(collection);
+    });
+  }
+
   // Auto‑save indicator
   if (collection.id === autoSaveCollectionId) {
-    collectionEl.style.borderLeft = '4px solid var(--accent)';
+    collectionEl.classList.add('auto-save-target');
   }
 
   // Event listeners
@@ -1159,6 +1378,16 @@ function setupEventListeners() {
         elements.searchBox.blur();
       }
     });
+  }
+
+  // Global Import and Export buttons
+  const globalImportBtn = document.getElementById('globalImportBtn');
+  const globalExportBtn = document.getElementById('globalExportBtn');
+  if (globalImportBtn) {
+    globalImportBtn.addEventListener('click', importAllCollections);
+  }
+  if (globalExportBtn) {
+    globalExportBtn.addEventListener('click', exportAllCollections);
   }
 
   // Create collection

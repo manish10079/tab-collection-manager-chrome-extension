@@ -17,8 +17,16 @@
 
     <div class="scrollable-content">
       <div class="controls">
-        <div class="search-bar">
-          <input type="text" id="searchBox" placeholder="Search collections or tabs…" autocomplete="off" spellcheck="false" />
+        <div class="search-bar-row">
+          <div class="search-bar">
+            <input type="text" id="searchBox" placeholder="Search collections or tabs…" autocomplete="off" spellcheck="false" />
+          </div>
+          <button class="icon-btn" id="globalImportBtn" title="Import All Collections (JSON)">
+            <i class="fas fa-file-import"></i>
+          </button>
+          <button class="icon-btn" id="globalExportBtn" title="Export All Collections (JSON)">
+            <i class="fas fa-file-export"></i>
+          </button>
         </div>
         <div class="input-group">
           <input type="text" id="newCollectionName" placeholder="New collection name" maxlength="50">
@@ -128,34 +136,43 @@
   <template id="collectionTemplate">
     <div class="collection" data-id="" draggable="true">
       <div class="collection-header">
-        <div class="collection-info">
+        <div class="collection-left-section">
           <button class="expand-btn">
             <i class="fas fa-chevron-right"></i>
           </button>
           <input type="text" class="collection-name" value="" maxlength="50" readonly>
+        </div>
+        <div class="collection-right-section">
           <div class="collection-meta">
             <span class="tab-count">0 tabs</span>
+            <span class="meta-dot">•</span>
             <span class="updated-time">just now</span>
           </div>
-        </div>
-        <div class="collection-actions">
-          <button class="icon-btn open-all-tabs-btn" title="Open all tabs">
-            <i class="fas fa-external-link-square-alt"></i>
-          </button>
-          <button class="icon-btn add-tabs-btn" title="Add tabs">
-            <i class="fas fa-plus"></i>
-          </button>
-          <button class="icon-btn edit-collection-btn" title="Edit collection name">
-            <i class="fas fa-edit"></i>
-          </button>
-          <button class="icon-btn delete-collection-btn" title="Delete collection">
-            <i class="fas fa-trash"></i>
-          </button>
+          <div class="collection-actions">
+            <button class="icon-btn open-all-tabs-btn" title="Open all tabs">
+              <i class="fas fa-external-link-square-alt"></i>
+            </button>
+            <button class="icon-btn add-tabs-btn" title="Add tabs">
+              <i class="fas fa-plus"></i>
+            </button>
+            <button class="icon-btn edit-collection-btn" title="Edit collection name">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="icon-btn delete-collection-btn" title="Delete collection">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
         </div>
       </div>
       <div class="collection-tabs">
         <div class="collection-tab-search">
           <input type="text" class="collection-tab-search-input" placeholder="Search tabs…" autocomplete="off" spellcheck="false" />
+          <button class="icon-btn import-tabs-btn" title="Import tabs (JSON)">
+            <i class="fas fa-file-import"></i>
+          </button>
+          <button class="icon-btn export-tabs-btn" title="Export tabs (JSON)">
+            <i class="fas fa-file-export"></i>
+          </button>
         </div>
         <div class="tabs-list">
           <!-- Tabs will be inserted here -->
