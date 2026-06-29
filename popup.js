@@ -1283,57 +1283,201 @@ let searchDebounceTimer = null;
 let tabSearchDebounceTimers = {};
 
 /**
- * Live‑filter collections shown in the DOM by collection name only.
- * Hides collections whose name doesn't match the query.
- * Shows a "no results" message when nothing matches.
+ * Global search — shows results in two sections:
+ *   Collections : collections whose name matches the query
+ *   Tabs        : collections that have matching tab titles / URLs
+ *
+ * When the query is empty the normal collections list is restored.
  */
-function filterResults(query) {
+async function filterResults(query) {
   const q = (query || '').trim().toLowerCase();
-  const container = elements.collectionsContainer;
+  const container   = elements.collectionsContainer;
+  const resultsBox  = document.getElementById('searchResultsContainer');
 
-  // Remove any previous "no results" banner
-  const oldNoResults = container.querySelector('.search-no-results');
-  if (oldNoResults) oldNoResults.remove();
-
-  const collectionEls = container.querySelectorAll('.collection');
-
-  // If the query is empty, show everything and bail out
+  // ── Empty query → restore normal view ─────────────────────────────────────
   if (!q) {
-    collectionEls.forEach(el => {
+    container.style.display  = '';
+    if (resultsBox) { resultsBox.style.display = 'none'; resultsBox.innerHTML = ''; }
+    container.querySelectorAll('.collection').forEach(el => {
       el.classList.remove('search-hidden', 'search-fade-in');
     });
-    // Re‑show empty state if needed
-    elements.emptyState.classList.toggle('hidden', collectionEls.length > 0);
+    elements.emptyState.classList.toggle(
+      'hidden', container.querySelectorAll('.collection').length > 0
+    );
     return;
   }
 
-  let anyVisible = false;
+  // ── Fetch full state so we can search collapsed (un‑rendered) tabs too ────
+  const state = await getState();
 
-  collectionEls.forEach(el => {
-    const nameInput = el.querySelector('.collection-name');
-    const collName = (nameInput ? nameInput.value : '').toLowerCase();
-    const nameMatches = collName.includes(q);
+  // Collections matching by name
+  const nameMatches = state.collections.filter(c =>
+    c.name.toLowerCase().includes(q)
+  );
 
-    if (nameMatches) {
-      el.classList.remove('search-hidden');
-      el.classList.add('search-fade-in');
-      anyVisible = true;
-    } else {
-      el.classList.add('search-hidden');
-      el.classList.remove('search-fade-in');
-    }
+  // Collections with at least one tab matching title or URL
+  const tabMatchGroups = [];
+  state.collections.forEach(collection => {
+    const hits = (collection.tabs || []).filter(tab =>
+      (tab.title || '').toLowerCase().includes(q) ||
+      (tab.url   || '').toLowerCase().includes(q)
+    );
+    if (hits.length > 0) tabMatchGroups.push({ collection, hits });
   });
 
-  // Hide the default empty state; show a search‑specific message instead
-  elements.emptyState.classList.add('hidden');
+  // ── Hide normal list; surface the results container ───────────────────────
+  container.style.display = 'none';
+  if (!resultsBox) return;
+  resultsBox.style.display = 'block';
 
-  if (!anyVisible) {
-    const noResults = document.createElement('div');
-    noResults.className = 'search-no-results';
-    noResults.innerHTML = '<i class="fas fa-search"></i>No collections match your search.';
-    container.insertBefore(noResults, elements.emptyState);
+  const totalTabHits  = tabMatchGroups.reduce((s, g) => s + g.hits.length, 0);
+  const hasAnyResult  = nameMatches.length > 0 || tabMatchGroups.length > 0;
+
+  if (!hasAnyResult) {
+    resultsBox.innerHTML = `
+      <div class="search-no-results">
+        <i class="fas fa-search"></i>
+        No collections or tabs match <strong>"${escapeHtml(q)}"</strong>
+      </div>`;
+    return;
   }
+
+  // ── Build HTML ─────────────────────────────────────────────────────────────
+  let html = '';
+
+  // — Section 1 : Collections ————————————————————————————————————————————————
+  if (nameMatches.length > 0) {
+    html += `
+      <div class="search-section">
+        <div class="search-section-header">
+          <span class="search-section-title">
+            <i class="fas fa-folder"></i> Collections
+          </span>
+          <span class="search-section-count">${nameMatches.length}</span>
+        </div>
+        <div class="search-section-body">
+          ${nameMatches.map(c => `
+            <div class="search-collection-result" data-id="${c.id}">
+              <div class="search-result-left">
+                <i class="fas fa-folder-open search-result-icon"></i>
+                <div class="search-result-info">
+                  <span class="search-result-name">${highlightMatch(c.name, q)}</span>
+                  <span class="search-result-meta">
+                    ${c.tabs.length} tab${c.tabs.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              </div>
+              <i class="fas fa-chevron-right search-result-arrow"></i>
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+  }
+
+  // — Section 2 : Tabs ————————————————————————————————————————————————————————
+  if (tabMatchGroups.length > 0) {
+    html += `
+      <div class="search-section">
+        <div class="search-section-header">
+          <span class="search-section-title">
+            <i class="fas fa-link"></i> Tabs
+          </span>
+          <span class="search-section-count">${totalTabHits}</span>
+        </div>
+        <div class="search-section-body">
+          ${tabMatchGroups.map(({ collection, hits }) => `
+            <div class="search-tab-group">
+              <div class="search-tab-group-label">
+                <i class="fas fa-folder"></i> ${escapeHtml(collection.name)}
+              </div>
+              ${hits.map(tab => `
+                <div class="search-tab-result">
+                  <div class="search-tab-result-body">
+                    <div class="search-tab-result-title">
+                      ${highlightMatch(tab.title || 'Untitled', q)}
+                    </div>
+                    <div class="search-tab-result-url">
+                      ${highlightMatch(
+                        tab.url.length > 62 ? tab.url.slice(0, 62) + '…' : tab.url, q
+                      )}
+                    </div>
+                  </div>
+                  <button class="icon-btn search-open-tab-btn"
+                          title="Open tab"
+                          data-url="${escapeHtml(tab.url)}">
+                    <i class="fas fa-external-link-alt"></i>
+                  </button>
+                </div>
+              `).join('')}
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+  }
+
+  resultsBox.innerHTML = html;
+
+  // ── Event listeners ────────────────────────────────────────────────────────
+
+  // Collection card → clear search, scroll to & expand the collection
+  resultsBox.querySelectorAll('.search-collection-result').forEach(el => {
+    el.addEventListener('click', () => {
+      const collId = el.dataset.id;
+      elements.searchBox.value = '';
+      filterResults('');
+      setTimeout(() => {
+        const collEl = document.querySelector(`.collection[data-id="${collId}"]`);
+        if (!collEl) return;
+        collEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const tabs = collEl.querySelector('.collection-tabs');
+        if (tabs && !tabs.classList.contains('expanded')) {
+          toggleCollectionExpanded(collId);
+        }
+      }, 60);
+    });
+  });
+
+  // Tab open button → respects RAM Saver
+  resultsBox.querySelectorAll('.search-open-tab-btn').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      let url = btn.dataset.url;
+      if (!url) return;
+      if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
+      try {
+        const created = await api.tabs.create({ url, active: false });
+        const st = await getState();
+        if (st.ramSaverEnabled && created && created.id) {
+          api.tabs.discard(created.id).catch(() => {});
+          showToast('Tab opened (RAM Saver — loads on click)');
+        } else {
+          showToast('Tab opened in background');
+        }
+      } catch (err) {
+        console.error('Failed to open tab:', url, err);
+      }
+    });
+  });
 }
+
+/** Escape HTML to prevent XSS when injecting user data via innerHTML */
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.appendChild(document.createTextNode(str || ''));
+  return d.innerHTML;
+}
+
+/** Wrap query matches in <mark class="search-hl"> for inline highlighting */
+function highlightMatch(text, query) {
+  if (!query || !text) return escapeHtml(text || '');
+  const safe    = escapeHtml(text);
+  const pattern = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return safe.replace(
+    new RegExp(pattern, 'gi'),
+    m => `<mark class="search-hl">${m}</mark>`
+  );
+}
+
 
 /**
  * Live‑filter tabs within a single expanded collection.
