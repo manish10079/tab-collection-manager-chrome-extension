@@ -3,11 +3,12 @@
 // checking git is working or not
 // ==================== STORAGE HELPERS ====================
 async function getState() {
-  const result = await api.storage.local.get(['collections', 'autoSaveCollectionId', 'lastSessionBackup']);
+  const result = await api.storage.local.get(['collections', 'autoSaveCollectionId', 'lastSessionBackup', 'ramSaverEnabled']);
   return {
     collections: result.collections || [],
     autoSaveCollectionId: result.autoSaveCollectionId || null,
-    lastSessionBackup: result.lastSessionBackup || null
+    lastSessionBackup: result.lastSessionBackup || null,
+    ramSaverEnabled: !!result.ramSaverEnabled
   };
 }
 
@@ -561,6 +562,13 @@ async function restoreSession(collectionId, backupData = null) {
         pinned: !!tab.pinned,
         active: false, // Don't focus newly opened tabs to avoid flickering
         index: undefined // Let Chrome append them to the end
+      }).then(createdTab => {
+        if (state.ramSaverEnabled && createdTab && createdTab.id) {
+          api.tabs.discard(createdTab.id).catch(err => {
+            console.warn(`Failed to discard tab ${createdTab.id}:`, err);
+          });
+        }
+        return createdTab;
       }).catch(err => console.error(`Failed to create tab: ${url}`, err));
     });
 
@@ -570,7 +578,11 @@ async function restoreSession(collectionId, backupData = null) {
     console.error('Error during restoration into current window:', err);
     // Fallback: just open tabs
     for (const tab of collection.tabs) {
-      api.tabs.create({ url: tab.url }).catch(() => {});
+      api.tabs.create({ url: tab.url, active: false }).then(createdTab => {
+        if (state.ramSaverEnabled && createdTab && createdTab.id) {
+          api.tabs.discard(createdTab.id).catch(() => {});
+        }
+      }).catch(() => {});
     }
   }
 }

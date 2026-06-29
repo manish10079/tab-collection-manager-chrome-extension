@@ -254,6 +254,29 @@ body {
   gap: 12px;
 }
 
+/* RAM Saver toggle label */
+.ram-saver-label {
+  opacity: 0.9;
+}
+
+/* Pill badge next to "RAM Saver" text */
+.ram-saver-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(78, 205, 196, 0.25), rgba(69, 183, 209, 0.25));
+  color: var(--accent);
+  border: 1px solid rgba(78, 205, 196, 0.35);
+  letter-spacing: 0.3px;
+  vertical-align: middle;
+  margin-left: 2px;
+  text-transform: uppercase;
+}
+
 .checkbox-label {
   display: flex;
   align-items: center;

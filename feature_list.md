@@ -1,359 +1,79 @@
-# Tab Collection Manager Chrome Extension
+# 🗂️ Tab Collection Manager - Feature List
 
-## Complete Feature List
-
----
-
-# 1. Tab Collection Management
-
-## 1.1 Create Collections
-
-Allow users to create named collections (folders/workspaces) to organize tabs by topic, project, client, research, shopping, study, etc.
-
-## 1.2 Nested Collections
-
-Support collections inside collections for deeper organization.
-
-## 1.3 Unlimited Collections
-
-Allow users to create unlimited tab collections.
-
-## 1.4 Color-Coded Collections
-
-Assign colors to collections for quick visual identification.
-
-## 1.5 Collection Icons
-
-Allow custom emoji or icons for collections.
-
-## 1.6 Favorite Collections
-
-Pin important collections to the top.
-
-## 1.7 Archive Collections
-
-Move inactive collections into an archive section.
-
-## 1.8 Recently Opened Collections
-
-Provide quick access to recently used collections.
+This document lists all the user-facing and technical features implemented in the **Tab Collection Manager** Chrome extension.
 
 ---
 
-# 2. Tab Saving Features
+## 🚀 User-Facing Features
 
-## 2.1 Save Current Tab
+### 1. Tab Session Auto-Save & Recovery
+- **Automatic Background Sync**: Automatically tracks open tabs in the active window and updates a dedicated **Current Session** collection in real-time.
+- **Enable/Disable Auto-Save Toggle**: Allows users to toggle auto-save on or off directly from the popup settings.
+- **Startup Stabilization Period**: Postpones auto-save operations for the first 8 seconds after browser startup to allow Chrome to load and restore tabs before capturing the session state.
+- **Crash Recovery & Overwrite Protection**: Safeguards collections from partial/empty states. If open tabs drop by more than 70% within the first 30 seconds of extension startup (e.g., during crash recovery or system lag), the extension refuses to overwrite the saved session.
+- **Accidental Closure Backup**: Creates a backup (`lastSessionBackup`) of the previous tab list before updating or overwriting.
+- **One-Click Backup Restore**: Displays a backup banner indicating the timestamp and size of the last session history backup, allowing users to restore past sessions with a single click.
 
-Save a single browser tab into a collection.
+### 2. Tab Collection Management
+- **Create Custom Collections**: Users can create named folder-like collections to categorize tabs.
+- **Unique Name Validation**:
+  - Validates names to be under 100 characters.
+  - Normalizes text representation (using Unicode NFKC normalization) to avoid duplicate entries with conflicting byte sequences.
+  - Enforces case-insensitive uniqueness constraints when creating or renaming.
+- **Inline Editing & Renaming**: Double-click or click the edit icon to rename collections dynamically with automatic save on blur or pressing `Enter`. Supports `Escape` key to revert changes.
+- **Accordions & Expand/Collapse State**: Accordion panels expand to display tabs. Expand/collapse states are persisted in local storage.
+- **Collection Meta Indicators**: Displays the current tab count and relative updated time (e.g., *"3m ago"*, *"just now"*).
+- **Delete Protection**: Users can delete any custom collection (prompts for confirmation), but deleting or renaming the core **Current Session** collection is blocked to prevent breaking auto-save.
 
-## 2.2 Save Multiple Selected Tabs
+### 3. Individual Tab Management
+- **List Details**: Displays tab number, favicon placeholder, custom title, and full URL tooltip.
+- **Edit Tab Title**: Modify tab titles inline to customize bookmarks.
+- **Background Restoring**: Opens tabs in the background (preventing browser flickering and active window grabs) by clicking the external link icon.
+- **Remove Tabs**: Delete single tabs from a collection dynamically.
+- **Collection Tab Limits**: Limits any single collection to a maximum of 200 tabs to maintain performance and avoid hitting storage constraints.
 
-Save multiple selected tabs at once.
+### 4. Adding Tabs to Collections
+- **Manual Mode**: Allows users to type or paste a custom Title and URL with full validation.
+- **Multi-Select Mode**: Lists all currently open tabs in the active browser window with checkboxes and a **Select All** toggle to bulk add selected tabs.
+- **Smart Duplicate URL Warning**:
+  - Warns the user when trying to add a URL that already exists in another collection.
+  - Displays a modal detailing which collections currently house that URL, offering a choice to **Cancel** or **Add Anyway**.
+  - Current Session is excluded from duplicate checks because it dynamically mirrors all open tabs.
+- **Context Menu Integration**:
+  - Adds an **"Add to Collection"** parent right-click context menu.
+  - Dynamically lists all user-created collections as submenus.
+  - Right-clicking on any page or link adds it to the selected collection.
+  - Includes duplicate checks: alerts the user by flashing a red status badge (`!`) on the extension icon and blocks duplicate saves.
+  - Flashes a green checkmark badge (`✓`) on the extension icon upon successful context-menu save.
 
-## 2.3 Save Entire Window
+### 5. Advanced Interactive Drag & Drop
+- **Collection Reordering**: Drag and drop collection panels vertically to organize their placement order.
+- **Intra-Collection Tab Reordering**: Drag and drop tabs inside a collection panel to sort/reorder them.
+- **Inter-Collection Tab Moving (Standard)**: Drag a tab from one collection and drop it directly onto another collection's header/body to move it.
+- **Inter-Collection Tab Moving (Indexed)**: Drag a tab from one collection and drop it directly between specific tabs of another collection to place it precisely at that index.
 
-Save all tabs from the current browser window.
+### 6. Search & Filtering
+- **Popup-Wide Global Search**: Features a global search bar with a 150ms input debounce that dynamically matches collection names and tab titles/URLs. Pressing `Escape` clears search and restores original items.
+- **In-Collection Tab Filtering**: Features a search input inside each collection's tab list to filter tabs only within that specific collection.
 
-## 2.4 Save All Browser Windows
-
-Save tabs from every open browser window.
-
-## 2.5 Drag & Drop Saving
-
-Drag tabs directly into collections.
-
-## 2.6 Auto Save Session
-
-Automatically save browser sessions at configurable intervals.
-
-## 2.7 Save Pinned Tabs
-
-Optionally include pinned tabs during saves.
-
-## 2.8 Save Tab Groups
-
-Preserve Chrome Tab Groups during saving.
-
----
-
-# 3. Tab Restoration
-
-## 3.1 Open Single Saved Tab
-
-Restore a specific saved tab.
-
-## 3.2 Open Entire Collection
-
-Open all tabs within a collection.
-
-## 3.3 Restore into New Window
-
-Open a collection in a separate browser window.
-
-## 3.4 Restore Specific Selection
-
-Open only selected tabs from a collection.
-
-## 3.5 Restore Tab Groups
-
-Recreate original Chrome Tab Groups.
-
-## 3.6 Smart Restore
-
-Skip duplicate tabs that are already open.
-
-## 3.7 Restore Last Session
-
-Recover the most recently saved session.
+### 7. Backup Import & Export (JSON Engine)
+- **Global Data Export**: Exports all collections and settings to a JSON file. The export includes metadata with the export ISO timestamp (`exportedAt`). The filename is dynamically formatted with the current local date and time: `tab_collections_backup_YYYY-MM-DD_HH-MM-SS.json`.
+- **Global Data Import**: Imports collections from JSON, automatically creating new collections or merging tabs into matching collection names without duplicates. Backward-compatible to support both the new object structure and the old direct-array format.
+- **Per-Collection Export**: Exports a single collection's tabs to a JSON file, including the collection metadata and an `exportedAt` ISO timestamp. The filename is dynamically formatted as `${collection_name}_tabs_YYYY-MM-DD_HH-MM-SS.json`.
+- **Per-Collection Import**: Imports tabs from a JSON file directly into a chosen collection. Backward-compatible to support both the new object structure and the old direct-array format.
 
 ---
 
-# 4. Collection Organization
-
-## 4.1 Drag & Drop Reordering
-
-Rearrange tabs inside collections using drag and drop.
-
-## 4.2 Manual Sorting
-
-Allow users to manually sort tabs.
-
-## 4.3 Auto Sort by Domain
-
-Automatically group tabs by website domain.
-
-## 4.4 Auto Sort by Title
-
-Sort tabs alphabetically.
-
-## 4.5 Auto Sort by Date Added
-
-Sort based on creation date.
-
-## 4.6 Auto Sort by Usage Frequency
-
-Prioritize frequently used tabs.
-
-## 4.7 Bulk Move Tabs
-
-Move multiple tabs between collections.
-
-## 4.8 Merge Collections
-
-Combine multiple collections into one.
-
-## 4.9 Split Collection
-
-Create new collections from selected tabs.
-
----
-
-# 5. Search & Discovery
-
-## 5.1 Global Search
-
-Search across all collections and tabs.
-
-## 5.2 Search by URL
-
-Find tabs using website URLs.
-
-## 5.3 Search by Page Title
-
-Search based on page titles.
-
-## 5.4 Search by Domain
-
-Filter tabs by website domain.
-
-## 5.5 Search by Notes
-
-Search user-created notes.
-
-## 5.6 Search by Tags
-
-Find tabs using assigned tags.
-
-## 5.7 Advanced Filters
-
-Combine multiple search conditions.
-
-## 5.8 Instant Search
-
-Display results while typing.
-
----
-
-# 6. Tagging System
-
-## 6.1 Custom Tags
-
-Create personalized tags.
-
-## 6.2 Multi-Tag Support
-
-Assign multiple tags to a tab.
-
-## 6.3 Tag Suggestions
-
-Suggest tags automatically.
-
-## 6.4 Tag Color Coding
-
-Assign colors to tags.
-
-## 6.5 Smart Tag Filtering
-
-Filter tabs by tag combinations.
-
----
-
-# 7. Notes & Metadata
-
-## 7.1 Notes Per Tab
-
-Attach notes to individual tabs.
-
-## 7.2 Notes Per Collection
-
-Store notes at collection level.
-
-## 7.3 Markdown Support
-
-Support rich text formatting.
-
-## 7.4 Link Descriptions
-
-Store context for saved links.
-
-## 7.5 Research Highlights
-
-Save important findings with tabs.
-
-## 7.6 Task Association
-
-Connect tabs to tasks or projects.
-
----
-
-# 8. Productivity Features
-
-## 8.1 Reading Queue
-
-Maintain a read-later list.
-
-## 8.2 Watch Later Collection
-
-Dedicated collection for videos.
-
-## 8.3 Focus Mode
-
-Open only work-related tabs.
-
-## 8.4 Workspaces
-
-Separate collections for different purposes.
-
-## 8.5 Deep Work Session
-
-Hide unrelated tabs and collections.
-
-## 8.6 Daily Workspace
-
-Prepare frequently used tabs automatically.
-
-## 8.7 Morning Launch
-
-Open startup collections automatically.
-
-## 8.8 Project Templates
-
-Reusable workspace templates.
-
----
-
-# 9. AI Features
-
-## 9.1 AI Collection Naming
-
-Generate collection names automatically.
-
-## 9.2 AI Collection Summary
-
-Summarize saved tabs.
-
-## 9.3 AI Tab Categorization
-
-Automatically classify tabs.
-
-## 9.4 AI Duplicate Detection
-
-Detect duplicate tabs intelligently.
-
-## 9.5 AI Research Digest
-
-Generate research summaries.
-
-## 9.6 AI Topic Clustering
-
-Group similar tabs together.
-
-## 9.7 AI Smart Recommendations
-
-Suggest relevant tabs and collections.
-
-## 9.8 AI Content Extraction
-
-Extract key information from pages.
-
-## 9.9 AI Productivity Insights
-
-Analyze browsing patterns.
-
----
-
-# 10. Session Management
-
-## 10.1 Session Snapshots
-
-Save browser states at specific moments.
-
-## 10.2 Session Timeline
-
-Browse previous saved sessions.
-
-## 10.3 Session History
-
-Maintain session history records.
-
-## 10.4 Auto Backup Sessions
-
-Create scheduled backups.
-
-## 10.5 Session Recovery
-
-Recover accidentally closed sessions.
-
-## 10.6 Session Comparison
-
-Compare multiple sessions.
-
----
-
-> Continue the same numbering format for:
->
-> * 11. Duplicate Management
-> * 12. Import & Export
-> * 13. Sync Features
-> * 14. Collaboration Features
-> * 15. Analytics & Insights
-> * 16. Bookmark Integration
-> * 17. User Interface Features
-> * 18. Browser Actions
-> * 19. Security & Privacy
-> * 20. Premium Features
-> * 21. Power User Features
-> * 22. Research & Student Features
-> * 23. Content Creator Features
-> * 24. Shopping Features
-> * 25. Future Advanced Features
+## 🛠️ Technical & Architectural Features
+
+- **Manifest V3 Architecture**: Fully optimized for Manifest V3 using a Service Worker (`background.js`) to handle background tab hooks, runtime messages, and context menus.
+- **Cross-Browser Compatibility**: Implements `typeof browser !== 'undefined' ? browser : chrome` wrappers, enabling compatibility with Google Chrome, Microsoft Edge, Brave, and Mozilla Firefox.
+- **Race Condition Guard (Strict State Serialization)**: Uses a Promise-based serialized write queue (`updateState()`) in both the popup and background worker. This ensures storage updates occur sequentially, preventing data corruption during concurrent events (like bulk tab actions or rapid auto-saves).
+- **Data Integrity & Validation**:
+  - Sanity checks URLs for schema structure and protocol validation.
+  - Filters out internal browser URLs (e.g. `chrome://`, `about:blank`, `edge://`) to keep saves clean.
+- **Premium Glassmorphism Dark Mode UI**:
+  - Built with pure HTML/CSS (Vanilla CSS) and vanilla JavaScript.
+  - Font styling utilizing Google Fonts (*Inter*).
+  - Modern icon set using Font Awesome.
+  - Sleek dark theme featuring subtle gradients, translucent glass borders, blur filters (`backdrop-filter`), smooth hover transitions, and animated toast notifications.

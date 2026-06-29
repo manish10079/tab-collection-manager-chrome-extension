@@ -3,11 +3,12 @@
 
 // ==================== STORAGE HELPERS ====================
 async function getState() {
-  const result = await api.storage.local.get(['collections', 'autoSaveCollectionId', 'lastSessionBackup']);
+  const result = await api.storage.local.get(['collections', 'autoSaveCollectionId', 'lastSessionBackup', 'ramSaverEnabled']);
   return {
     collections: result.collections || [],
     autoSaveCollectionId: result.autoSaveCollectionId || null,
-    lastSessionBackup: result.lastSessionBackup || null
+    lastSessionBackup: result.lastSessionBackup || null,
+    ramSaverEnabled: !!result.ramSaverEnabled
   };
 }
 
@@ -115,6 +116,17 @@ function validateUrl(url) {
   } catch {
     return false;
   }
+}
+
+function getFormattedDateTime() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`;
 }
 
 /**
@@ -316,10 +328,17 @@ async function exportAllCollections() {
     alert('No collections to export.');
     return;
   }
-  const dataStr = JSON.stringify(state.collections, null, 2);
+  
+  // Include metadata with export date and time
+  const exportData = {
+    exportedAt: new Date().toISOString(),
+    collections: state.collections
+  };
+  
+  const dataStr = JSON.stringify(exportData, null, 2);
   const blob = new Blob([dataStr], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  const filename = `tab_collections_backup.json`;
+  const filename = `tab_collections_backup_${getFormattedDateTime()}.json`;
 
   if (api.downloads && api.downloads.download) {
     api.downloads.download({
@@ -352,9 +371,16 @@ function importAllCollections() {
     const reader = new FileReader();
     reader.onload = async event => {
       try {
-        const importedCollections = JSON.parse(event.target.result);
-        if (!Array.isArray(importedCollections)) {
-          alert('Invalid format. File must contain an array of collections.');
+        const importedData = JSON.parse(event.target.result);
+        let importedCollections = null;
+        
+        // Support both old format (array) and new format (object with collections array)
+        if (Array.isArray(importedData)) {
+          importedCollections = importedData;
+        } else if (importedData && typeof importedData === 'object' && Array.isArray(importedData.collections)) {
+          importedCollections = importedData.collections;
+        } else {
+          alert('Invalid format. File must contain an array of collections or a collections backup object.');
           return;
         }
 
@@ -441,10 +467,19 @@ function exportCollection(collection) {
     alert('No tabs to export in this collection.');
     return;
   }
-  const dataStr = JSON.stringify(collection.tabs, null, 2);
+  
+  // Include metadata with export date and time
+  const exportData = {
+    collectionId: collection.id,
+    collectionName: collection.name,
+    exportedAt: new Date().toISOString(),
+    tabs: collection.tabs
+  };
+  
+  const dataStr = JSON.stringify(exportData, null, 2);
   const blob = new Blob([dataStr], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  const filename = `${collection.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_tabs.json`;
+  const filename = `${collection.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_tabs_${getFormattedDateTime()}.json`;
 
   if (api.downloads && api.downloads.download) {
     api.downloads.download({
@@ -477,9 +512,16 @@ function importCollection(collectionId) {
     const reader = new FileReader();
     reader.onload = async event => {
       try {
-        const tabs = JSON.parse(event.target.result);
-        if (!Array.isArray(tabs)) {
-          alert('Invalid file format. The file must contain an array of tabs.');
+        const importedData = JSON.parse(event.target.result);
+        let tabs = null;
+        
+        // Support both old format (array) and new format (object with tabs array)
+        if (Array.isArray(importedData)) {
+          tabs = importedData;
+        } else if (importedData && typeof importedData === 'object' && Array.isArray(importedData.tabs)) {
+          tabs = importedData.tabs;
+        } else {
+          alert('Invalid file format. The file must contain an array of tabs or a tabs backup object.');
           return;
         }
         
@@ -726,7 +768,13 @@ async function openAllTabsSimple(collectionId) {
       url = 'https://' + url;
     }
     try {
-      await api.tabs.create({ url });
+      const createdTab = await api.tabs.create({ url, active: false });
+      // RAM Saver: discard tab immediately so it only loads when user clicks it
+      if (state.ramSaverEnabled && createdTab && createdTab.id) {
+        api.tabs.discard(createdTab.id).catch(err => {
+          console.warn(`RAM Saver: Failed to discard tab ${createdTab.id}:`, err);
+        });
+      }
     } catch (err) {
       console.error('Failed to open tab:', url, err);
     }
@@ -1128,19 +1176,27 @@ function renderTab(tab, collectionId, tabNumber) {
     }
   });
 
-  // Open tab button
-  openBtn.addEventListener('click', () => {
+  // Open tab button — honours RAM Saver: discards tab so it only loads when clicked
+  openBtn.addEventListener('click', async () => {
     let url = tab.url;
-    if (url && url.startsWith('http')) {
-      api.tabs.create({ url: url, active: false });
-    } else {
-      // If URL is not valid, try to make it valid
-      if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        url = 'https://' + url;
-      }
-      api.tabs.create({ url, active: false });
+    if (!url) return;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://' + url;
     }
-    showToast('Tab opened in background');
+    try {
+      const createdTab = await api.tabs.create({ url, active: false });
+      const state = await getState();
+      if (state.ramSaverEnabled && createdTab && createdTab.id) {
+        api.tabs.discard(createdTab.id).catch(err => {
+          console.warn(`RAM Saver: Failed to discard tab ${createdTab.id}:`, err);
+        });
+        showToast('Tab opened (RAM Saver — loads on click)');
+      } else {
+        showToast('Tab opened in background');
+      }
+    } catch (err) {
+      console.error('Failed to open tab:', url, err);
+    }
   });
 
   removeBtn.addEventListener('click', () => removeTab(collectionId, tab.id));
@@ -1199,6 +1255,27 @@ function renderTab(tab, collectionId, tabNumber) {
 
 function renderAutoSaveSelect(collections, autoSaveCollectionId) {
   elements.autoSaveToggle.checked = !!autoSaveCollectionId;
+}
+
+// ==================== RAM SAVER TOGGLE ====================
+async function setupRamSaverToggle() {
+  const ramSaverToggle = document.getElementById('ramSaverToggle');
+  if (!ramSaverToggle) return;
+
+  // Read persisted state and reflect in UI
+  const state = await getState();
+  ramSaverToggle.checked = state.ramSaverEnabled;
+
+  ramSaverToggle.addEventListener('change', async (e) => {
+    const enabled = e.target.checked;
+    await api.storage.local.set({ ramSaverEnabled: enabled });
+    if (enabled) {
+      showToast('💾 RAM Saver ON — tabs will lazy‑load on click');
+    } else {
+      showToast('RAM Saver OFF — tabs load normally');
+    }
+    console.log('RAM Saver:', enabled ? 'enabled' : 'disabled');
+  });
 }
 
 // ==================== SEARCH / FILTER ====================
@@ -1491,6 +1568,7 @@ function setupEventListeners() {
 async function init() {
   console.log('--- POPUP INIT ---');
   setupEventListeners();
+  await setupRamSaverToggle();
   
   // Force an auto-save to ensure the Current Session is completely up-to-date
   try {
