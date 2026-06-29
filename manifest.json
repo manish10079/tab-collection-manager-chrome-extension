@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Tab Collection Manager",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Auto-save and manage tab collections with premium dark mode UI",
   "permissions": [
     "tabs",
     "storage",
     "contextMenus",
-    "downloads"
+    "downloads",
+    "favicon"
   ],
   "action": {
     "default_popup": "popup.html",

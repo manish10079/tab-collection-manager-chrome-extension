@@ -118,6 +118,26 @@ function validateUrl(url) {
   }
 }
 
+function getFaviconUrl(url) {
+  if (!url) return 'icons/icon16.png';
+  try {
+    const u = new URL(url);
+    if (u.protocol === 'http:' || u.protocol === 'https:') {
+      const extId = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id)
+        ? chrome.runtime.id
+        : (typeof browser !== 'undefined' && browser.runtime && browser.runtime.id)
+          ? browser.runtime.id
+          : '';
+      if (extId) {
+        return `chrome-extension://${extId}/_favicon/?pageUrl=${encodeURIComponent(url)}&size=32`;
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+  return 'icons/icon16.png';
+}
+
 function getFormattedDateTime() {
   const now = new Date();
   const year = now.getFullYear();
@@ -1116,15 +1136,20 @@ function renderTab(tab, collectionId, tabNumber) {
   const tabEl = clone.querySelector('.tab-item');
   tabEl.dataset.id = tab.id;
 
-  const tabIcon = tabEl.querySelector('.tab-icon');
+  const tabNumberEl = tabEl.querySelector('.tab-number');
+  const tabFaviconImg = tabEl.querySelector('.tab-favicon-img');
   const titleInput = tabEl.querySelector('.tab-title');
   const urlSpan = tabEl.querySelector('.tab-url');
   const editBtn = tabEl.querySelector('.edit-tab-btn');
   const openBtn = tabEl.querySelector('.open-tab-btn');
   const removeBtn = tabEl.querySelector('.remove-tab-btn');
 
-  // Replace icon with tab number
-  tabIcon.innerHTML = `<span class="tab-number">${tabNumber}</span>`;
+  if (tabNumberEl) {
+    tabNumberEl.textContent = tabNumber;
+  }
+  if (tabFaviconImg) {
+    tabFaviconImg.src = getFaviconUrl(tab.url);
+  }
 
   titleInput.value = tab.title;
   urlSpan.textContent = tab.url.length > 50 ? tab.url.slice(0, 50) + '...' : tab.url;
@@ -1392,6 +1417,9 @@ async function filterResults(query) {
               </div>
               ${hits.map(tab => `
                 <div class="search-tab-result">
+                  <div class="search-tab-favicon-container">
+                    <img class="search-tab-favicon" src="${getFaviconUrl(tab.url)}" alt="" onerror="this.src='icons/icon16.png';">
+                  </div>
                   <div class="search-tab-result-body">
                     <div class="search-tab-result-title">
                       ${highlightMatch(tab.title || 'Untitled', q)}
@@ -1541,6 +1569,7 @@ async function renderOpenTabsList() {
     const clone = template.content.cloneNode(true);
     const item = clone.querySelector('.open-tab-item');
     const checkbox = item.querySelector('.tab-checkbox');
+    const faviconImg = item.querySelector('.open-tab-favicon');
     const titleSpan = item.querySelector('.tab-title');
     const urlSpan = item.querySelector('.tab-url');
 
@@ -1548,6 +1577,9 @@ async function renderOpenTabsList() {
     checkbox.dataset.id = tab.id;
     checkbox.dataset.title = displayTitle;
     checkbox.dataset.url = tab.url;
+    if (faviconImg) {
+      faviconImg.src = getFaviconUrl(tab.url);
+    }
     titleSpan.textContent = displayTitle;
     urlSpan.textContent = tab.url.length > 50 ? tab.url.slice(0, 50) + '...' : tab.url;
     urlSpan.title = tab.url;

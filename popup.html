@@ -190,8 +190,9 @@
 
   <template id="tabTemplate">
     <div class="tab-item" data-id="" draggable="true">
+      <span class="tab-number"></span>
       <div class="tab-icon">
-        <i class="fas fa-file-alt"></i>
+        <img class="tab-favicon-img" src="icons/icon16.png" alt="" onerror="this.src='icons/icon16.png';">
       </div>
       <div class="tab-content">
         <input type="text" class="tab-title" value="" placeholder="Untitled" readonly>
@@ -213,8 +214,13 @@
     <div class="open-tab-item">
       <label class="checkbox-label">
         <input type="checkbox" class="tab-checkbox" data-id="" data-title="" data-url="">
-        <span class="tab-title"></span>
-        <span class="tab-url"></span>
+        <div class="open-tab-favicon-container">
+          <img class="open-tab-favicon" src="icons/icon16.png" alt="" onerror="this.src='icons/icon16.png';">
+        </div>
+        <div class="open-tab-details">
+          <span class="tab-title"></span>
+          <span class="tab-url"></span>
+        </div>
       </label>
     </div>
   </template>

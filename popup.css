@@ -849,7 +849,18 @@ body {
 .tab-number {
   font-size: 11px;
   font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 16px;
+  text-align: center;
+  flex-shrink: 0;
   line-height: 1;
+}
+
+.tab-favicon-img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  display: block;
 }
 
 .tab-content {
@@ -1095,12 +1106,39 @@ body {
   gap: 12px;
 }
 
-.open-tab-item .tab-title {
+.open-tab-favicon-container {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: -2px; /* Slight offset to align with checkbox */
+}
+
+.open-tab-favicon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  display: block;
+}
+
+.open-tab-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.open-tab-details .tab-title {
   font-weight: 500;
   color: var(--text-primary);
 }
 
-.open-tab-item .tab-url {
+.open-tab-details .tab-url {
   font-size: 12px;
   color: var(--text-secondary);
   margin-top: 4px;
@@ -1504,6 +1542,25 @@ body {
 .search-tab-result:hover {
   border-color: rgba(78, 205, 196, 0.35);
   background: rgba(78, 205, 196, 0.03);
+}
+
+.search-tab-favicon-container {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.search-tab-favicon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  display: block;
 }
 
 .search-tab-result-body {
