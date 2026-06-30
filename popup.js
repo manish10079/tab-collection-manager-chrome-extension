@@ -1062,6 +1062,22 @@ function renderCollection(collection, autoSaveCollectionId) {
   deleteBtn.addEventListener('click', () => deleteCollection(collection.id));
 
   // Drag and drop events for collections
+  const dragHandle = collectionEl.querySelector('.collection-drag-handle');
+  if (dragHandle) {
+    dragHandle.addEventListener('mousedown', () => {
+      collectionEl.setAttribute('draggable', 'true');
+    });
+    dragHandle.addEventListener('mouseup', () => {
+      collectionEl.setAttribute('draggable', 'false');
+    });
+    dragHandle.addEventListener('touchstart', () => {
+      collectionEl.setAttribute('draggable', 'true');
+    });
+    dragHandle.addEventListener('touchend', () => {
+      collectionEl.setAttribute('draggable', 'false');
+    });
+  }
+
   collectionEl.addEventListener('dragstart', (e) => {
     if (e.target.classList.contains('collection')) {
       draggedItem = {
@@ -1076,6 +1092,7 @@ function renderCollection(collection, autoSaveCollectionId) {
 
   collectionEl.addEventListener('dragend', (e) => {
     collectionEl.classList.remove('dragging');
+    collectionEl.setAttribute('draggable', 'false');
     draggedItem = null;
     document.querySelectorAll('.collection').forEach(c => c.classList.remove('drag-over'));
   });
@@ -1227,6 +1244,22 @@ function renderTab(tab, collectionId, tabNumber) {
   removeBtn.addEventListener('click', () => removeTab(collectionId, tab.id));
 
   // Drag and drop events for tabs
+  const tabDragHandle = tabEl.querySelector('.tab-drag-handle');
+  if (tabDragHandle) {
+    tabDragHandle.addEventListener('mousedown', () => {
+      tabEl.setAttribute('draggable', 'true');
+    });
+    tabDragHandle.addEventListener('mouseup', () => {
+      tabEl.setAttribute('draggable', 'false');
+    });
+    tabDragHandle.addEventListener('touchstart', () => {
+      tabEl.setAttribute('draggable', 'true');
+    });
+    tabDragHandle.addEventListener('touchend', () => {
+      tabEl.setAttribute('draggable', 'false');
+    });
+  }
+
   tabEl.addEventListener('dragstart', (e) => {
     draggedItem = {
       type: 'tab',
@@ -1240,6 +1273,7 @@ function renderTab(tab, collectionId, tabNumber) {
 
   tabEl.addEventListener('dragend', (e) => {
     tabEl.classList.remove('dragging');
+    tabEl.setAttribute('draggable', 'false');
     draggedItem = null;
     document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('drag-over'));
   });
