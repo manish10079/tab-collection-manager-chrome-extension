@@ -904,42 +904,48 @@ function renderCollections(state) {
 }
 
 function renderBackupButton(backup) {
-  const backupContainer = document.getElementById('backupContainer');
-  if (!backupContainer) return;
+  const wrapper = document.getElementById('restoreBackupWrapper');
+  const tooltipEl = document.getElementById('restoreTooltipContent');
+  if (!wrapper) return;
 
   if (!backup || !backup.tabs || backup.tabs.length === 0) {
-    backupContainer.classList.add('hidden');
+    wrapper.classList.add('hidden');
     return;
   }
 
-  backupContainer.classList.remove('hidden');
-  const backupInfo = backupContainer.querySelector('.backup-info');
-  const restoreBtn = document.getElementById('restoreBackupBtn');
+  // Show the restore icon button
+  wrapper.classList.remove('hidden');
 
-  const date = new Date(backup.timestamp).toLocaleString();
-  backupInfo.innerHTML = `
-    <div class="backup-header">
-      <i class="fas fa-history"></i>
-      <span>Backup available from ${formatTime(backup.timestamp)}</span>
-    </div>
-    <div class="backup-meta">${backup.tabs.length} tabs from "${backup.name || 'Unknown'}"</div>
-  `;
+  // Populate the hover tooltip with the backup info previously shown as text
+  if (tooltipEl) {
+    const tabWord = backup.tabs.length === 1 ? 'tab' : 'tabs';
+    tooltipEl.innerHTML = `
+      <div class="restore-tooltip-row">
+        <i class="fas fa-history"></i>
+        <span>${formatTime(backup.timestamp)}</span>
+      </div>
+      <div class="restore-tooltip-meta">${backup.tabs.length} ${tabWord} &mdash; &ldquo;${backup.name || 'Unknown'}&rdquo;</div>
+    `;
+  }
 
-  // Remove old listener if exists
-  const newRestoreBtn = restoreBtn.cloneNode(true);
-  restoreBtn.parentNode.replaceChild(newRestoreBtn, restoreBtn);
+  // Swap listener to avoid duplicates
+  const oldBtn = document.getElementById('restoreBackupBtn');
+  if (!oldBtn) return;
+  const newBtn = oldBtn.cloneNode(true);
+  oldBtn.parentNode.replaceChild(newBtn, oldBtn);
 
-  newRestoreBtn.addEventListener('click', async () => {
+  newBtn.addEventListener('click', async () => {
     if (confirm(`Restore ${backup.tabs.length} tabs from backup?`)) {
       await api.runtime.sendMessage({
         command: 'restoreSession',
         collectionId: backup.collectionId,
-        backupData: backup // Pass backup data in case the collection was overwritten
+        backupData: backup
       });
       alert('Restoring session...');
     }
   });
 }
+
 
 function renderCollection(collection, autoSaveCollectionId) {
   const template = document.getElementById('collectionTemplate');
@@ -1749,8 +1755,30 @@ function switchTabMode(mode) {
 
 // ==================== EVENT LISTENERS ====================
 function setupEventListeners() {
-  // Search box – live filter with debounce
-  if (elements.searchBox) {
+  const actionsBarDefault = document.getElementById('actionsBarDefault');
+  const searchSlideContainer = document.getElementById('searchSlideContainer');
+  const createSlideContainer = document.getElementById('createSlideContainer');
+  const toggleSearchBtn = document.getElementById('toggleSearchBtn');
+  const toggleCreateBtn = document.getElementById('toggleCreateBtn');
+  const clearSearchBtn = document.getElementById('clearSearchBtn');
+  const cancelCreateBtn = document.getElementById('cancelCreateBtn');
+
+  // Search toggle and search events
+  if (elements.searchBox && toggleSearchBtn && searchSlideContainer && actionsBarDefault) {
+    toggleSearchBtn.addEventListener('click', () => {
+      actionsBarDefault.classList.add('hidden');
+      createSlideContainer.classList.add('hidden');
+      searchSlideContainer.classList.remove('hidden');
+      elements.searchBox.focus();
+    });
+
+    clearSearchBtn.addEventListener('click', () => {
+      elements.searchBox.value = '';
+      filterResults('');
+      searchSlideContainer.classList.add('hidden');
+      actionsBarDefault.classList.remove('hidden');
+    });
+
     elements.searchBox.addEventListener('input', () => {
       clearTimeout(searchDebounceTimer);
       searchDebounceTimer = setTimeout(() => {
@@ -1758,13 +1786,30 @@ function setupEventListeners() {
       }, 150);
     });
 
-    // Allow Escape to clear the search
     elements.searchBox.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         elements.searchBox.value = '';
         filterResults('');
+        searchSlideContainer.classList.add('hidden');
+        actionsBarDefault.classList.remove('hidden');
         elements.searchBox.blur();
       }
+    });
+  }
+
+  // Create toggle events
+  if (toggleCreateBtn && createSlideContainer && actionsBarDefault) {
+    toggleCreateBtn.addEventListener('click', () => {
+      actionsBarDefault.classList.add('hidden');
+      searchSlideContainer.classList.add('hidden');
+      createSlideContainer.classList.remove('hidden');
+      elements.newCollectionName.focus();
+    });
+
+    cancelCreateBtn.addEventListener('click', () => {
+      elements.newCollectionName.value = '';
+      createSlideContainer.classList.add('hidden');
+      actionsBarDefault.classList.remove('hidden');
     });
   }
 
@@ -1819,6 +1864,10 @@ function setupEventListeners() {
     const name = elements.newCollectionName.value;
     if (await createCollection(name)) {
       elements.newCollectionName.value = '';
+      if (createSlideContainer) {
+        createSlideContainer.classList.add('hidden');
+        actionsBarDefault.classList.remove('hidden');
+      }
       const state = await getState();
       renderCollections(state);
     }
@@ -1829,9 +1878,24 @@ function setupEventListeners() {
       const name = elements.newCollectionName.value;
       if (await createCollection(name)) {
         elements.newCollectionName.value = '';
+        if (createSlideContainer) {
+          createSlideContainer.classList.add('hidden');
+          actionsBarDefault.classList.remove('hidden');
+        }
         const state = await getState();
         renderCollections(state);
       }
+    }
+  });
+
+  elements.newCollectionName.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      elements.newCollectionName.value = '';
+      if (createSlideContainer) {
+        createSlideContainer.classList.add('hidden');
+        actionsBarDefault.classList.remove('hidden');
+      }
+      elements.newCollectionName.blur();
     }
   });
 

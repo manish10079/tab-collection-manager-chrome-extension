@@ -10,7 +10,7 @@
 </head>
 <body>
   <div class="container">
-    <span class="creator">By Mkn Labs  v1.4.0</span>
+    <span class="creator">By Mkn Labs  v1.5.0</span>
     <header class="header">
       
       <h1><i class="fas fa-layer-group"></i> Tab Collections</h1>
@@ -19,23 +19,67 @@
     </header>
 
     <div class="scrollable-content">
-      <div class="controls">
-        <div class="search-bar-row">
-          <div class="search-bar">
-            <input type="text" id="searchBox" placeholder="Search collections or tabs…" autocomplete="off" spellcheck="false" />
+      <div class="controls">        <div class="compact-controls-row">
+          <!-- Default Actions Bar -->
+          <div class="actions-bar-default" id="actionsBarDefault">
+            <button class="icon-btn" id="toggleSearchBtn" title="Search Collections or Tabs">
+              <i class="fas fa-search"></i>
+            </button>
+            <button class="icon-btn" id="toggleCreateBtn" title="Create New Collection">
+              <i class="fas fa-plus"></i>
+            </button>
+            <button class="icon-btn" id="globalImportBtn" title="Import All Collections (JSON)">
+              <i class="fas fa-file-import"></i>
+            </button>
+            <button class="icon-btn" id="globalExportBtn" title="Export All Collections (JSON)">
+              <i class="fas fa-file-export"></i>
+            </button>
+            <!-- Restore button — visible only when a backup exists -->
+            <div class="restore-btn-wrapper hidden" id="restoreBackupWrapper">
+              <button id="restoreBackupBtn" class="icon-btn btn-restore" title="Restore Previous Session">
+                <i class="fas fa-undo"></i>
+              </button>
+              <!-- Hover tooltip populated by JS -->
+              <div class="restore-tooltip" id="restoreTooltipContent"></div>
+            </div>
+            <!-- Sort collections dropdown -->
+            <div class="sort-collections-container">
+              <button class="icon-btn sort-collections-btn" title="Sort Collections">
+                <i class="fas fa-sort"></i>
+              </button>
+              <div class="sort-dropdown-menu hidden" id="collectionsSortMenu">
+                <div class="sort-option active" data-value="custom"><i class="fas fa-grip-vertical"></i> Custom Order</div>
+                <div class="sort-option" data-value="lastModified"><i class="fas fa-clock"></i> Last Modified</div>
+                <div class="sort-option" data-value="nameAsc"><i class="fas fa-sort-alpha-down"></i> Name (A-Z)</div>
+                <div class="sort-option" data-value="nameDesc"><i class="fas fa-sort-alpha-up"></i> Name (Z-A)</div>
+                <div class="sort-option" data-value="dateCreated"><i class="fas fa-calendar-plus"></i> Date Created</div>
+                <div class="sort-option" data-value="tabCount"><i class="fas fa-list-ol"></i> Tab Count</div>
+              </div>
+            </div>
           </div>
-          <button class="icon-btn" id="globalImportBtn" title="Import All Collections (JSON)">
-            <i class="fas fa-file-import"></i>
-          </button>
-          <button class="icon-btn" id="globalExportBtn" title="Export All Collections (JSON)">
-            <i class="fas fa-file-export"></i>
-          </button>
-        </div>
-        <div class="input-group">
-          <input type="text" id="newCollectionName" placeholder="New collection name" maxlength="50">
-          <button id="createCollection" class="btn-primary">
-            <i class="fas fa-plus"></i> Create
-          </button>
+
+          <!-- Dynamic Search Input -->
+          <div class="input-slide-container hidden" id="searchSlideContainer">
+            <div class="input-wrapper search-wrapper">
+              <input type="text" id="searchBox" placeholder="Search collections or tabs…" autocomplete="off" spellcheck="false" />
+              <button class="icon-btn input-action-btn" id="clearSearchBtn" title="Clear &amp; Close">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Dynamic Create Collection Input -->
+          <div class="input-slide-container hidden" id="createSlideContainer">
+            <div class="input-wrapper create-wrapper">
+              <input type="text" id="newCollectionName" placeholder="New collection name" maxlength="50" autocomplete="off" spellcheck="false" />
+              <button class="icon-btn input-action-btn success-btn" id="createCollection" title="Create">
+                <i class="fas fa-check"></i>
+              </button>
+              <button class="icon-btn input-action-btn cancel-btn" id="cancelCreateBtn" title="Cancel">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
         </div>
         <div class="auto-save-section">
           <label class="checkbox-label">
@@ -46,30 +90,6 @@
             <input type="checkbox" id="ramSaverToggle">
             <span>RAM Saver <span class="ram-saver-badge">💾 Lazy Load</span></span>
           </label>
-        </div>
-      </div>
-      
-      <div class="backup-container hidden" id="backupContainer">
-        <div class="backup-card">
-          <div class="backup-info">
-            <!-- Populated by JS -->
-          </div>
-          <button id="restoreBackupBtn" class="btn-success">
-            <i class="fas fa-undo"></i> 
-          </button>
-          <div class="sort-collections-container">
-            <button class="icon-btn sort-collections-btn" title="Sort Collections">
-              <i class="fas fa-sort"></i>
-            </button>
-            <div class="sort-dropdown-menu hidden" id="collectionsSortMenu">
-              <div class="sort-option active" data-value="custom"><i class="fas fa-grip-vertical"></i> Custom Order</div>
-              <div class="sort-option" data-value="lastModified"><i class="fas fa-clock"></i> Last Modified</div>
-              <div class="sort-option" data-value="nameAsc"><i class="fas fa-sort-alpha-down"></i> Name (A-Z)</div>
-              <div class="sort-option" data-value="nameDesc"><i class="fas fa-sort-alpha-up"></i> Name (Z-A)</div>
-              <div class="sort-option" data-value="dateCreated"><i class="fas fa-calendar-plus"></i> Date Created</div>
-              <div class="sort-option" data-value="tabCount"><i class="fas fa-list-ol"></i> Tab Count</div>
-            </div>
-          </div>
         </div>
       </div>
 

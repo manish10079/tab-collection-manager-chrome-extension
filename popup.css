@@ -99,53 +99,117 @@ body {
   font-weight: 400;
 }
 
-/* Search Bar Row containing Search and Global Actions */
-.search-bar-row {
+/* Compact Row and Action Bars */
+.compact-controls-row {
+  margin-bottom: 20px;
+  min-height: 44px;
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 24px;
   flex-shrink: 0;
 }
 
-.search-bar-row .search-bar {
-  flex: 1;
-  position: relative;
+.actions-bar-default {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
 }
 
-.search-bar-row .icon-btn {
-  width: 44px;
+.actions-bar-default .icon-btn {
+  flex: 1; /* Stretch buttons to fill the row evenly and look very premium */
+  width: auto;
   height: 44px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border);
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 15px;
   transition: all 0.25s ease;
-  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
-.search-bar-row #globalImportBtn:hover {
-  background: rgba(78, 205, 196, 0.15);
-  border-color: rgba(78, 205, 196, 0.3);
-  color: var(--success);
-  transform: translateY(-1px);
-}
-
-.search-bar-row #globalExportBtn:hover {
+/* Hover colors for each button type */
+.actions-bar-default #toggleSearchBtn:hover {
   background: rgba(108, 99, 255, 0.15);
   border-color: rgba(108, 99, 255, 0.3);
   color: var(--accent);
   transform: translateY(-1px);
 }
 
-.search-bar {
-  position: relative;
-  flex-shrink: 0;
+.actions-bar-default #toggleCreateBtn:hover {
+  background: rgba(108, 99, 255, 0.15);
+  border-color: rgba(108, 99, 255, 0.3);
+  color: var(--accent);
+  transform: translateY(-1px);
 }
 
-.search-bar::before {
-  content: '\f002'; /* Font Awesome magnifying glass */
+.actions-bar-default #globalImportBtn:hover {
+  background: rgba(78, 205, 196, 0.15);
+  border-color: rgba(78, 205, 196, 0.3);
+  color: var(--success);
+  transform: translateY(-1px);
+}
+
+.actions-bar-default #globalExportBtn:hover {
+  background: rgba(108, 99, 255, 0.15);
+  border-color: rgba(108, 99, 255, 0.3);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+/* Slide containers for input states */
+.input-slide-container {
+  width: 100%;
+  animation: slideFadeIn 0.2s ease forwards;
+}
+
+@keyframes slideFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.input-wrapper input {
+  flex: 1;
+  height: 44px;
+  padding: 12px 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: var(--transition);
+}
+
+.input-wrapper input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.2);
+}
+
+/* Custom search icon styling inside active search wrapper */
+.input-wrapper.search-wrapper {
+  position: relative;
+}
+
+.input-wrapper.search-wrapper::before {
+  content: '\f002'; /* Search icon magnifying glass */
   font-family: 'Font Awesome 5 Free';
   font-weight: 900;
   position: absolute;
@@ -155,38 +219,43 @@ body {
   color: var(--text-secondary);
   font-size: 14px;
   pointer-events: none;
-  transition: color 0.25s ease;
   z-index: 1;
 }
 
-.search-bar:focus-within::before {
-  color: var(--accent);
+.input-wrapper.search-wrapper input {
+  padding-left: 42px; /* indent for the search icon */
 }
 
-.search-bar input {
-  width: 100%;
-  padding: 12px 18px 12px 42px;
+.input-wrapper .input-action-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 400;
-  transition: var(--transition);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-}
-
-.search-bar input::placeholder {
   color: var(--text-secondary);
-  opacity: 0.7;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
-.search-bar input:focus {
-  outline: none;
-  border-color: var(--accent);
-  background: rgba(255, 255, 255, 0.07);
-  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.18), 0 4px 16px rgba(108, 99, 255, 0.08);
+.input-wrapper .input-action-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.input-wrapper .input-action-btn.success-btn:hover {
+  background: rgba(78, 205, 196, 0.15);
+  border-color: rgba(78, 205, 196, 0.3);
+  color: var(--success);
+}
+
+.input-wrapper .input-action-btn.cancel-btn:hover {
+  background: rgba(255, 107, 139, 0.15);
+  border-color: rgba(255, 107, 139, 0.3);
+  color: var(--danger);
 }
 
 /* Search filter animations */
@@ -251,28 +320,7 @@ body {
   box-shadow: var(--shadow);
 }
 
-.input-group {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.input-group input {
-  flex: 1;
-  padding: 14px 18px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  color: var(--text-primary);
-  font-size: 15px;
-  transition: var(--transition);
-}
-
-.input-group input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.2);
-}
+/* Controls inputs (hidden by default, handled via compact row) */
 
 .auto-save-section {
   display: flex;
@@ -461,40 +509,69 @@ body {
   transform: translateY(-1px);
 }
 
-/* Backup Card */
-.backup-container {
-  margin-bottom: 24px;
-}
-
-.backup-card {
-  background: var(--bg-secondary);
-  border: none;
-  border-radius: var(--radius);
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  box-shadow: none;
-}
-
-.backup-info {
+/* Restore and Sort containers stretch equally with all other action buttons */
+.restore-btn-wrapper,
+.sort-collections-container {
   flex: 1;
+  display: flex;
 }
 
-.backup-header {
+/* Inner buttons fill their container so the click area matches */
+.restore-btn-wrapper .btn-restore,
+.sort-collections-container .sort-collections-btn {
+  width: 100%;
+  height: 44px;
+}
+
+/* Restore button colour accent */
+.btn-restore:hover {
+  background: rgba(78, 205, 196, 0.15) !important;
+  border-color: rgba(78, 205, 196, 0.3) !important;
+  color: var(--success) !important;
+  transform: translateY(-1px);
+}
+
+/* Tooltip wrapper — positioned under the button */
+.restore-btn-wrapper {
+  position: relative;
+}
+
+.restore-tooltip {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 190px;
+  background: var(--bg-glass);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow: var(--shadow);
+  z-index: 1001;
+  pointer-events: none;
+}
+
+.restore-btn-wrapper:hover .restore-tooltip {
+  display: block;
+  animation: slideFadeIn 0.15s ease forwards;
+}
+
+.restore-tooltip-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: var(--success);
+  gap: 7px;
+  font-size: 12px;
   font-weight: 600;
-  font-size: 14px;
+  color: var(--success);
   margin-bottom: 4px;
 }
 
-.backup-meta {
-  font-size: 12px;
+.restore-tooltip-meta {
+  font-size: 11px;
   color: var(--text-secondary);
+  line-height: 1.4;
 }
 
 /* Collections */
