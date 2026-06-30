@@ -26,7 +26,7 @@
 }
 
 body {
-  width: 650px;
+  width: 600px;
   height: 600px; /* Standard extension height */
   background: var(--bg-gradient);
   color: var(--text-primary);
