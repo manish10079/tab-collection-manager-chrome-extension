@@ -1085,12 +1085,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24px;
+  padding: 10px;
   border-bottom: 1px solid var(--border);
 }
 
 .modal-header h3 {
-  font-size: 20px;
+  font-size: 1rem;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1829,4 +1829,10 @@ mark.search-hl {
   border-color: rgba(108, 99, 255, 0.3);
   color: var(--accent);
   transform: translateY(-1px);
+}
+
+.footer-btn-container{
+  display: flex;
+  justify-content:space-between;
+  gap: 8px;
 }
