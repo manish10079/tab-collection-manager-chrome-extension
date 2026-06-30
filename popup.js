@@ -3,12 +3,13 @@
 
 // ==================== STORAGE HELPERS ====================
 async function getState() {
-  const result = await api.storage.local.get(['collections', 'autoSaveCollectionId', 'lastSessionBackup', 'ramSaverEnabled']);
+  const result = await api.storage.local.get(['collections', 'autoSaveCollectionId', 'lastSessionBackup', 'ramSaverEnabled', 'collectionSortType']);
   return {
     collections: result.collections || [],
     autoSaveCollectionId: result.autoSaveCollectionId || null,
     lastSessionBackup: result.lastSessionBackup || null,
-    ramSaverEnabled: !!result.ramSaverEnabled
+    ramSaverEnabled: !!result.ramSaverEnabled,
+    collectionSortType: result.collectionSortType || 'custom'
   };
 }
 
@@ -435,7 +436,8 @@ function importAllCollections() {
                     windowId: 0,
                     active: false,
                     discarded: false,
-                    highlighted: false
+                    highlighted: false,
+                    addedAt: tab.addedAt || Date.now()
                   });
                   tabAddedCount++;
                 }
@@ -458,7 +460,8 @@ function importAllCollections() {
                   windowId: 0,
                   active: false,
                   discarded: false,
-                  highlighted: false
+                  highlighted: false,
+                  addedAt: t.addedAt || Date.now()
                 })).slice(0, MAX_TABS_PER_COLLECTION),
                 createdAt: Date.now(),
                 updatedAt: Date.now(),
@@ -641,7 +644,8 @@ async function addManualTab(collectionId, title, url) {
         windowId: 0, // Default window
         active: false,
         discarded: false,
-        highlighted: false
+        highlighted: false,
+        addedAt: Date.now()
       });
       collection.updatedAt = Date.now();
     }
@@ -735,7 +739,8 @@ async function addTabsFromSelection(collectionId, tabsArray) {
           windowId: 0, // Default window
           active: false,
           discarded: false,
-          highlighted: false
+          highlighted: false,
+          addedAt: tab.addedAt || Date.now()
         });
         addedCount++;
       });
@@ -842,11 +847,47 @@ function renderEmptyState(show) {
 }
 
 function renderCollections(state) {
-  const { collections, autoSaveCollectionId } = state;
+  const { collections, autoSaveCollectionId, collectionSortType } = state;
   const container = elements.collectionsContainer;
   const fragment = document.createDocumentFragment();
 
-  collections.forEach(collection => {
+  // Highlight active collection sort option in the collectionsSortMenu
+  const colSortType = collectionSortType || 'custom';
+  const sortMenu = document.getElementById('collectionsSortMenu');
+  if (sortMenu) {
+    sortMenu.querySelectorAll('.sort-option').forEach(opt => {
+      opt.classList.toggle('active', opt.dataset.value === colSortType);
+    });
+  }
+
+  // Toggle sort-active class on collectionsContainer to hide drag handles when sorted
+  container.classList.toggle('sort-active', colSortType !== 'custom');
+
+  // Sort collections before rendering, keeping CURRENT_SESSION_ID always at the top
+  let sortedCollections = [...collections];
+  const currentSessionIdx = sortedCollections.findIndex(c => c.id === CURRENT_SESSION_ID);
+  let currentSession = null;
+  if (currentSessionIdx !== -1) {
+    currentSession = sortedCollections.splice(currentSessionIdx, 1)[0];
+  }
+
+  if (colSortType === 'lastModified') {
+    sortedCollections.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  } else if (colSortType === 'nameAsc') {
+    sortedCollections.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+  } else if (colSortType === 'nameDesc') {
+    sortedCollections.sort((a, b) => (b.name || '').localeCompare(a.name || '', undefined, { sensitivity: 'base' }));
+  } else if (colSortType === 'dateCreated') {
+    sortedCollections.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  } else if (colSortType === 'tabCount') {
+    sortedCollections.sort((a, b) => (b.tabs?.length || 0) - (a.tabs?.length || 0));
+  }
+
+  if (currentSession) {
+    sortedCollections.unshift(currentSession);
+  }
+
+  sortedCollections.forEach(collection => {
     const collectionEl = renderCollection(collection, autoSaveCollectionId);
     fragment.appendChild(collectionEl);
   });
@@ -987,6 +1028,43 @@ function renderCollection(collection, autoSaveCollectionId) {
     exportBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       exportCollection(collection);
+    });
+  }
+
+  // Tab sort button listeners inside the collection search row
+  const sortTabsBtn = collectionEl.querySelector('.sort-tabs-btn');
+  const sortTabsMenu = collectionEl.querySelector('.sort-dropdown-menu');
+
+  if (sortTabsBtn && sortTabsMenu) {
+    // Highlight the active tab sort option for this collection
+    const activeSortType = collection.tabSortType || 'custom';
+    sortTabsMenu.querySelectorAll('.sort-option').forEach(opt => {
+      opt.classList.toggle('active', opt.dataset.value === activeSortType);
+    });
+
+    sortTabsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Close other dropdowns first
+      document.querySelectorAll('.sort-dropdown-menu').forEach(menu => {
+        if (menu !== sortTabsMenu) menu.classList.add('hidden');
+      });
+      sortTabsMenu.classList.toggle('hidden');
+    });
+
+    sortTabsMenu.addEventListener('click', async (e) => {
+      const option = e.target.closest('.sort-option');
+      if (option) {
+        const value = option.dataset.value;
+        await updateState(state => {
+          const col = state.collections.find(c => c.id === collection.id);
+          if (col) {
+            col.tabSortType = value;
+            col.updatedAt = Date.now();
+          }
+        });
+        const state = await getState();
+        renderCollections(state);
+      }
     });
   }
 
@@ -1138,12 +1216,35 @@ function renderCollection(collection, autoSaveCollectionId) {
 }
 
 function renderTabs(collection, container) {
+  if (!container) return;
+  container.innerHTML = '';
+
+  const tabSortType = collection.tabSortType || 'custom';
+  let sortedTabs = [...(collection.tabs || [])];
+
+  // Toggle sort-active class on tabs container to hide drag handles when sorted
+  container.classList.toggle('sort-active', tabSortType !== 'custom');
+
+  if (tabSortType === 'dateAddedNewest') {
+    sortedTabs.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+  } else if (tabSortType === 'dateAddedOldest') {
+    sortedTabs.sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0));
+  } else if (tabSortType === 'titleAsc') {
+    sortedTabs.sort((a, b) => (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' }));
+  } else if (tabSortType === 'titleDesc') {
+    sortedTabs.sort((a, b) => (b.title || '').localeCompare(a.title || '', undefined, { sensitivity: 'base' }));
+  }
+
+  if (sortedTabs.length === 0) {
+    container.innerHTML = '<div class="empty-tabs-message"><i class="fas fa-info-circle"></i> No tabs in this collection</div>';
+    return;
+  }
+
   const fragment = document.createDocumentFragment();
-  collection.tabs.forEach((tab, index) => {
+  sortedTabs.forEach((tab, index) => {
     const tabEl = renderTab(tab, collection.id, index + 1);
     fragment.appendChild(tabEl);
   });
-  container.innerHTML = '';
   container.appendChild(fragment);
 }
 
@@ -1677,6 +1778,42 @@ function setupEventListeners() {
     globalExportBtn.addEventListener('click', exportAllCollections);
   }
 
+  // Collection sort button toggle inside backup banner
+  const sortColBtn = document.querySelector('.sort-collections-btn');
+  const sortColMenu = document.getElementById('collectionsSortMenu');
+  if (sortColBtn && sortColMenu) {
+    sortColBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Close other dropdowns first
+      document.querySelectorAll('.sort-dropdown-menu').forEach(menu => {
+        if (menu !== sortColMenu) menu.classList.add('hidden');
+      });
+      sortColMenu.classList.toggle('hidden');
+    });
+
+    sortColMenu.addEventListener('click', async (e) => {
+      const option = e.target.closest('.sort-option');
+      if (option) {
+        const value = option.dataset.value;
+        await updateState(state => {
+          state.collectionSortType = value;
+        });
+        const state = await getState();
+        renderCollections(state);
+        sortColMenu.classList.add('hidden');
+      }
+    });
+  }
+
+  // Close any open sort dropdown menus on click outside
+  document.addEventListener('click', (e) => {
+    document.querySelectorAll('.sort-dropdown-menu').forEach(menu => {
+      if (!menu.classList.contains('hidden') && !menu.parentNode.contains(e.target)) {
+        menu.classList.add('hidden');
+      }
+    });
+  });
+
   // Create collection
   elements.createCollection.addEventListener('click', async () => {
     const name = elements.newCollectionName.value;
@@ -1829,6 +1966,21 @@ async function init() {
       }
     });
   }
+
+  // Migrate existing tabs to have addedAt if they don't have it
+  if (state.collections) {
+    state.collections.forEach(c => {
+      const collCreatedAt = c.createdAt || Date.now();
+      if (c.tabs) {
+        c.tabs.forEach((t, idx) => {
+          if (!t.addedAt) {
+            t.addedAt = collCreatedAt + (idx * 1000);
+            needsUpdate = true;
+          }
+        });
+      }
+    });
+  }
   
   // Clean up any stale auto‑save collection IDs (safety check)
   if (state.autoSaveCollectionId && state.collections) {
@@ -1856,6 +2008,9 @@ document.addEventListener('DOMContentLoaded', init);
 // ==================== DRAG AND DROP HELPERS ====================
 async function reorderCollections(sourceId, targetId) {
   const newState = await updateState(state => {
+    // Force collection sort type back to custom order on drag reorder
+    state.collectionSortType = 'custom';
+
     const sourceIdx = state.collections.findIndex(c => c.id === sourceId);
     const targetIdx = state.collections.findIndex(c => c.id === targetId);
     if (sourceIdx !== -1 && targetIdx !== -1 && sourceIdx !== targetIdx) {
@@ -1896,6 +2051,9 @@ async function reorderTabsWithinCollection(collectionId, sourceTabId, targetTabI
   const newState = await updateState(state => {
     const collection = state.collections.find(c => c.id === collectionId);
     if (collection) {
+      // Force tab sort type back to custom order on drag reorder
+      collection.tabSortType = 'custom';
+
       const sourceIdx = collection.tabs.findIndex(t => t.id === sourceTabId);
       const targetIdx = collection.tabs.findIndex(t => t.id === targetTabId);
       if (sourceIdx !== -1 && targetIdx !== -1 && sourceIdx !== targetIdx) {
@@ -1918,6 +2076,9 @@ async function moveTabToCollectionAtPosition(tabId, sourceCollId, targetCollId, 
         canMove = false;
         return;
       }
+      // Force tab sort type back to custom order on drag reorder
+      targetColl.tabSortType = 'custom';
+
       const sourceTabIdx = sourceColl.tabs.findIndex(t => t.id === tabId);
       const targetTabIdx = targetColl.tabs.findIndex(t => t.id === targetTabId);
       if (sourceTabIdx !== -1 && targetTabIdx !== -1) {

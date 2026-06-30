@@ -154,6 +154,25 @@ async function saveSession() {
         return;
       }
 
+      // Match existing tabs to preserve id and addedAt
+      const existingTabs = [...(collection.tabs || [])];
+      const updatedTabObjects = limitedTabObjects.map(newTab => {
+        const existingIndex = existingTabs.findIndex(et => et.url === newTab.url);
+        if (existingIndex !== -1) {
+          const existing = existingTabs.splice(existingIndex, 1)[0];
+          return {
+            ...newTab,
+            id: existing.id,
+            addedAt: existing.addedAt || Date.now()
+          };
+        } else {
+          return {
+            ...newTab,
+            addedAt: Date.now()
+          };
+        }
+      });
+
       // Create a backup of previous session before overwriting
       if (collection.tabs && collection.tabs.length > 0) {
         state.lastSessionBackup = {
@@ -165,7 +184,7 @@ async function saveSession() {
       }
       
       // Replace only the tabs, keep collection name and other properties
-      collection.tabs = limitedTabObjects;
+      collection.tabs = updatedTabObjects;
       collection.updatedAt = Date.now();
       collection.windowGroups = tabsByWindow; // Store window grouping info
     }
@@ -338,7 +357,8 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       windowId: tab ? tab.windowId : 0,
       active: false,
       discarded: false,
-      highlighted: false
+      highlighted: false,
+      addedAt: Date.now()
     });
     collection.updatedAt = Date.now();
     added = true;
