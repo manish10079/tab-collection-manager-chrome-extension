@@ -292,7 +292,7 @@ async function deleteCollection(collectionId) {
     alert('The Current Session collection cannot be deleted.');
     return;
   }
-  if (!confirm('Delete this collection and all its tabs?')) return;
+  if (!confirm('Are you sure you want to remove this collection?')) return;
 
   const newState = await updateState(state => {
     state.collections = state.collections.filter(c => c.id !== collectionId);
@@ -981,6 +981,24 @@ function renderCollection(collection, autoSaveCollectionId) {
     collectionEl.classList.add('current-session-collection');
   }
 
+  // Toggle collection dropdown menu
+  const menuBtn = collectionEl.querySelector('.collection-menu-btn');
+  const dropdownMenu = collectionEl.querySelector('.collection-dropdown-menu');
+  if (menuBtn && dropdownMenu) {
+    menuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('.collection-dropdown-menu, .tab-dropdown-menu').forEach(menu => {
+        if (menu !== dropdownMenu) menu.classList.add('hidden');
+      });
+      dropdownMenu.classList.toggle('hidden');
+    });
+    // Auto-close menu when clicking any action option inside it
+    dropdownMenu.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdownMenu.classList.add('hidden');
+    });
+  }
+
   // Expanded state
   if (collection.isExpanded) {
     if (expandBtn) expandBtn.classList.add('rotated');
@@ -1279,6 +1297,24 @@ function renderTab(tab, collectionId, tabNumber) {
   urlSpan.textContent = tab.url.length > 50 ? tab.url.slice(0, 50) + '...' : tab.url;
   urlSpan.title = tab.url;
 
+  // Toggle tab dropdown menu
+  const tabMenuBtn = tabEl.querySelector('.tab-menu-btn');
+  const tabDropdownMenu = tabEl.querySelector('.tab-dropdown-menu');
+  if (tabMenuBtn && tabDropdownMenu) {
+    tabMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('.collection-dropdown-menu, .tab-dropdown-menu').forEach(menu => {
+        if (menu !== tabDropdownMenu) menu.classList.add('hidden');
+      });
+      tabDropdownMenu.classList.toggle('hidden');
+    });
+    // Auto-close menu when clicking any action option inside it
+    tabDropdownMenu.addEventListener('click', (e) => {
+      e.stopPropagation();
+      tabDropdownMenu.classList.add('hidden');
+    });
+  }
+
   // Editing state
   if (editingTabId === tab.id) {
     titleInput.focus();
@@ -1292,6 +1328,12 @@ function renderTab(tab, collectionId, tabNumber) {
   titleInput.addEventListener('blur', (e) => {
     if (editingTabId === tab.id) editingTabId = null;
     updateTabTitle(collectionId, tab.id, e.target.value);
+    titleInput.readOnly = true;
+    if (editBtn) {
+      const iElement = editBtn.querySelector('i');
+      if (iElement) iElement.className = 'fas fa-edit';
+      editBtn.title = 'Edit tab title';
+    }
   });
   titleInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
@@ -1857,6 +1899,11 @@ function setupEventListeners() {
         menu.classList.add('hidden');
       }
     });
+    document.querySelectorAll('.collection-dropdown-menu, .tab-dropdown-menu').forEach(menu => {
+      if (!menu.classList.contains('hidden') && !menu.parentNode.contains(e.target)) {
+        menu.classList.add('hidden');
+      }
+    });
   });
 
   // Create collection
@@ -2159,3 +2206,12 @@ async function moveTabToCollectionAtPosition(tabId, sourceCollId, targetCollId, 
     renderCollections(newState);
   }
 }
+
+
+
+document.getElementById('closePanelBtn').addEventListener('click', () => {
+  document.body.classList.add('panel-closing');
+  setTimeout(() => {
+    window.close();
+  }, 220);
+});

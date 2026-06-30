@@ -1,17 +1,17 @@
 {
   "manifest_version": 3,
   "name": "Tab Collection Manager",
-  "version": "1.5.0",
+  "version": "2.1.0",
   "description": "Auto-save and manage tab collections with premium dark mode UI",
   "permissions": [
     "tabs",
     "storage",
     "contextMenus",
     "downloads",
-    "favicon"
+    "favicon",
+     "sidePanel"
   ],
   "action": {
-    "default_popup": "popup.html",
     "default_title": "Tab Collection Manager",
     "default_icon": {
       "16": "icons/icon16.png",
@@ -19,6 +19,11 @@
       "128": "icons/icon128.png"
     }
   },
+  "side_panel": {
+  "default_path": "popup.html"
+  },
+
+
   "background": {
     "service_worker": "background.js",
     "type": "module"

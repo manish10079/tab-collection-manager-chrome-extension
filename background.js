@@ -219,6 +219,12 @@ chrome.windows.onFocusChanged.addListener(() => {
   triggerAutoSave();
 });
 
+chrome.action.onClicked.addListener(async (tab) => {
+    await chrome.sidePanel.open({
+        windowId: tab.windowId
+    });
+});
+
 // ==================== CONTEXT MENU ====================
 const CONTEXT_MENU_PARENT_ID = 'add-to-collection';
 

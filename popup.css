@@ -26,13 +26,41 @@
 }
 
 body {
-  width: 600px;
-  height: 600px; /* Standard extension height */
+  width: 100%;
+  height: 100vh;
   background: var(--bg-gradient);
   color: var(--text-primary);
   overflow: hidden; /* Main scroll controlled by scrollable-content */
   display: flex;
   flex-direction: column;
+  animation: panelOpen 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+body.panel-closing {
+  animation: panelClose 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes panelOpen {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes panelClose {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(18px);
+  }
 }
 
 .container {
@@ -81,6 +109,10 @@ body {
   padding: 10px 0;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  display: flex;
+   justify-content: space-between;
+      flex-wrap: wrap;
+    gap: 12px;
 }
 
 .header h1 {
@@ -579,6 +611,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  
 }
 
 .empty-state {
@@ -607,7 +640,7 @@ body {
   background: rgba(25, 25, 40, 0.45);
   border-radius: var(--radius);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s, box-shadow 0.25s, background-color 0.25s;
 }
@@ -616,7 +649,7 @@ body {
   border-color: rgba(108, 99, 255, 0.35);
   background: rgba(30, 30, 48, 0.6);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3), 0 0 15px rgba(108, 99, 255, 0.12);
-  transform: translateY(-2px);
+  /* Removed translateY(-2px) — it shifts the card up and causes dropdown flicker */
 }
 
 .current-session-collection {
@@ -661,6 +694,7 @@ body {
   padding: 8px 14px;
   gap: 12px;
   cursor: pointer;
+   flex-wrap: wrap;
 }
 
 .collection-left-section {
@@ -752,10 +786,9 @@ body {
   white-space: nowrap;
 }
 
-.meta-dot {
-  color: rgba(255, 255, 255, 0.2);
-  font-size: 10px;
-  margin: 0 1px;
+.collection-meta .updated-time,
+.collection-meta .meta-dot {
+  display: none !important;
 }
 
 .collection-actions {
@@ -772,35 +805,15 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.06);
   font-size: 15px;
   transition: all 0.2s ease-in-out;
+  color: var(--text-secondary);
 }
 
-.collection-actions .open-all-tabs-btn:hover {
-  background: rgba(78, 205, 196, 0.15);
-  border-color: rgba(78, 205, 196, 0.3);
-  color: var(--success);
-  transform: scale(1.05);
-}
-
-.collection-actions .add-tabs-btn:hover {
-  background: rgba(108, 99, 255, 0.15);
-  border-color: rgba(108, 99, 255, 0.3);
-  color: var(--accent);
-  transform: scale(1.05);
-}
-
-.collection-actions .edit-collection-btn:hover {
+.collection-actions .collection-menu-btn:hover {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.2);
   color: var(--text-primary);
-  transform: scale(1.05);
 }
 
-.collection-actions .delete-collection-btn:hover {
-  background: rgba(255, 107, 139, 0.15);
-  border-color: rgba(255, 107, 139, 0.3);
-  color: var(--danger);
-  transform: scale(1.05);
-}
 
 /* Tabs inside collection */
 .collection-tabs {
@@ -823,8 +836,8 @@ body {
 /* Expanded state */
 .collection-tabs.expanded {
   padding: 0 20px 20px;
-  max-height: 400px;
-  overflow-y: auto;
+  max-height: none;
+  overflow: visible;
   opacity: 1;
   transform: translateY(0);
   border-top-color: var(--border);
@@ -926,7 +939,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
+  padding: 8px 12px;
   background: rgba(255, 255, 255, 0.02);
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -940,32 +953,32 @@ body {
 }
 
 .tab-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
   background: linear-gradient(135deg, rgba(108, 99, 255, 0.15) 0%, rgba(108, 99, 255, 0.04) 100%);
   border: 1px solid rgba(108, 99, 255, 0.15);
   color: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 11px;
   flex-shrink: 0;
 }
 
 .tab-number {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-secondary);
-  min-width: 20px;
+  min-width: 16px;
   text-align: center;
   flex-shrink: 0;
   line-height: 1;
 }
 
 .tab-favicon-img {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   object-fit: contain;
   display: block;
 }
@@ -982,7 +995,7 @@ body {
   background: transparent;
   border: 1px solid transparent;
   color: var(--text-primary);
-  font-size: 17px;
+  font-size: 13.5px;
   font-weight: 500;
   padding: 2px 6px;
   border-radius: 4px;
@@ -993,8 +1006,6 @@ body {
   overflow: hidden;
 }
 
-
-
 .tab-title:focus {
   outline: none;
   background: rgba(255, 255, 255, 0.07);
@@ -1002,7 +1013,7 @@ body {
 }
 
 .tab-url {
-  font-size: 14px;
+  font-size: 11px;
   color: var(--text-secondary);
   opacity: 0.65;
   padding-left: 6px;
@@ -1018,37 +1029,127 @@ body {
 }
 
 /* Custom action button styles inside tab item */
-.tab-item .icon-btn {
-  width: 35px;
-  height: 35px;
-  border-radius: 8px;
+.tab-item .icon-btn.tab-menu-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   background: transparent;
   border: 1px solid transparent;
-  font-size: 15px;
+  font-size: 12px;
   opacity: 0.7;
 }
 
-.tab-item:hover .icon-btn {
+.tab-item:hover .icon-btn.tab-menu-btn {
   opacity: 1;
   background: rgba(255, 255, 255, 0.03);
   border-color: rgba(255, 255, 255, 0.06);
 }
 
-.tab-item .open-tab-btn:hover {
-  color: var(--accent);
-  background: rgba(108, 99, 255, 0.1) !important;
-  border-color: rgba(108, 99, 255, 0.2) !important;
+/* Dropdown style inside collection actions and tab menu container */
+.collection-actions, .tab-menu-container {
+  position: relative;
 }
 
-.tab-item .edit-tab-btn:hover {
+.collection-dropdown-menu, .tab-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 6px;
+  background: #161622 !important; /* Explicit solid opaque background */
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  z-index: 1000;
+  min-width: 190px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tab-dropdown-menu {
+  min-width: 150px;
+  background: #161622 !important; /* Explicit solid opaque background */
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.collection-dropdown-menu.hidden, .tab-dropdown-menu.hidden {
+  display: none !important;
+}
+
+.dropdown-option {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+  /* Scope transition to only non-layout properties to avoid flicker */
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.dropdown-option:hover {
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text-primary);
+}
+
+.dropdown-option i {
+  width: 16px;
+  text-align: center;
+  font-size: 13px;
+}
+
+/* Hover effects for options in collection dropdown */
+.collection-dropdown-menu .open-all-tabs-btn:hover {
+  background: rgba(78, 205, 196, 0.1) !important;
+  color: var(--success) !important;
+  border-color: rgba(78, 205, 196, 0.2) !important;
+}
+
+.collection-dropdown-menu .edit-collection-btn:hover {
   background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--text-primary) !important;
   border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
-.tab-item .remove-tab-btn:hover {
-  color: var(--danger);
+.collection-dropdown-menu .add-tabs-btn:hover {
+  background: rgba(108, 99, 255, 0.1) !important;
+  color: var(--accent) !important;
+  border-color: rgba(108, 99, 255, 0.2) !important;
+}
+
+.collection-dropdown-menu .delete-collection-btn:hover {
   background: rgba(255, 107, 139, 0.1) !important;
+  color: var(--danger) !important;
+  border-color: rgba(255, 107, 139, 0.2) !important;
+}
+
+/* Hover effects for options in tab dropdown */
+.tab-dropdown-menu .edit-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--text-primary) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.tab-dropdown-menu .open-tab-btn:hover {
+  background: rgba(108, 99, 255, 0.1) !important;
+  color: var(--accent) !important;
+  border-color: rgba(108, 99, 255, 0.2) !important;
+}
+
+.tab-dropdown-menu .remove-tab-btn:hover {
+  background: rgba(255, 107, 139, 0.1) !important;
+  color: var(--danger) !important;
   border-color: rgba(255, 107, 139, 0.2) !important;
 }
 
@@ -1349,23 +1450,14 @@ body {
   transform: scale(0.9);
 }
 
-/* Scrollbar */
+/* Scrollbar - Hidden but functionality intact */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  display: none !important;
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(108, 99, 255, 0.3);
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--accent);
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
 /* Drag and Drop Styling */
