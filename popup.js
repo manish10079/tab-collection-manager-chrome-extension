@@ -1,6 +1,28 @@
 // Tab Collection Manager - Popup Logic
 // STRICT STATE MANAGEMENT: READ → CLONE → MODIFY → SAVE → RENDER
 
+// =====================CONSTANTS=========================
+const COLLECTION_SORT_ICONS = {
+    custom: "fa-grip-vertical",
+    lastModified: "fa-clock",
+    nameAsc: "fa-sort-alpha-down",
+    nameDesc: "fa-sort-alpha-up",
+    dateCreated: "fa-calendar-plus",
+    dateCreatedAsc: "fa-calendar-minus",
+    tabCount: "fa-arrow-down-9-1",
+    tabCountAsc: "fa-arrow-up-1-9"
+};
+
+const TAB_SORT_ICONS = {
+    custom: "fa-grip-vertical",
+    titleAsc: "fa-sort-alpha-down",
+    titleDesc: "fa-sort-alpha-up",
+    newest: "fa-calendar-plus",
+    oldest: "fa-calendar-minus",
+    highest: "fa-arrow-down-9-1",
+    lowest: "fa-arrow-up-1-9"
+};
+
 // ==================== STORAGE HELPERS ====================
 async function getState() {
   const result = await api.storage.local.get(['collections', 'autoSaveCollectionId', 'lastSessionBackup', 'ramSaverEnabled', 'collectionSortType']);
@@ -485,6 +507,7 @@ function importAllCollections() {
   input.click();
 }
 
+
 function exportCollection(collection) {
   if (!collection || !collection.tabs || collection.tabs.length === 0) {
     alert('No tabs to export in this collection.');
@@ -879,8 +902,16 @@ function renderCollections(state) {
     sortedCollections.sort((a, b) => (b.name || '').localeCompare(a.name || '', undefined, { sensitivity: 'base' }));
   } else if (colSortType === 'dateCreated') {
     sortedCollections.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-  } else if (colSortType === 'tabCount') {
+  } 
+  else if (colSortType === 'dateCreatedAsc') {
+    sortedCollections.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  }
+  
+  else if (colSortType === 'tabCount') {
     sortedCollections.sort((a, b) => (b.tabs?.length || 0) - (a.tabs?.length || 0));
+  }
+  else if (colSortType === 'tabCountAsc') {
+    sortedCollections.sort((a, b) => (a.tabs?.length || 0) - (b.tabs?.length || 0));
   }
 
   if (currentSession) {
