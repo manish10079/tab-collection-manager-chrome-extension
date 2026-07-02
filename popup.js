@@ -17,10 +17,8 @@ const TAB_SORT_ICONS = {
     custom: "fa-grip-vertical",
     titleAsc: "fa-sort-alpha-down",
     titleDesc: "fa-sort-alpha-up",
-    newest: "fa-calendar-plus",
-    oldest: "fa-calendar-minus",
-    highest: "fa-arrow-down-9-1",
-    lowest: "fa-arrow-up-1-9"
+    dateAddedNewest: "fa-calendar-plus",
+    dateAddedOldest: "fa-calendar-minus"
 };
 
 // ==================== STORAGE HELPERS ====================
@@ -170,6 +168,25 @@ function getFormattedDateTime() {
   const minutes = String(now.getMinutes()).padStart(2, '0');
   const seconds = String(now.getSeconds()).padStart(2, '0');
   return `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`;
+}
+
+
+function updateCollectionSortIcon(sortType) {
+    const icon = document.getElementById('collectionSortIcon');
+
+    if (!icon) return;
+
+    icon.className =
+        `fa-solid ${COLLECTION_SORT_ICONS[sortType] || 'fa-arrow-up-wide-short'}`;
+}
+
+function updateTabSortIcon(button, sortType) {
+    const icon = button.querySelector('i');
+
+    if (!icon) return;
+
+    icon.className =
+        `fa-solid ${TAB_SORT_ICONS[sortType] || 'fa-arrow-up-wide-short'}`;
 }
 
 /**
@@ -1093,9 +1110,15 @@ function renderCollection(collection, autoSaveCollectionId) {
   if (sortTabsBtn && sortTabsMenu) {
     // Highlight the active tab sort option for this collection
     const activeSortType = collection.tabSortType || 'custom';
+
     sortTabsMenu.querySelectorAll('.sort-option').forEach(opt => {
       opt.classList.toggle('active', opt.dataset.value === activeSortType);
     });
+
+   updateTabSortIcon(
+    sortTabsBtn,
+    activeSortType
+);
 
     sortTabsBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -1110,6 +1133,10 @@ function renderCollection(collection, autoSaveCollectionId) {
       const option = e.target.closest('.sort-option');
       if (option) {
         const value = option.dataset.value;
+        updateTabSortIcon(
+    sortTabsBtn,
+    value
+);
         await updateState(state => {
           const col = state.collections.find(c => c.id === collection.id);
           if (col) {
@@ -1913,6 +1940,7 @@ function setupEventListeners() {
       const option = e.target.closest('.sort-option');
       if (option) {
         const value = option.dataset.value;
+        updateCollectionSortIcon(value);
         await updateState(state => {
           state.collectionSortType = value;
         });
@@ -2067,6 +2095,9 @@ async function init() {
   }
   
   const state = await getState();
+  updateCollectionSortIcon(
+    state.collectionSortType || 'custom'
+);
   
   // Debug logging
   console.log('Popup State:', {
