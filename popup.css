@@ -1928,3 +1928,153 @@ mark.search-hl {
   justify-content:space-between;
   gap: 8px;
 }
+
+/* Pinning Feature Styles */
+.collection-actions .pin-collection-btn {
+  width: 35px;
+  height: 35px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 15px;
+  transition: all 0.2s ease-in-out;
+  color: var(--text-secondary);
+}
+
+.collection-actions .pin-collection-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--text-primary);
+}
+
+.collection-actions .pin-collection-btn.pinned {
+  color: #f59e0b; /* Premium Amber */
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.35);
+  opacity: 1;
+}
+
+.collection-actions .pin-collection-btn.pinned:hover {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.25);
+  border-color: rgba(245, 158, 11, 0.5);
+}
+
+.collection.pinned {
+  border-color: rgba(245, 158, 11, 0.25);
+  background: linear-gradient(to right, rgba(245, 158, 11, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+}
+
+.tab-menu-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tab-item .icon-btn.pin-tab-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  font-size: 12px;
+  opacity: 0.7;
+  transition: all 0.2s ease-in-out;
+  color: var(--text-secondary);
+}
+
+.tab-item:hover .icon-btn.pin-tab-btn {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.tab-item .icon-btn.pin-tab-btn.pinned {
+  color: #f59e0b; /* Premium Amber */
+  opacity: 1;
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.tab-item .icon-btn.pin-tab-btn.pinned:hover {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.25);
+}
+
+.tab-item.pinned {
+  border-color: rgba(245, 158, 11, 0.2);
+  background: rgba(245, 158, 11, 0.02);
+}
+
+/* Settings UI Styles */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 8px;
+}
+
+.settings-option {
+  display: flex;
+  align-items: center;
+}
+
+/* Limit Settings styling */
+.settings-limit-row {
+  justify-content: space-between;
+  width: 100%;
+}
+
+.limit-input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.limit-input-group.disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.limit-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.limit-input {
+  width: 55px;
+  height: 32px;
+  padding: 4px 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  text-align: center;
+  transition: var(--transition);
+  outline: none;
+}
+
+.limit-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.2);
+}
+
+/* Chrome, Safari, Edge, Opera: Remove spin buttons from number input */
+.limit-input::-webkit-outer-spin-button,
+.limit-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox: Remove spin buttons */
+.limit-input[type=number] {
+  -moz-appearance: textfield;
+}

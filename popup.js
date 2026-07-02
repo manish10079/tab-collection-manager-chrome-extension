@@ -21,15 +21,23 @@ const TAB_SORT_ICONS = {
     dateAddedOldest: "fa-calendar-minus"
 };
 
+// Default fallback limits (overridden by user settings stored in chrome.storage)
+const DEFAULT_MAX_PINNED_COLLECTIONS = 3;
+const DEFAULT_MAX_PINNED_TABS_PER_COLLECTION = 3;
+
 // ==================== STORAGE HELPERS ====================
 async function getState() {
-  const result = await api.storage.local.get(['collections', 'autoSaveCollectionId', 'lastSessionBackup', 'ramSaverEnabled', 'collectionSortType']);
+  const result = await api.storage.local.get(['collections', 'autoSaveCollectionId', 'lastSessionBackup', 'ramSaverEnabled', 'collectionSortType', 'enforceMaxPinnedCollections', 'enforceMaxPinnedTabs', 'maxPinnedCollections', 'maxPinnedTabs']);
   return {
     collections: result.collections || [],
     autoSaveCollectionId: result.autoSaveCollectionId || null,
     lastSessionBackup: result.lastSessionBackup || null,
     ramSaverEnabled: !!result.ramSaverEnabled,
-    collectionSortType: result.collectionSortType || 'custom'
+    collectionSortType: result.collectionSortType || 'custom',
+    enforceMaxPinnedCollections: result.enforceMaxPinnedCollections !== false,
+    enforceMaxPinnedTabs: result.enforceMaxPinnedTabs !== false,
+    maxPinnedCollections: result.maxPinnedCollections ?? DEFAULT_MAX_PINNED_COLLECTIONS,
+    maxPinnedTabs: result.maxPinnedTabs ?? DEFAULT_MAX_PINNED_TABS_PER_COLLECTION
   };
 }
 
@@ -275,7 +283,7 @@ const elements = {
   createCollection: document.getElementById('createCollection'),
   collectionsContainer: document.getElementById('collectionsContainer'),
   emptyState: document.getElementById('emptyState'),
-  autoSaveToggle: document.getElementById('autoSaveToggle'),
+  autoSaveToggle: null, // now lives inside settingsModal, resolved at runtime
   autoSaveCollectionSelect: document.getElementById('autoSaveCollectionSelect'),
   addTabsModal: document.getElementById('addTabsModal'),
   closeModal: document.getElementById('closeModal'),
@@ -321,6 +329,7 @@ async function createCollection(name) {
       updatedAt: Date.now(),
       isExpanded: false
     });
+    state.collections = partitionCollections(state.collections);
   });
 
   return true;
@@ -335,6 +344,7 @@ async function deleteCollection(collectionId) {
 
   const newState = await updateState(state => {
     state.collections = state.collections.filter(c => c.id !== collectionId);
+    state.collections = partitionCollections(state.collections);
     if (state.autoSaveCollectionId === collectionId) {
       state.autoSaveCollectionId = null;
     }
@@ -377,6 +387,7 @@ async function renameCollection(collectionId, newName) {
       collection.name = trimmed;
       collection.updatedAt = Date.now();
     }
+    state.collections = partitionCollections(state.collections);
   });
   renderCollections(newState);
   return true;
@@ -462,15 +473,24 @@ function importAllCollections() {
             if (existing) {
               // Merge tabs into existing collection
               let tabAddedCount = 0;
+              let currentPinnedTabsCount = existing.tabs.filter(t => t.pinned).length;
               imported.tabs.forEach(tab => {
                 if (!tab.url) return;
                 const existsInTarget = existing.tabs.some(t => t.url.trim().toLowerCase().replace(/\/+$/, '') === tab.url.trim().toLowerCase().replace(/\/+$/, ''));
                 if (!existsInTarget && existing.tabs.length < MAX_TABS_PER_COLLECTION) {
+                  let isPinned = !!tab.pinned;
+                  if (isPinned) {
+                    if (currentPinnedTabsCount < state.maxPinnedTabs) {
+                      currentPinnedTabsCount++;
+                    } else {
+                      isPinned = false;
+                    }
+                  }
                   existing.tabs.push({
                     id: generateId(),
                     title: tab.title || 'Untitled',
                     url: tab.url,
-                    pinned: !!tab.pinned,
+                    pinned: isPinned,
                     index: existing.tabs.length,
                     windowId: 0,
                     active: false,
@@ -481,27 +501,52 @@ function importAllCollections() {
                   tabAddedCount++;
                 }
               });
+              existing.tabs = partitionTabs(existing.tabs);
               if (tabAddedCount > 0) {
                 existing.updatedAt = Date.now();
                 mergedCount++;
               }
             } else {
               // Add as a new collection
-              state.collections.push({
-                id: generateId(),
-                name: imported.name,
-                tabs: imported.tabs.filter(t => t.url).map(t => ({
+              let isPinned = !!imported.pinned;
+              if (isPinned) {
+                const currentPinnedCount = state.collections.filter(c => c.pinned).length;
+                if (currentPinnedCount < state.maxPinnedCollections) {
+                  // Keep isPinned true
+                } else {
+                  isPinned = false;
+                }
+              }
+
+              let currentPinnedTabsCount = 0;
+              const mappedTabs = imported.tabs.filter(t => t.url).map(t => {
+                let isTabPinned = !!t.pinned;
+                if (isTabPinned) {
+                  if (currentPinnedTabsCount < state.maxPinnedTabs) {
+                    currentPinnedTabsCount++;
+                  } else {
+                    isTabPinned = false;
+                  }
+                }
+                return {
                   id: generateId(),
                   title: t.title || 'Untitled',
                   url: t.url,
-                  pinned: !!t.pinned,
+                  pinned: isTabPinned,
                   index: 0,
                   windowId: 0,
                   active: false,
                   discarded: false,
                   highlighted: false,
                   addedAt: t.addedAt || Date.now()
-                })).slice(0, MAX_TABS_PER_COLLECTION),
+                };
+              });
+
+              state.collections.push({
+                id: generateId(),
+                name: imported.name,
+                pinned: isPinned,
+                tabs: partitionTabs(mappedTabs).slice(0, MAX_TABS_PER_COLLECTION),
                 createdAt: Date.now(),
                 updatedAt: Date.now(),
                 isExpanded: false
@@ -509,6 +554,7 @@ function importAllCollections() {
               addedCount++;
             }
           });
+          state.collections = partitionCollections(state.collections);
         });
 
         const newState = await getState();
@@ -687,6 +733,7 @@ async function addManualTab(collectionId, title, url) {
         highlighted: false,
         addedAt: Date.now()
       });
+      collection.tabs = partitionTabs(collection.tabs);
       collection.updatedAt = Date.now();
     }
   });
@@ -755,6 +802,7 @@ async function addTabsFromSelection(collectionId, tabsArray) {
     const collection = state.collections.find(c => c.id === collectionId);
     if (collection) {
       const availableSlots = MAX_TABS_PER_COLLECTION - collection.tabs.length;
+      let currentPinnedTabsCount = collection.tabs.filter(t => t.pinned).length;
       
       tabsToAdd.forEach(tab => {
         // Validate URL before adding
@@ -769,12 +817,21 @@ async function addTabsFromSelection(collectionId, tabsArray) {
           return;
         }
         
+        let isTabPinned = !!tab.pinned;
+        if (isTabPinned) {
+          if (currentPinnedTabsCount < state.maxPinnedTabs) {
+            currentPinnedTabsCount++;
+          } else {
+            isTabPinned = false;
+          }
+        }
+
         const trimmedTitle = (tab.title || '').trim() || 'Untitled';
         collection.tabs.push({
           id: generateId(),
           title: trimmedTitle,
           url: tab.url,
-          pinned: false,
+          pinned: isTabPinned,
           index: collection.tabs.length, // Append at the end
           windowId: 0, // Default window
           active: false,
@@ -784,6 +841,7 @@ async function addTabsFromSelection(collectionId, tabsArray) {
         });
         addedCount++;
       });
+      collection.tabs = partitionTabs(collection.tabs);
       collection.updatedAt = Date.now();
     }
   });
@@ -851,6 +909,7 @@ async function removeTab(collectionId, tabId) {
     const collection = state.collections.find(c => c.id === collectionId);
     if (collection) {
       collection.tabs = collection.tabs.filter(t => t.id !== tabId);
+      collection.tabs = partitionTabs(collection.tabs);
       collection.updatedAt = Date.now();
     }
   });
@@ -879,6 +938,85 @@ async function updateAutoSaveConfig(enabled) {
       state.autoSaveCollectionId = null;
     }
   });
+}
+
+function partitionCollections(collections) {
+  const currentSession = collections.filter(c => c.id === CURRENT_SESSION_ID);
+  const pinned = collections.filter(c => c.pinned && c.id !== CURRENT_SESSION_ID);
+  const unpinned = collections.filter(c => !c.pinned && c.id !== CURRENT_SESSION_ID);
+  return [...currentSession, ...pinned, ...unpinned];
+}
+
+function partitionTabs(tabs) {
+  const pinned = tabs.filter(t => t.pinned);
+  const unpinned = tabs.filter(t => !t.pinned);
+  return [...pinned, ...unpinned];
+}
+
+// ==================== PIN OPERATIONS ====================
+async function togglePinCollection(collectionId) {
+  if (collectionId === CURRENT_SESSION_ID) return;
+
+  let limitReached = false;
+  const newState = await updateState(state => {
+    if (!state.enforceMaxPinnedCollections) {
+      // Limit enforcement disabled — pin freely
+    }
+    const collection = state.collections.find(c => c.id === collectionId);
+    if (collection) {
+      const isPinned = !collection.pinned;
+      if (isPinned && state.enforceMaxPinnedCollections) {
+        const currentPinnedCount = state.collections.filter(c => c.pinned && c.id !== CURRENT_SESSION_ID).length;
+        if (currentPinnedCount >= state.maxPinnedCollections) {
+          limitReached = true;
+          return;
+        }
+      }
+      collection.pinned = isPinned;
+      collection.updatedAt = Date.now();
+      state.collections = partitionCollections(state.collections);
+    }
+  });
+
+  if (limitReached) {
+    const lim = await getState().then(s => s.maxPinnedCollections);
+    alert(`Maximum of ${lim} pinned collections reached. Raise the limit or disable it in Settings.`);
+    return;
+  }
+
+  renderCollections(newState);
+}
+
+async function togglePinTab(collectionId, tabId) {
+  if (collectionId === CURRENT_SESSION_ID) return;
+  let limitReached = false;
+  const newState = await updateState(state => {
+    const collection = state.collections.find(c => c.id === collectionId);
+    if (collection) {
+      const tab = collection.tabs.find(t => t.id === tabId);
+      if (tab) {
+        const isPinned = !tab.pinned;
+        if (isPinned && state.enforceMaxPinnedTabs) {
+          const currentPinnedCount = collection.tabs.filter(t => t.pinned).length;
+          if (currentPinnedCount >= state.maxPinnedTabs) {
+            limitReached = true;
+            return;
+          }
+        }
+        tab.pinned = isPinned;
+        collection.updatedAt = Date.now();
+        collection.tabs = partitionTabs(collection.tabs);
+      }
+    }
+  });
+
+  if (limitReached) {
+    const lim = await getState().then(s => s.maxPinnedTabs);
+    alert(`Maximum of ${lim} pinned tabs per collection reached. Raise the limit or disable it in Settings.`);
+    return;
+  }
+
+  renderCollections(newState);
 }
 
 // ==================== UI RENDERING ====================
@@ -911,25 +1049,29 @@ function renderCollections(state) {
     currentSession = sortedCollections.splice(currentSessionIdx, 1)[0];
   }
 
+  // Partition sortedCollections into pinned and unpinned groups
+  // Only unpinned collections participate in sorting
+  let pinnedCollections = sortedCollections.filter(c => c.pinned);
+  let unpinnedCollections = sortedCollections.filter(c => !c.pinned);
+
   if (colSortType === 'lastModified') {
-    sortedCollections.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    unpinnedCollections.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
   } else if (colSortType === 'nameAsc') {
-    sortedCollections.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+    unpinnedCollections.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
   } else if (colSortType === 'nameDesc') {
-    sortedCollections.sort((a, b) => (b.name || '').localeCompare(a.name || '', undefined, { sensitivity: 'base' }));
+    unpinnedCollections.sort((a, b) => (b.name || '').localeCompare(a.name || '', undefined, { sensitivity: 'base' }));
   } else if (colSortType === 'dateCreated') {
-    sortedCollections.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-  } 
-  else if (colSortType === 'dateCreatedAsc') {
-    sortedCollections.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+    unpinnedCollections.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  } else if (colSortType === 'dateCreatedAsc') {
+    unpinnedCollections.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  } else if (colSortType === 'tabCount') {
+    unpinnedCollections.sort((a, b) => (b.tabs?.length || 0) - (a.tabs?.length || 0));
+  } else if (colSortType === 'tabCountAsc') {
+    unpinnedCollections.sort((a, b) => (a.tabs?.length || 0) - (b.tabs?.length || 0));
   }
-  
-  else if (colSortType === 'tabCount') {
-    sortedCollections.sort((a, b) => (b.tabs?.length || 0) - (a.tabs?.length || 0));
-  }
-  else if (colSortType === 'tabCountAsc') {
-    sortedCollections.sort((a, b) => (a.tabs?.length || 0) - (b.tabs?.length || 0));
-  }
+
+  // Combine pinned and sorted unpinned collections
+  sortedCollections = [...pinnedCollections, ...unpinnedCollections];
 
   if (currentSession) {
     sortedCollections.unshift(currentSession);
@@ -1027,6 +1169,28 @@ function renderCollection(collection, autoSaveCollectionId) {
     nameInput.title = 'Current Session collection cannot be renamed or have tabs added';
     // Add a visual indicator
     collectionEl.classList.add('current-session-collection');
+  }
+
+  // Pin collection button handling
+  const pinBtn = collectionEl.querySelector('.pin-collection-btn');
+  if (pinBtn) {
+    if (collection.id === CURRENT_SESSION_ID) {
+      pinBtn.style.display = 'none';
+    } else {
+      if (collection.pinned) {
+        pinBtn.classList.add('pinned');
+        collectionEl.classList.add('pinned');
+        pinBtn.title = 'Unpin Collection';
+      } else {
+        pinBtn.classList.remove('pinned');
+        collectionEl.classList.remove('pinned');
+        pinBtn.title = 'Pin Collection';
+      }
+      pinBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        togglePinCollection(collection.id);
+      });
+    }
   }
 
   // Toggle collection dropdown menu
@@ -1307,15 +1471,23 @@ function renderTabs(collection, container) {
   // Toggle sort-active class on tabs container to hide drag handles when sorted
   container.classList.toggle('sort-active', tabSortType !== 'custom');
 
+  // Partition sortedTabs into pinned and unpinned groups
+  // Only unpinned tabs participate in sorting
+  let pinnedTabs = sortedTabs.filter(t => t.pinned);
+  let unpinnedTabs = sortedTabs.filter(t => !t.pinned);
+
   if (tabSortType === 'dateAddedNewest') {
-    sortedTabs.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+    unpinnedTabs.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
   } else if (tabSortType === 'dateAddedOldest') {
-    sortedTabs.sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0));
+    unpinnedTabs.sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0));
   } else if (tabSortType === 'titleAsc') {
-    sortedTabs.sort((a, b) => (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' }));
+    unpinnedTabs.sort((a, b) => (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' }));
   } else if (tabSortType === 'titleDesc') {
-    sortedTabs.sort((a, b) => (b.title || '').localeCompare(a.title || '', undefined, { sensitivity: 'base' }));
+    unpinnedTabs.sort((a, b) => (b.title || '').localeCompare(a.title || '', undefined, { sensitivity: 'base' }));
   }
+
+  // Combine pinned and sorted unpinned tabs
+  sortedTabs = [...pinnedTabs, ...unpinnedTabs];
 
   if (sortedTabs.length === 0) {
     container.innerHTML = '<div class="empty-tabs-message"><i class="fas fa-info-circle"></i> No tabs in this collection</div>';
@@ -1354,6 +1526,28 @@ function renderTab(tab, collectionId, tabNumber) {
   titleInput.value = tab.title;
   urlSpan.textContent = tab.url.length > 50 ? tab.url.slice(0, 50) + '...' : tab.url;
   urlSpan.title = tab.url;
+
+  // Pin tab button handling
+  const pinBtn = tabEl.querySelector('.pin-tab-btn');
+  if (pinBtn) {
+    if (collectionId === CURRENT_SESSION_ID) {
+      pinBtn.style.display = 'none';
+    } else {
+      if (tab.pinned) {
+        pinBtn.classList.add('pinned');
+        tabEl.classList.add('pinned');
+        pinBtn.title = 'Unpin Tab';
+      } else {
+        pinBtn.classList.remove('pinned');
+        tabEl.classList.remove('pinned');
+        pinBtn.title = 'Pin Tab';
+      }
+      pinBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        togglePinTab(collectionId, tab.id);
+      });
+    }
+  }
 
   // Toggle tab dropdown menu
   const tabMenuBtn = tabEl.querySelector('.tab-menu-btn');
@@ -1520,28 +1714,131 @@ function renderTab(tab, collectionId, tabNumber) {
 }
 
 function renderAutoSaveSelect(collections, autoSaveCollectionId) {
-  elements.autoSaveToggle.checked = !!autoSaveCollectionId;
+  const autoSaveToggle = document.getElementById('autoSaveToggle');
+  if (autoSaveToggle) autoSaveToggle.checked = !!autoSaveCollectionId;
 }
 
 // ==================== RAM SAVER TOGGLE ====================
-async function setupRamSaverToggle() {
+async function setupSettingsModal() {
+  const settingsBtn = document.getElementById('settingsBtn');
+  const settingsModal = document.getElementById('settingsModal');
+  const closeSettingsModal = document.getElementById('closeSettingsModal');
+  const autoSaveToggle = document.getElementById('autoSaveToggle');
   const ramSaverToggle = document.getElementById('ramSaverToggle');
-  if (!ramSaverToggle) return;
+  const enforceMaxPinnedCollectionsToggle = document.getElementById('enforceMaxPinnedCollectionsToggle');
+  const enforceMaxPinnedTabsToggle = document.getElementById('enforceMaxPinnedTabsToggle');
+  const maxPinnedCollectionsInput = document.getElementById('maxPinnedCollectionsInput');
+  const maxPinnedTabsInput = document.getElementById('maxPinnedTabsInput');
+  const maxPinnedCollectionsGroup = document.getElementById('maxPinnedCollectionsGroup');
+  const maxPinnedTabsGroup = document.getElementById('maxPinnedTabsGroup');
 
-  // Read persisted state and reflect in UI
+  // Load current state and initialise checkboxes & inputs
   const state = await getState();
-  ramSaverToggle.checked = state.ramSaverEnabled;
+  if (autoSaveToggle) autoSaveToggle.checked = !!state.autoSaveCollectionId;
+  if (ramSaverToggle) ramSaverToggle.checked = state.ramSaverEnabled;
+  if (enforceMaxPinnedCollectionsToggle) enforceMaxPinnedCollectionsToggle.checked = state.enforceMaxPinnedCollections;
+  if (enforceMaxPinnedTabsToggle) enforceMaxPinnedTabsToggle.checked = state.enforceMaxPinnedTabs;
+  if (maxPinnedCollectionsInput) maxPinnedCollectionsInput.value = state.maxPinnedCollections;
+  if (maxPinnedTabsInput) maxPinnedTabsInput.value = state.maxPinnedTabs;
 
-  ramSaverToggle.addEventListener('change', async (e) => {
-    const enabled = e.target.checked;
-    await api.storage.local.set({ ramSaverEnabled: enabled });
-    if (enabled) {
-      showToast('💾 RAM Saver ON — tabs will lazy‑load on click');
-    } else {
-      showToast('RAM Saver OFF — tabs load normally');
-    }
-    console.log('RAM Saver:', enabled ? 'enabled' : 'disabled');
-  });
+  if (maxPinnedCollectionsGroup) {
+    maxPinnedCollectionsGroup.classList.toggle('disabled', !state.enforceMaxPinnedCollections);
+  }
+  if (maxPinnedTabsGroup) {
+    maxPinnedTabsGroup.classList.toggle('disabled', !state.enforceMaxPinnedTabs);
+  }
+
+  // Open / close the settings modal
+  if (settingsBtn && settingsModal) {
+    settingsBtn.addEventListener('click', () => {
+      settingsModal.style.display = 'flex';
+    });
+  }
+  if (closeSettingsModal && settingsModal) {
+    closeSettingsModal.addEventListener('click', () => {
+      settingsModal.style.display = 'none';
+    });
+  }
+  // Close on overlay click
+  if (settingsModal) {
+    settingsModal.addEventListener('click', (e) => {
+      if (e.target === settingsModal) settingsModal.style.display = 'none';
+    });
+  }
+
+  // Auto-save toggle
+  if (autoSaveToggle) {
+    autoSaveToggle.addEventListener('change', async (e) => {
+      const enabled = e.target.checked;
+      await updateAutoSaveConfig(enabled);
+      const newState = await getState();
+      renderCollections(newState);
+      showToast(enabled ? 'Auto-Save enabled' : 'Auto-Save disabled');
+    });
+  }
+
+  // RAM Saver toggle
+  if (ramSaverToggle) {
+    ramSaverToggle.addEventListener('change', async (e) => {
+      const enabled = e.target.checked;
+      await api.storage.local.set({ ramSaverEnabled: enabled });
+      if (enabled) {
+        showToast('💾 RAM Saver ON — tabs will lazy‑load on click');
+      } else {
+        showToast('RAM Saver OFF — tabs load normally');
+      }
+    });
+  }
+
+  // Enforce max pinned collections toggle
+  if (enforceMaxPinnedCollectionsToggle) {
+    enforceMaxPinnedCollectionsToggle.addEventListener('change', async (e) => {
+      const enabled = e.target.checked;
+      await api.storage.local.set({ enforceMaxPinnedCollections: enabled });
+      if (maxPinnedCollectionsGroup) {
+        maxPinnedCollectionsGroup.classList.toggle('disabled', !enabled);
+      }
+      const currentLimit = maxPinnedCollectionsInput ? parseInt(maxPinnedCollectionsInput.value, 10) : 3;
+      showToast(enabled ? `Pinned collection limit enabled (max ${currentLimit})` : 'Pinned collection limit removed');
+    });
+  }
+
+  // Enforce max pinned tabs toggle
+  if (enforceMaxPinnedTabsToggle) {
+    enforceMaxPinnedTabsToggle.addEventListener('change', async (e) => {
+      const enabled = e.target.checked;
+      await api.storage.local.set({ enforceMaxPinnedTabs: enabled });
+      if (maxPinnedTabsGroup) {
+        maxPinnedTabsGroup.classList.toggle('disabled', !enabled);
+      }
+      const currentLimit = maxPinnedTabsInput ? parseInt(maxPinnedTabsInput.value, 10) : 3;
+      showToast(enabled ? `Pinned tab limit enabled (max ${currentLimit} per collection)` : 'Pinned tab limit removed');
+    });
+  }
+
+  // Max pinned collections input
+  if (maxPinnedCollectionsInput) {
+    maxPinnedCollectionsInput.addEventListener('change', async (e) => {
+      let val = parseInt(e.target.value, 10);
+      if (isNaN(val) || val < 1) val = 1;
+      if (val > 20) val = 20;
+      e.target.value = val;
+      await api.storage.local.set({ maxPinnedCollections: val });
+      showToast(`Pinned collections limit set to ${val}`);
+    });
+  }
+
+  // Max pinned tabs input
+  if (maxPinnedTabsInput) {
+    maxPinnedTabsInput.addEventListener('change', async (e) => {
+      let val = parseInt(e.target.value, 10);
+      if (isNaN(val) || val < 1) val = 1;
+      if (val > 50) val = 50;
+      e.target.value = val;
+      await api.storage.local.set({ maxPinnedTabs: val });
+      showToast(`Pinned tabs limit set to ${val} per collection`);
+    });
+  }
 }
 
 // ==================== SEARCH / FILTER ====================
@@ -2005,13 +2302,7 @@ function setupEventListeners() {
     }
   });
 
-  // Auto‑save toggle
-  elements.autoSaveToggle.addEventListener('change', async (e) => {
-    const enabled = e.target.checked;
-    await updateAutoSaveConfig(enabled);
-    const state = await getState();
-    renderCollections(state);
-  });
+  // Auto‑save toggle is now handled in setupSettingsModal
 
   // Modal
   elements.closeModal.addEventListener('click', closeAddTabsModal);
@@ -2085,7 +2376,7 @@ function setupEventListeners() {
 async function init() {
   console.log('--- POPUP INIT ---');
   setupEventListeners();
-  await setupRamSaverToggle();
+  await setupSettingsModal();
   
   // Force an auto-save to ensure the Current Session is completely up-to-date
   try {
@@ -2190,6 +2481,7 @@ async function reorderCollections(sourceId, targetId) {
       const [movedCollection] = state.collections.splice(sourceIdx, 1);
       state.collections.splice(targetIdx, 0, movedCollection);
     }
+    state.collections = partitionCollections(state.collections);
   });
   renderCollections(newState);
 }
@@ -2207,7 +2499,18 @@ async function moveTabToCollection(tabId, sourceCollId, targetCollId) {
       const tabIdx = sourceColl.tabs.findIndex(t => t.id === tabId);
       if (tabIdx !== -1) {
         const [movedTab] = sourceColl.tabs.splice(tabIdx, 1);
+        
+        if (movedTab.pinned) {
+          const targetPinnedCount = targetColl.tabs.filter(t => t.pinned).length;
+          if (targetPinnedCount >= state.maxPinnedTabs) {
+            movedTab.pinned = false;
+          }
+        }
+
         targetColl.tabs.push(movedTab);
+        sourceColl.tabs = partitionTabs(sourceColl.tabs);
+        targetColl.tabs = partitionTabs(targetColl.tabs);
+
         sourceColl.updatedAt = Date.now();
         targetColl.updatedAt = Date.now();
       }
@@ -2234,6 +2537,7 @@ async function reorderTabsWithinCollection(collectionId, sourceTabId, targetTabI
         collection.tabs.splice(targetIdx, 0, movedTab);
         collection.updatedAt = Date.now();
       }
+      collection.tabs = partitionTabs(collection.tabs);
     }
   });
   renderCollections(newState);
@@ -2256,7 +2560,18 @@ async function moveTabToCollectionAtPosition(tabId, sourceCollId, targetCollId, 
       const targetTabIdx = targetColl.tabs.findIndex(t => t.id === targetTabId);
       if (sourceTabIdx !== -1 && targetTabIdx !== -1) {
         const [movedTab] = sourceColl.tabs.splice(sourceTabIdx, 1);
+        
+        if (movedTab.pinned) {
+          const targetPinnedCount = targetColl.tabs.filter(t => t.pinned).length;
+          if (targetPinnedCount >= state.maxPinnedTabs) {
+            movedTab.pinned = false;
+          }
+        }
+
         targetColl.tabs.splice(targetTabIdx, 0, movedTab);
+        sourceColl.tabs = partitionTabs(sourceColl.tabs);
+        targetColl.tabs = partitionTabs(targetColl.tabs);
+
         sourceColl.updatedAt = Date.now();
         targetColl.updatedAt = Date.now();
       }

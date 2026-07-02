@@ -3,12 +3,14 @@
 // checking git is working or not
 // ==================== STORAGE HELPERS ====================
 async function getState() {
-  const result = await api.storage.local.get(['collections', 'autoSaveCollectionId', 'lastSessionBackup', 'ramSaverEnabled']);
+  const result = await api.storage.local.get(['collections', 'autoSaveCollectionId', 'lastSessionBackup', 'ramSaverEnabled', 'enforceMaxPinnedTabs', 'maxPinnedTabs']);
   return {
     collections: result.collections || [],
     autoSaveCollectionId: result.autoSaveCollectionId || null,
     lastSessionBackup: result.lastSessionBackup || null,
-    ramSaverEnabled: !!result.ramSaverEnabled
+    ramSaverEnabled: !!result.ramSaverEnabled,
+    enforceMaxPinnedTabs: result.enforceMaxPinnedTabs !== false,
+    maxPinnedTabs: result.maxPinnedTabs ?? 3
   };
 }
 
@@ -154,24 +156,50 @@ async function saveSession() {
         return;
       }
 
-      // Match existing tabs to preserve id and addedAt
+      // Match existing tabs to preserve id, addedAt, and pinned status
       const existingTabs = [...(collection.tabs || [])];
+      let preservedPinnedCount = 0;
+      const MAX_PINNED_TABS = state.maxPinnedTabs;
       const updatedTabObjects = limitedTabObjects.map(newTab => {
         const existingIndex = existingTabs.findIndex(et => et.url === newTab.url);
         if (existingIndex !== -1) {
           const existing = existingTabs.splice(existingIndex, 1)[0];
+          let isPinned = existing.pinned || false;
+          if (isPinned && state.enforceMaxPinnedTabs) {
+            if (preservedPinnedCount < MAX_PINNED_TABS) {
+              preservedPinnedCount++;
+            } else {
+              isPinned = false;
+            }
+          }
           return {
             ...newTab,
             id: existing.id,
-            addedAt: existing.addedAt || Date.now()
+            addedAt: existing.addedAt || Date.now(),
+            pinned: isPinned
           };
         } else {
+          let isPinned = newTab.pinned || false;
+          if (isPinned && state.enforceMaxPinnedTabs) {
+            if (preservedPinnedCount < MAX_PINNED_TABS) {
+              preservedPinnedCount++;
+            } else {
+              isPinned = false;
+            }
+          }
           return {
             ...newTab,
-            addedAt: Date.now()
+            addedAt: Date.now(),
+            pinned: isPinned
           };
         }
       });
+
+      const partitionTabs = (tabs) => {
+        const pinned = tabs.filter(t => t.pinned);
+        const unpinned = tabs.filter(t => !t.pinned);
+        return [...pinned, ...unpinned];
+      };
 
       // Create a backup of previous session before overwriting
       if (collection.tabs && collection.tabs.length > 0) {
@@ -184,7 +212,7 @@ async function saveSession() {
       }
       
       // Replace only the tabs, keep collection name and other properties
-      collection.tabs = updatedTabObjects;
+      collection.tabs = partitionTabs(updatedTabObjects);
       collection.updatedAt = Date.now();
       collection.windowGroups = tabsByWindow; // Store window grouping info
     }
