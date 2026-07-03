@@ -133,11 +133,11 @@ body.panel-closing {
 
 /* Compact Row and Action Bars */
 .compact-controls-row {
-  margin-bottom: 20px;
-  min-height: 44px;
+  margin-bottom: 12px;
   position: relative;
   display: flex;
   align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
@@ -151,7 +151,8 @@ body.panel-closing {
 .actions-bar-default .icon-btn {
   flex: 1; /* Stretch buttons to fill the row evenly and look very premium */
   width: auto;
-  height: 44px;
+  height: 36px;
+  padding: 5px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border);
@@ -162,6 +163,7 @@ body.panel-closing {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  box-sizing: border-box;
 }
 
 /* Hover colors for each button type */
@@ -187,6 +189,13 @@ body.panel-closing {
 }
 
 .actions-bar-default #globalExportBtn:hover {
+  background: rgba(108, 99, 255, 0.15);
+  border-color: rgba(108, 99, 255, 0.3);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.actions-bar-default #toggleLayoutBtn:hover {
   background: rgba(108, 99, 255, 0.15);
   border-color: rgba(108, 99, 255, 0.3);
   color: var(--accent);
@@ -219,14 +228,16 @@ body.panel-closing {
 
 .input-wrapper input {
   flex: 1;
-  height: 44px;
-  padding: 12px 18px;
+  height: 34px;
+  padding: 6px 14px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 13px;
   transition: var(--transition);
+  display: flex;
+  align-items: center;
 }
 
 .input-wrapper input:focus {
@@ -255,22 +266,25 @@ body.panel-closing {
 }
 
 .input-wrapper.search-wrapper input {
-  padding-left: 42px; /* indent for the search icon */
+  padding-left: 38px;
 }
 
 .input-wrapper .input-action-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 34px;
+  height: 34px;
+  padding: 5px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border);
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 13px;
   transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .input-wrapper .input-action-btn:hover {
@@ -346,10 +360,14 @@ body.panel-closing {
 .controls {
   background: var(--bg-secondary);
   border-radius: var(--radius);
-  padding: 20px;
-  margin-bottom: 24px;
+  padding: 10px 14px;
+  margin-bottom: 5px;
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
 }
 
 /* Controls inputs (hidden by default, handled via compact row) */
@@ -502,8 +520,9 @@ body.panel-closing {
 }
 
 .icon-btn {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
+  padding: 5px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border);
@@ -514,6 +533,20 @@ body.panel-closing {
   cursor: pointer;
   transition: var(--transition);
   flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.icon-btn i,
+.icon-btn svg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  line-height: 1;
+  text-align: center;
 }
 
 .icon-btn:hover {
@@ -552,7 +585,7 @@ body.panel-closing {
 .restore-btn-wrapper .btn-restore,
 .sort-collections-container .sort-collections-btn {
   width: 100%;
-  height: 44px;
+  height: 36px;
 }
 
 /* Restore button colour accent */
@@ -611,7 +644,158 @@ body.panel-closing {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Grid View Layout Styles */
+.collections-container.grid-view {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+@keyframes cardLayoutChange {
+  from {
+    opacity: 0.5;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.collections-container.grid-view .collection,
+.collections-container:not(.grid-view) .collection {
+  animation: cardLayoutChange 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.collections-container.grid-view .collection-header {
+  flex-direction: column;
+  align-items: stretch;
+  padding: 12px;
+  gap: 8px;
+}
+
+.collections-container.grid-view .collection-left-section {
+  width: 100%;
+  gap: 8px;
+}
+
+.collections-container.grid-view .collection-right-section {
+  width: 100%;
+  justify-content: space-between;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 8px;
+  gap: 8px;
+}
+
+.collections-container.grid-view .collection-name {
+  font-size: 14.5px;
+  max-width: none;
+  flex: 1;
+}
+
+.collections-container.grid-view .collection-drag-handle {
+  font-size: 13px;
+  width: 12px;
+}
+
+.collections-container.grid-view .expand-btn {
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
+}
+
+.collections-container.grid-view .collection-tabs {
+  padding: 0 12px 0;
+}
+
+.collections-container.grid-view .collection-tabs.expanded {
+  padding: 0 12px 12px;
+}
+
+.collections-container.grid-view .collection-tab-search {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.collections-container.grid-view .collection-tab-search-input {
+  width: 100%;
+  flex: 1 1 100%;
+  padding-left: 28px;
+}
+
+.collections-container.grid-view .collection-tab-search::before {
+  left: 10px;
+}
+
+.collections-container.grid-view .collection-tab-search .icon-btn,
+.collections-container.grid-view .collection-tab-search .sort-tabs-container {
+  flex: 1;
+}
+
+.collections-container.grid-view .collection-tab-search .sort-tabs-btn {
+  width: 100%;
+  height: 28px;
+}
+
+.collections-container.grid-view .tab-item {
+  gap: 6px;
+  padding: 6px 8px;
+}
+
+.collections-container.grid-view .tab-item .tab-drag-handle {
+  width: 10px;
+  font-size: 11px;
+}
+
+.collections-container.grid-view .tab-item .tab-number {
+  min-width: auto;
+  font-size: 10px;
+  margin-right: 2px;
+}
+
+.collections-container.grid-view .tab-item .tab-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.collections-container.grid-view .tab-item .tab-favicon-img {
+  width: 12px;
+  height: 12px;
+}
+
+.collections-container.grid-view .tab-item .tab-content {
+  gap: 1px;
+}
+
+.collections-container.grid-view .tab-item .tab-title {
+  font-size: 12px;
+  padding: 1px 4px;
+}
+
+.collections-container.grid-view .tab-item .tab-url {
+  font-size: 10px;
+  padding-left: 4px;
+}
+
+.collections-container.grid-view .tab-item .icon-btn.pin-tab-btn,
+.collections-container.grid-view .tab-item .icon-btn.tab-menu-btn {
+  width: 24px;
+  height: 24px;
+  font-size: 10px;
+}
+
+.collections-container.grid-view .collection:nth-child(odd) .collection-dropdown-menu {
+  left: 0;
+  right: auto;
+}
+
+.collections-container.grid-view .collection:nth-child(odd) .tab-dropdown-menu {
+  left: auto;
+  right: 0;
 }
 
 .empty-state {
@@ -718,8 +902,10 @@ body.panel-closing {
   color: var(--text-secondary);
   font-size: 14px;
   cursor: pointer;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  box-sizing: border-box;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -798,14 +984,19 @@ body.panel-closing {
 }
 
 .collection-actions .icon-btn {
-  width: 35px;
-  height: 35px;
+  width: 28px;
+  height: 28px;
+  padding: 5px;
   border-radius: 9px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
   font-size: 15px;
   transition: all 0.2s ease-in-out;
   color: var(--text-secondary);
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .collection-actions .collection-menu-btn:hover {
@@ -899,11 +1090,16 @@ body.panel-closing {
 .collection-tab-search .icon-btn {
   width: 28px;
   height: 28px;
+  padding: 5px;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
   font-size: 11px;
   transition: all 0.2s ease;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .collection-tab-search .import-tabs-btn:hover {
@@ -1032,11 +1228,16 @@ body.panel-closing {
 .tab-item .icon-btn.tab-menu-btn {
   width: 28px;
   height: 28px;
+  padding: 5px;
   border-radius: 6px;
   background: transparent;
   border: 1px solid transparent;
   font-size: 12px;
   opacity: 0.7;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .tab-item:hover .icon-btn.tab-menu-btn {
@@ -1909,6 +2110,8 @@ mark.search-hl {
   border: 1px solid var(--border);
   width: 36px;
   height: 36px;
+  padding: 5px;
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1974,6 +2177,7 @@ mark.search-hl {
 .tab-item .icon-btn.pin-tab-btn {
   width: 28px;
   height: 28px;
+  padding: 5px;
   border-radius: 6px;
   background: transparent;
   border: 1px solid transparent;
@@ -1981,6 +2185,10 @@ mark.search-hl {
   opacity: 0.7;
   transition: all 0.2s ease-in-out;
   color: var(--text-secondary);
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .tab-item:hover .icon-btn.pin-tab-btn {
@@ -2077,4 +2285,69 @@ mark.search-hl {
 /* Firefox: Remove spin buttons */
 .limit-input[type=number] {
   -moz-appearance: textfield;
+}
+
+/* View Collection Modal (for Grid View) styling */
+.view-collection-modal {
+  max-width: 500px;
+}
+
+.view-collection-modal .modal-body {
+  padding: 16px;
+  min-height: auto;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.view-collection-modal .collection-tabs {
+  border-top: none;
+}
+
+.view-collection-modal .collection-tabs.expanded {
+  padding: 0;
+  max-height: none;
+  opacity: 1;
+  transform: none;
+}
+
+/* Ensure the tab items inside the modal are spacious and look great (list-style sizing) */
+.view-collection-modal .tab-item {
+  gap: 12px;
+  padding: 8px 12px;
+}
+
+.view-collection-modal .tab-item .tab-drag-handle {
+  width: 14px;
+  font-size: 14px;
+}
+
+.view-collection-modal .tab-item .tab-number {
+  min-width: 16px;
+  font-size: 11px;
+}
+
+.view-collection-modal .tab-item .tab-icon {
+  width: 26px;
+  height: 26px;
+}
+
+.view-collection-modal .tab-item .tab-favicon-img {
+  width: 16px;
+  height: 16px;
+}
+
+.view-collection-modal .tab-item .tab-title {
+  font-size: 13.5px;
+}
+
+.view-collection-modal .tab-item .tab-url {
+  font-size: 11px;
+  padding-left: 6px;
+}
+
+.view-collection-modal .tab-item .icon-btn.pin-tab-btn,
+.view-collection-modal .tab-item .icon-btn.tab-menu-btn {
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
 }

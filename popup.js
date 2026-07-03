@@ -27,7 +27,7 @@ const DEFAULT_MAX_PINNED_TABS_PER_COLLECTION = 3;
 
 // ==================== STORAGE HELPERS ====================
 async function getState() {
-  const result = await api.storage.local.get(['collections', 'autoSaveCollectionId', 'lastSessionBackup', 'ramSaverEnabled', 'collectionSortType', 'enforceMaxPinnedCollections', 'enforceMaxPinnedTabs', 'maxPinnedCollections', 'maxPinnedTabs']);
+  const result = await api.storage.local.get(['collections', 'autoSaveCollectionId', 'lastSessionBackup', 'ramSaverEnabled', 'collectionSortType', 'enforceMaxPinnedCollections', 'enforceMaxPinnedTabs', 'maxPinnedCollections', 'maxPinnedTabs', 'layoutViewMode']);
   return {
     collections: result.collections || [],
     autoSaveCollectionId: result.autoSaveCollectionId || null,
@@ -37,7 +37,8 @@ async function getState() {
     enforceMaxPinnedCollections: result.enforceMaxPinnedCollections !== false,
     enforceMaxPinnedTabs: result.enforceMaxPinnedTabs !== false,
     maxPinnedCollections: result.maxPinnedCollections ?? DEFAULT_MAX_PINNED_COLLECTIONS,
-    maxPinnedTabs: result.maxPinnedTabs ?? DEFAULT_MAX_PINNED_TABS_PER_COLLECTION
+    maxPinnedTabs: result.maxPinnedTabs ?? DEFAULT_MAX_PINNED_TABS_PER_COLLECTION,
+    layoutViewMode: result.layoutViewMode || 'list'
   };
 }
 
@@ -296,7 +297,8 @@ const elements = {
   addManualTab: document.getElementById('addManualTab'),
   openTabsList: document.getElementById('openTabsList'),
   addSelectedTabs: document.getElementById('addSelectedTabs'),
-  searchBox: document.getElementById('searchBox')
+  searchBox: document.getElementById('searchBox'),
+  toggleLayoutBtn: document.getElementById('toggleLayoutBtn')
 };
 
 // ==================== STATE VARIABLES ====================
@@ -667,6 +669,43 @@ async function toggleCollectionExpanded(collectionId) {
   const expandBtn     = collectionEl.querySelector('.expand-btn');
   if (!tabsContainer) return;
 
+  const state = await getState();
+  const isGrid = state.layoutViewMode === 'grid';
+
+  if (isGrid) {
+    // Render tabs if not populated yet
+    const tabsList = tabsContainer.querySelector('.tabs-list');
+    if (tabsList && tabsList.children.length === 0) {
+      const collection = state.collections.find(c => c.id === collectionId);
+      if (collection) renderTabs(collection, tabsList);
+    }
+
+    const modal = document.getElementById('viewCollectionModal');
+    const modalName = document.getElementById('modalCollectionName');
+    const modalCollectionTabs = document.getElementById('modalCollectionTabs');
+
+    if (modal && modalName && modalCollectionTabs) {
+      const collection = state.collections.find(c => c.id === collectionId);
+      modalName.innerHTML = `<i class="fas fa-folder-open"></i> ${collection ? collection.name : 'Collection'}`;
+      modal.dataset.currentId = collectionId;
+
+      // Move tabs container to the modal body
+      modalCollectionTabs.innerHTML = '';
+      modalCollectionTabs.appendChild(tabsContainer);
+      tabsContainer.classList.add('expanded');
+
+      if (expandBtn) expandBtn.classList.add('rotated');
+      modal.style.display = 'flex';
+
+      // Persist expanded state
+      await updateState(s => {
+        const c = s.collections.find(col => col.id === collectionId);
+        if (c) c.isExpanded = true;
+      });
+    }
+    return;
+  }
+
   // Capture intent from current DOM state BEFORE any async work
   const isExpanding = !tabsContainer.classList.contains('expanded');
 
@@ -676,7 +715,6 @@ async function toggleCollectionExpanded(collectionId) {
     // transition a chance to start from the collapsed baseline.
     const tabsList = tabsContainer.querySelector('.tabs-list');
     if (tabsList && tabsList.children.length === 0) {
-      const state = await getState();
       const collection = state.collections.find(c => c.id === collectionId);
       if (collection) renderTabs(collection, tabsList);
     }
@@ -693,6 +731,41 @@ async function toggleCollectionExpanded(collectionId) {
     const collection = state.collections.find(c => c.id === collectionId);
     if (collection) collection.isExpanded = isExpanding;
   });
+}
+
+function closeViewCollectionModal() {
+  const modal = document.getElementById('viewCollectionModal');
+  if (!modal || modal.style.display === 'none') return;
+
+  const collectionId = modal.dataset.currentId;
+  const modalCollectionTabs = document.getElementById('modalCollectionTabs');
+  if (collectionId && modalCollectionTabs) {
+    const tabsContainer = modalCollectionTabs.querySelector('.collection-tabs');
+    if (tabsContainer) {
+      const collectionEl = document.querySelector(`.collection[data-id="${collectionId}"]`);
+      if (collectionEl) {
+        // Move tabs container back to original collection card
+        collectionEl.appendChild(tabsContainer);
+        tabsContainer.classList.remove('expanded');
+      }
+    }
+  }
+
+  modal.dataset.currentId = '';
+  modalCollectionTabs.innerHTML = '';
+  modal.style.display = 'none';
+
+  if (collectionId) {
+    const collectionEl = document.querySelector(`.collection[data-id="${collectionId}"]`);
+    if (collectionEl) {
+      const expandBtn = collectionEl.querySelector('.expand-btn');
+      if (expandBtn) expandBtn.classList.remove('rotated');
+    }
+    updateState(state => {
+      const collection = state.collections.find(c => c.id === collectionId);
+      if (collection) collection.isExpanded = false;
+    });
+  }
 }
 
 // ==================== TAB OPERATIONS ====================
@@ -1025,9 +1098,14 @@ function renderEmptyState(show) {
 }
 
 function renderCollections(state) {
-  const { collections, autoSaveCollectionId, collectionSortType } = state;
+  const { collections, autoSaveCollectionId, collectionSortType, layoutViewMode } = state;
   const container = elements.collectionsContainer;
   const fragment = document.createDocumentFragment();
+
+  // Apply layout class and icon
+  const isGrid = layoutViewMode === 'grid';
+  container.classList.toggle('grid-view', isGrid);
+  updateLayoutIcon(isGrid);
 
   // Highlight active collection sort option in the collectionsSortMenu
   const colSortType = collectionSortType || 'custom';
@@ -1091,6 +1169,32 @@ function renderCollections(state) {
   renderEmptyState(collections.length === 0);
   renderAutoSaveSelect(collections, autoSaveCollectionId);
   renderBackupButton(state.lastSessionBackup);
+
+  // Handle active grid-view collection modal re-renders
+  const viewColModal = document.getElementById('viewCollectionModal');
+  if (viewColModal && viewColModal.style.display === 'flex') {
+    const currentId = viewColModal.dataset.currentId;
+    if (currentId) {
+      const activeCollection = collections.find(c => c.id === currentId);
+      const newCard = container.querySelector(`.collection[data-id="${currentId}"]`);
+      if (activeCollection && newCard) {
+        const newTabsContainer = newCard.querySelector('.collection-tabs');
+        if (newTabsContainer) {
+          const tabsList = newTabsContainer.querySelector('.tabs-list');
+          if (tabsList) {
+            renderTabs(activeCollection, tabsList);
+          }
+          newTabsContainer.classList.add('expanded');
+          
+          const modalCollectionTabs = document.getElementById('modalCollectionTabs');
+          if (modalCollectionTabs) {
+            modalCollectionTabs.innerHTML = '';
+            modalCollectionTabs.appendChild(newTabsContainer);
+          }
+        }
+      }
+    }
+  }
 }
 
 function renderBackupButton(backup) {
@@ -2150,6 +2254,20 @@ function switchTabMode(mode) {
   elements.multiForm.style.display = mode === 'multi' ? 'flex' : 'none';
 }
 
+function updateLayoutIcon(isGrid) {
+  const btn = elements.toggleLayoutBtn;
+  if (!btn) return;
+  const icon = btn.querySelector('i');
+  if (!icon) return;
+  if (isGrid) {
+    icon.className = 'fas fa-list';
+    btn.title = 'Switch to List View';
+  } else {
+    icon.className = 'fas fa-th-large';
+    btn.title = 'Switch to Grid View';
+  }
+}
+
 // ==================== EVENT LISTENERS ====================
 function setupEventListeners() {
   const actionsBarDefault = document.getElementById('actionsBarDefault');
@@ -2218,6 +2336,29 @@ function setupEventListeners() {
   }
   if (globalExportBtn) {
     globalExportBtn.addEventListener('click', exportAllCollections);
+  }
+
+  // Layout toggle event listener
+  if (elements.toggleLayoutBtn) {
+    elements.toggleLayoutBtn.addEventListener('click', async () => {
+      const state = await getState();
+      const newLayout = state.layoutViewMode === 'grid' ? 'list' : 'grid';
+      
+      // Update state in storage
+      await updateState(s => {
+        s.layoutViewMode = newLayout;
+      });
+
+      // Apply layout change dynamically and smoothly
+      const container = elements.collectionsContainer;
+      if (newLayout === 'grid') {
+        container.classList.add('grid-view');
+        updateLayoutIcon(true);
+      } else {
+        container.classList.remove('grid-view');
+        updateLayoutIcon(false);
+      }
+    });
   }
 
   // Collection sort button toggle inside backup banner
@@ -2307,6 +2448,20 @@ function setupEventListeners() {
   // Modal
   elements.closeModal.addEventListener('click', closeAddTabsModal);
   elements.cancelModal.addEventListener('click', closeAddTabsModal);
+
+  // View Collection Modal
+  const viewCollectionModal = document.getElementById('viewCollectionModal');
+  const closeViewColModalBtn = document.getElementById('closeViewCollectionModal');
+  if (closeViewColModalBtn) {
+    closeViewColModalBtn.addEventListener('click', closeViewCollectionModal);
+  }
+  if (viewCollectionModal) {
+    viewCollectionModal.addEventListener('click', (e) => {
+      if (e.target === viewCollectionModal) {
+        closeViewCollectionModal();
+      }
+    });
+  }
 
   // Tab mode switching
   elements.tabModeSelector.addEventListener('click', (e) => {
