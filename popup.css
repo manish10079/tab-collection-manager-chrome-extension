@@ -133,7 +133,7 @@ body.panel-closing {
 
 /* Compact Row and Action Bars */
 .compact-controls-row {
-  margin-bottom: 12px;
+  margin-bottom: 1px;
   position: relative;
   display: flex;
   align-items: center;
@@ -361,7 +361,7 @@ body.panel-closing {
   background: var(--bg-secondary);
   border-radius: var(--radius);
   padding: 10px 14px;
-  margin-bottom: 5px;
+  margin-bottom: 10px;
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
   display: flex;
@@ -584,7 +584,7 @@ body.panel-closing {
 /* Inner buttons fill their container so the click area matches */
 .restore-btn-wrapper .btn-restore,
 .sort-collections-container .sort-collections-btn {
-  width: 100%;
+  width: auto;
   height: 36px;
 }
 
@@ -1027,8 +1027,8 @@ body.panel-closing {
 /* Expanded state */
 .collection-tabs.expanded {
   padding: 0 20px 20px;
-  max-height: none;
-  overflow: visible;
+  max-height: 450px;
+  overflow-y:auto;
   opacity: 1;
   transform: translateY(0);
   border-top-color: var(--border);
@@ -2108,7 +2108,7 @@ mark.search-hl {
   color: var(--text-primary);
   border-radius: 8px;
   border: 1px solid var(--border);
-  width: 36px;
+  width:auto;
   height: 36px;
   padding: 5px;
   box-sizing: border-box;
@@ -2134,8 +2134,8 @@ mark.search-hl {
 
 /* Pinning Feature Styles */
 .collection-actions .pin-collection-btn {
-  width: 35px;
-  height: 35px;
+  width: 28px;
+  height: 28px;
   border-radius: 9px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
