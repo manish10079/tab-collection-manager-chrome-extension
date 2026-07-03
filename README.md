@@ -2,19 +2,20 @@
 
 ![Tab Collection Manager Banner](./tab_collection_manager_banner.png)
 
-**Tab Collection Manager** is a premium Chrome extension designed to help you organize, save, and restore your browsing sessions with ease. featuring a sleek dark mode UI and powerful state management, it ensures you never lose a tab again.
+**Tab Collection Manager** is a premium, high-performance browser extension designed to help you organize, save, and restore your browsing sessions with absolute state integrity. Featuring a sleek, glassmorphic dark mode interface and a robust background state architecture, it ensures your workspaces stay lightweight, secure, and permanent.
 
 ---
 
 ## ✨ Features
 
-- **🚀 Instant Sessions**: Save your current browser session with a single click.
-- **📁 Custom Collections**: Organize tabs into named folders for different projects or interests.
-- **🔄 Auto-Save**: Automatically track and update your current session in the background.
-- **💾 Backup & Restore**: Robust backup system to recover sessions after accidental closures.
-- **🌓 Premium UI**: A modern, glassmorphic dark mode interface built for productivity.
-- **🖱️ Manual Management**: Add tabs manually, rename collections, and reorder items effortlessly.
-- **🌐 Cross-Browser**: Fully compatible with Chrome, Brave, Edge, and Firefox (Manifest V3).
+- **🚀 Instant Sessions**: Save your entire multi-window browser session with a single click or dynamic multi-select mode.
+- **📁 Custom Spaces**: Organize tabs into named collections with unique metadata tracking (creation time, modified time, and drag-and-drop custom order).
+- **🔄 Auto-Save Engine**: Background service worker automatically tracks window changes, tab closures, and URL shifts inside a dedicated, debounced (500ms) **Current Session** collection.
+- **⚡ RAM Saver Mode**: Restores collections gracefully by leveraging background tab discarding (`api.tabs.discard`), preventing performance stutter or memory spikes.
+- **📌 Pinned Workspaces & Tabs**: Keep critical collections locked at the top of your layout and enforce maximum pinned tab thresholds within individual folders.
+- **🗂️ Side Panel Integration**: Full integration with the modern Chrome `sidePanel` API, allowing your workspace manager to persist comfortably alongside your active browsing.
+- **🔍 Intelligent Sorting**: Sort both your root collection view and individual tab entries dynamically (e.g., custom drag-order, alphabetical, creation dates, or tab volume counts).
+- **💾 Fail-Safe Backups**: Features a localized structural backup array to instantly recover from inadvertent system crashes or corruption events.
 
 ---
 
@@ -22,54 +23,61 @@
 
 ### Developer Mode (Recommended)
 
-1.  **Download/Clone** this repository to your local machine.
-2.  Open your browser and navigate to the extensions page:
-    - Chrome: `chrome://extensions/`
-    - Brave: `brave://extensions/`
-    - Edge: `edge://extensions/`
-3.  Enable **Developer mode** (usually a toggle in the top-right corner).
-4.  Click on **Load unpacked** and select the root directory of this project (`Tab-Collection-Manager`).
-5.  The Tab Collection Manager icon should now appear in your extension toolbar!
+1. **Download/Clone** this repository to your local computer.
+2. Open your web browser and navigate to its extension management page:
+   - **Chrome**: `chrome://extensions/`
+   - **Brave**: `brave://extensions/`
+   - **Edge**: `edge://extensions/`
+3. Toggle on **Developer mode** in the top-right corner.
+4. Click the **Load unpacked** button and select the root project directory containing `manifest.json`.
+5. Pin the **Tab Collection Manager** icon directly to your browser's extension toolbar.
 
 ---
 
 ## 📖 How to Use
 
-### 1. Saving Tabs
-Click the extension icon to open the popup. Enter a name in the "New Collection" field and hit Enter to create a folder. You can then add your currently open tabs to it.
+### 1. Organizing Your Layout
+Click the extension action item or trigger the side panel. Enter a unique title into the folder console to initialize an empty collection folder (duplicate names are flagged case-insensitively).
 
-### 2. Auto-Save
-Toggle the "Auto-Save" switch in the settings to have the extension automatically keep track of your active windows in the "Current Session" collection.
+### 2. Live Automation
+Head into settings to toggle the background **Auto-Save Engine**. The background engine monitors system layout changes, applying specialized startup stabilization boundaries to isolate active workspaces perfectly.
 
-### 3. Restoring Sessions
-Click the **Restore** button on any collection to open all its tabs in the background.
+### 3. Smart Workspace Restoration
+Click **Restore** on any folder block to project tabs into your target active window. If **RAM Saver Mode** is running, restored background pages will remain dormant/discarded until you explicitly select them.
 
-### 4. Backups
-If you ever lose your data, check the "Backup" section at the bottom of the popup to restore from the last known state.
+### 4. Custom Drag-and-Drop
+Rearrange tab hierarchies by simply dragging a tab node by its handle. You can move items within a collection or seamlessly shift tabs across separate collections. Dropping elements automatically switches the target environment's sequence filter to `custom`.
 
 ---
 
 ## 🏗️ Technical Details
 
-- **Architecture**: Manifest V3 Service Worker (`background.js`).
-- **Storage**: Uses `chrome.storage.local` with a serialized update queue to prevent race conditions.
-- **Styling**: Vanilla CSS with modern variables and glassmorphism effects.
-- **Compatibility**: Cross-browser API wrapper (`chrome` / `browser`).
+- **Architecture**: Chrome Manifest V3 API using a centralized Service Worker (`background.js`) alongside responsive UI instances (`popup.js`).
+- **State Management**: Implements a strict asynchronous serialization queue (`updateQueue = updateQueue.then(...)`) to execute deep-cloned state adjustments sequentially, eliminating data corruption from race conditions.
+- **UI Architecture**: Vanilla CSS optimized with customized variables, glassmorphic filters (`blur(12px)`), flex-grid structures, and an explicit layout rendering flow.
+- **Cross-Browser Engine**: Engineered with unified abstraction references (`api = typeof chrome !== 'undefined' ? chrome : browser`) to ensure seamless utility in Chrome, Edge, Brave, and Firefox ecosystems.
 
 ---
 
 ## 🔒 Permissions
 
-The extension requires the following permissions to function:
-- `tabs`: To read information about open tabs (title, URL) for saving.
-- `storage`: To persist your collections and settings locally on your device.
+To deliver persistent session indexing without exposing user history to external clouds, the application utilizes these specific manifest permissions:
+
+| Permission | Core Function |
+| :--- | :--- |
+| `tabs` | Reads current operational browser configurations (URLs, Pinned markers, Title structures, Focus properties) to package workspaces. |
+| `storage` | Serializes data points and keeps your profile preferences intact within local disk modules. |
+| `sidePanel` | Anchors the interface configuration directly inside the browser's persistent peripheral panel layout. |
+| `contextMenus` | Supports shortcut entryways via right-click contextual triggers. |
+| `downloads` | Formulates structured snapshot files if you require local structural file migrations. |
+| `favicon` | Fetches active website icon assets to optimize interface styling. |
 
 ---
 
 ## 📄 License
 
-This project is open-source. Feel free to modify and use it as you see fit.
+This project is open-source. Feel free to modify and adapt it for your personal or commercial productivity workflows.
 
 ---
 
-*Built with ❤️ for better tab management.*
+*Built with ❤️ by Mkn Labs for better tab management.*
