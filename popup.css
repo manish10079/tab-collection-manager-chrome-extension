@@ -1,18 +1,19 @@
-/* Premium Dark Mode UI with Gradient & Glassmorphism */
+/* AMOLED Violet Neon Theme */
 :root {
   color-scheme: dark;
-  --bg-primary: #0a0a0f;
-  --bg-secondary: #151520;
-  --bg-glass: rgba(25, 25, 40, 0.7);
-  --bg-gradient: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-  --text-primary: #f0f0f0;
-  --text-secondary: #b0b0c0;
-  --accent: #6c63ff;
-  --accent-hover: #7d75ff;
-  --danger: #ff6b8b;
-  --success: #4ecdc4;
-  --border: rgba(255, 255, 255, 0.1);
-  --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --bg-primary: #000000;
+  --bg-secondary: #0d0d0d;
+  --bg-glass: rgba(13, 13, 13, 0.95);
+  --bg-gradient: #000000;
+  --bg-card: #111111;
+  --text-primary: #f2f2f2;
+  --text-secondary: #9090a8;
+  --accent: #7c6fff;
+  --accent-hover: #9d93ff;
+  --danger: #ff5c7a;
+  --success: #3ddbd9;
+  --border: rgba(255, 255, 255, 0.07);
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
   --radius: 16px;
   --transition: all 0.2s ease;
   --blur: blur(12px);
@@ -28,7 +29,7 @@
 body {
   width: 100%;
   height: 100vh;
-  background: var(--bg-gradient);
+  background: #000000;
   color: var(--text-primary);
   overflow: hidden; /* Main scroll controlled by scrollable-content */
   display: flex;
@@ -65,9 +66,7 @@ body.panel-closing {
 
 .container {
   padding: 24px;
-  background: var(--bg-glass);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
+  background: #000000;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -824,36 +823,36 @@ body.panel-closing {
 }
 
 .collection {
-  background: rgba(25, 25, 40, 0.45);
+  background: #111111;
   border-radius: var(--radius);
   border: 1px solid rgba(255, 255, 255, 0.06);
   overflow: visible;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s, box-shadow 0.25s, background-color 0.25s;
 }
 
 .collection:hover {
-  border-color: rgba(108, 99, 255, 0.35);
-  background: rgba(30, 30, 48, 0.6);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3), 0 0 15px rgba(108, 99, 255, 0.12);
+  border-color: rgba(124, 111, 255, 0.4);
+  background: #161616;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(124, 111, 255, 0.15);
   /* Removed translateY(-2px) — it shifts the card up and causes dropdown flicker */
 }
 
 .current-session-collection {
   border-left: 4px solid var(--success) !important;
-  background: linear-gradient(135deg, rgba(78, 205, 196, 0.08) 0%, rgba(25, 25, 40, 0.5) 100%) !important;
-  border-color: rgba(78, 205, 196, 0.2);
+  background: linear-gradient(135deg, rgba(61, 219, 217, 0.07) 0%, #111111 100%) !important;
+  border-color: rgba(61, 219, 217, 0.2);
 }
 
 .current-session-collection:hover {
-  background: linear-gradient(135deg, rgba(78, 205, 196, 0.12) 0%, rgba(30, 30, 48, 0.65) 100%) !important;
-  border-color: rgba(78, 205, 196, 0.45);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3), 0 0 15px rgba(78, 205, 196, 0.15);
+  background: linear-gradient(135deg, rgba(61, 219, 217, 0.12) 0%, #161616 100%) !important;
+  border-color: rgba(61, 219, 217, 0.45);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(61, 219, 217, 0.15);
 }
 
 .current-session-collection .collection-name {
   color: var(--success);
-  font-weight: 600;
+  font-weight: 500;
   cursor: default;
 }
 
@@ -864,14 +863,14 @@ body.panel-closing {
 
 .auto-save-target {
   border-left: 4px solid var(--accent) !important;
-  background: linear-gradient(135deg, rgba(108, 99, 255, 0.08) 0%, rgba(25, 25, 40, 0.5) 100%);
-  border-color: rgba(108, 99, 255, 0.25);
+  background: linear-gradient(135deg, rgba(124, 111, 255, 0.08) 0%, #111111 100%);
+  border-color: rgba(124, 111, 255, 0.25);
 }
 
 .auto-save-target:hover {
-  background: linear-gradient(135deg, rgba(108, 99, 255, 0.12) 0%, rgba(30, 30, 48, 0.65) 100%);
-  border-color: rgba(108, 99, 255, 0.5);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3), 0 0 15px rgba(108, 99, 255, 0.2);
+  background: linear-gradient(135deg, rgba(124, 111, 255, 0.13) 0%, #161616 100%);
+  border-color: rgba(124, 111, 255, 0.5);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(124, 111, 255, 0.2);
 }
 
 .collection-header {
@@ -930,9 +929,9 @@ body.panel-closing {
 .collection-name {
   background: transparent;
   border: 1px solid transparent;
-  color: var(--text-primary);
+  color: var(--text-secondary);
   font-size: 17.5px;
-  font-weight: 600;
+  font-weight: 500;
   padding: 2px 6px;
   border-radius: 6px;
   min-width: 80px;
@@ -951,17 +950,23 @@ body.panel-closing {
   cursor: text;
   pointer-events: auto;
   background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(108, 99, 255, 0.4);
+  border-color: rgba(124, 111, 255, 0.4);
+  color: var(--text-primary);
 }
 
 .collection-name:not([readonly]):focus {
   outline: none;
   background: rgba(255, 255, 255, 0.07);
   border-color: var(--accent);
+  color: var(--text-primary);
 }
 
 .collection-name[readonly]:focus {
   outline: none;
+}
+
+.collection:hover .collection-name {
+  color: var(--text-primary);
 }
 
 .collection-meta {
@@ -1139,24 +1144,24 @@ body.panel-closing {
   align-items: center;
   gap: 12px;
   padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.02);
+  background: #0d0d0d;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .tab-item:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(108, 99, 255, 0.25);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: #161616;
+  border-color: rgba(124, 111, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .tab-icon {
   width: 26px;
   height: 26px;
   border-radius: 6px;
-  background: linear-gradient(135deg, rgba(108, 99, 255, 0.15) 0%, rgba(108, 99, 255, 0.04) 100%);
-  border: 1px solid rgba(108, 99, 255, 0.15);
+  background: linear-gradient(135deg, rgba(124, 111, 255, 0.18) 0%, rgba(124, 111, 255, 0.05) 100%);
+  border: 1px solid rgba(124, 111, 255, 0.2);
   color: var(--accent);
   display: flex;
   align-items: center;
@@ -1200,7 +1205,7 @@ body.panel-closing {
 .tab-title {
   background: transparent;
   border: 1px solid transparent;
-  color: var(--text-primary);
+  color: var(--text-secondary);
   font-size: 13.5px;
   font-weight: 500;
   padding: 2px 6px;
@@ -1214,12 +1219,14 @@ body.panel-closing {
 
 .tab-title:not([readonly]) {
   cursor: text;
+  color: var(--text-primary);
 }
 
 .tab-title:not([readonly]):focus {
   outline: none;
   background: rgba(255, 255, 255, 0.07);
   border-color: var(--accent);
+  color: var(--text-primary);
 }
 
 .tab-title[readonly] {
@@ -1255,6 +1262,10 @@ body.panel-closing {
   opacity: 0.85;
 }
 
+.tab-item:hover .tab-title {
+  color: var(--text-primary);
+}
+
 /* Custom action button styles inside tab item */
 .tab-item .icon-btn.tab-menu-btn {
   width: 28px;
@@ -1287,10 +1298,10 @@ body.panel-closing {
   top: 100%;
   right: 0;
   margin-top: 6px;
-  background: #161622 !important; /* Explicit solid opaque background */
+  background: #0d0d0d !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   box-shadow: var(--shadow);
   z-index: 1000;
@@ -1303,7 +1314,7 @@ body.panel-closing {
 
 .tab-dropdown-menu {
   min-width: 150px;
-  background: #161622 !important; /* Explicit solid opaque background */
+  background: #0d0d0d !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
@@ -2087,7 +2098,7 @@ mark.search-hl {
   top: 100%;
   right: 0;
   margin-top: 6px;
-  background: #161622; /* Solid opaque background — no bleed-through */
+  background: #0d0d0d; /* Solid opaque background — no bleed-through */
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   border: 1px solid var(--border);
@@ -2201,14 +2212,14 @@ mark.search-hl {
 }
 
 .collection-actions .pin-collection-btn.pinned {
-  color: #f59e0b; /* Premium Amber */
+  color: var(--danger); /* Premium Amber */
   background: rgba(245, 158, 11, 0.15);
   border-color: rgba(245, 158, 11, 0.35);
   opacity: 1;
 }
 
 .collection-actions .pin-collection-btn.pinned:hover {
-  color: #fbbf24;
+  color: var(--danger);
   background: rgba(245, 158, 11, 0.25);
   border-color: rgba(245, 158, 11, 0.5);
 }
