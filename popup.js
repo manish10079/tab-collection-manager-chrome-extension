@@ -2825,3 +2825,24 @@ document.getElementById('closePanelBtn').addEventListener('click', () => {
     window.close();
   }, 220);
 });
+
+// Global keyboard shortcut: Press 'x' to close the extension
+document.addEventListener('keydown', (e) => {
+  const target = e.target;
+  // Ignore if user is currently typing in an input field, textarea, select, or editable element
+  if (
+    target.tagName === 'INPUT' ||
+    target.tagName === 'TEXTAREA' ||
+    target.tagName === 'SELECT' ||
+    target.isContentEditable
+  ) {
+    return;
+  }
+  
+  if (e.key === 'x' || e.key === 'X') {
+    const closeBtn = document.getElementById('closePanelBtn');
+    if (closeBtn) {
+      closeBtn.click();
+    }
+  }
+});

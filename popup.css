@@ -25,6 +25,7 @@
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
   --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
   --shadow-card-hover: 0 12px 30px rgba(0, 0, 0, 0.5);
+  --shadow-item-hover: 0 4px 12px rgba(0, 0, 0, 0.4);
   --shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.6);
   --modal-overlay-bg: rgba(0, 0, 0, 0.7);
 }
@@ -52,6 +53,7 @@
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
   --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.05);
   --shadow-card-hover: 0 12px 24px rgba(0, 0, 0, 0.08);
+  --shadow-item-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
   --shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.15);
   --modal-overlay-bg: rgba(0, 0, 0, 0.4);
 }
@@ -880,14 +882,14 @@ body.panel-closing {
   border-radius: var(--radius);
   border: 1px solid var(--border-card);
   overflow: visible;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-card);
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s, box-shadow 0.25s, background-color 0.25s;
 }
 
 .collection:hover {
   border-color: rgba(124, 111, 255, 0.4);
   background: var(--bg-card-hover);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(124, 111, 255, 0.15);
+  box-shadow: var(--shadow-card-hover), 0 0 20px rgba(124, 111, 255, 0.15);
   /* Removed translateY(-2px) — it shifts the card up and causes dropdown flicker */
 }
 
@@ -900,7 +902,7 @@ body.panel-closing {
 .current-session-collection:hover {
   background: linear-gradient(135deg, rgba(61, 219, 217, 0.12) 0%, var(--bg-card-hover) 100%) !important;
   border-color: rgba(61, 219, 217, 0.45);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(61, 219, 217, 0.15);
+  box-shadow: var(--shadow-card-hover), 0 0 20px rgba(61, 219, 217, 0.15);
 }
 
 .current-session-collection .collection-name {
@@ -923,7 +925,7 @@ body.panel-closing {
 .auto-save-target:hover {
   background: linear-gradient(135deg, rgba(124, 111, 255, 0.13) 0%, var(--bg-card-hover) 100%);
   border-color: rgba(124, 111, 255, 0.5);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(124, 111, 255, 0.2);
+  box-shadow: var(--shadow-card-hover), 0 0 20px rgba(124, 111, 255, 0.2);
 }
 
 .collection-header {
@@ -1206,7 +1208,7 @@ body.panel-closing {
 .tab-item:hover {
   background: var(--bg-card-hover);
   border-color: rgba(124, 111, 255, 0.3);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-item-hover);
 }
 
 .tab-icon {
@@ -2151,7 +2153,7 @@ mark.search-hl {
   top: 100%;
   right: 0;
   margin-top: 6px;
-  background: #0d0d0d; /* Solid opaque background — no bleed-through */
+  background: var(--bg-dropdown); /* Solid opaque background — no bleed-through */
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   border: 1px solid var(--border);
