@@ -1,6 +1,14 @@
 // Tab Collection Manager - Popup Logic
 // STRICT STATE MANAGEMENT: READ → CLONE → MODIFY → SAVE → RENDER
 
+//=============== Render Version Info from Manifest file =================
+document.addEventListener('DOMContentLoaded', () => {
+    const appInfo = chrome.runtime.getManifest();
+    // Set name on the <span id="app-name"> — NOT the <h1> — to preserve the icon and version sub element
+    document.getElementById('app-name').textContent = appInfo.name;
+    document.getElementById('version').textContent = `v${appInfo.version}`;
+});
+
 // =====================CONSTANTS=========================
 const COLLECTION_SORT_ICONS = {
     custom: "fa-grip-vertical",

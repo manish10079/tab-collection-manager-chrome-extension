@@ -118,17 +118,23 @@ body.panel-closing {
 .header h1 {
   font-size: 20px;
   font-weight: 700;
-  margin-bottom: 4px;
+  margin-bottom: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
 }
 
+#app-name {
+  font-size: 17px;
+  font-weight: 600;
+}
+
 .header .subtitle {
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 400;
+ 
 }
 
 /* Compact Row and Action Bars */
@@ -2081,9 +2087,9 @@ mark.search-hl {
   top: 100%;
   right: 0;
   margin-top: 6px;
-  background: var(--bg-glass);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
+  background: #161622; /* Solid opaque background — no bleed-through */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border: 1px solid var(--border);
   border-radius: 12px;
   box-shadow: var(--shadow);
@@ -2153,7 +2159,21 @@ mark.search-hl {
   background: rgba(108, 99, 255, 0.15);
   border-color: rgba(108, 99, 255, 0.3);
   color: var(--accent);
-  transform: translateY(-1px);
+  /* No translateY — it shifts the button anchor and causes dropdown to flicker */
+}
+
+/* When the dropdown is open, lock the button in place to prevent hover flicker */
+.sort-collections-btn:has(.sort-dropdown-menu:not(.hidden)) {
+  transform: none !important;
+  background: rgba(108, 99, 255, 0.15);
+  border-color: rgba(108, 99, 255, 0.3);
+  color: var(--accent);
+  pointer-events: none; /* Block new hover-state changes on the button itself */
+}
+
+/* Allow pointer events on the dropdown itself so options remain clickable */
+.sort-collections-btn:has(.sort-dropdown-menu:not(.hidden)) .sort-dropdown-menu {
+  pointer-events: auto;
 }
 
 .footer-btn-container{

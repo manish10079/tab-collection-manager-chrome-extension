@@ -411,10 +411,15 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   }
 });
 
-// Rebuild context menus whenever collections change in storage
+// Debounce guard — prevents parallel buildContextMenus() races that cause
+// "Cannot create item with duplicate id" when storage fires rapidly (e.g. auto-save).
+let _contextMenuRebuildTimer = null;
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'local' && changes.collections) {
-    buildContextMenus();
+    clearTimeout(_contextMenuRebuildTimer);
+    _contextMenuRebuildTimer = setTimeout(() => {
+      buildContextMenus();
+    }, 300); // wait 300 ms for writes to settle before rebuilding
   }
 });
 
