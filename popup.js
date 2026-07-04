@@ -75,7 +75,7 @@ function generateId() {
   return crypto.randomUUID();
 }
 
-function showToast(message) {
+function showToast(message, duration = 3000) {
   const container = document.getElementById('toastContainer');
   if (!container) return;
 
@@ -88,14 +88,14 @@ function showToast(message) {
   // Trigger animation
   setTimeout(() => toast.classList.add('show'), 10);
   
-  // Remove after 3 seconds
+  // Remove after the specified duration
   setTimeout(() => {
     toast.classList.remove('show');
     toast.classList.add('hide');
     setTimeout(() => {
       if (toast.parentNode) container.removeChild(toast);
     }, 400);
-  }, 3000);
+  }, duration);
 }
 
 function formatTime(timestamp) {
@@ -1198,35 +1198,24 @@ function renderCollections(state) {
 }
 
 function renderBackupButton(backup) {
-  const wrapper = document.getElementById('restoreBackupWrapper');
-  const tooltipEl = document.getElementById('restoreTooltipContent');
-  if (!wrapper) return;
+  const btn = document.getElementById('restoreBackupBtn');
+  if (!btn) return;
 
   if (!backup || !backup.tabs || backup.tabs.length === 0) {
-    wrapper.classList.add('hidden');
+    btn.classList.add('hidden');
     return;
   }
 
   // Show the restore icon button
-  wrapper.classList.remove('hidden');
+  btn.classList.remove('hidden');
 
-  // Populate the hover tooltip with the backup info previously shown as text
-  if (tooltipEl) {
-    const tabWord = backup.tabs.length === 1 ? 'tab' : 'tabs';
-    tooltipEl.innerHTML = `
-      <div class="restore-tooltip-row">
-        <i class="fas fa-history"></i>
-        <span>${formatTime(backup.timestamp)}</span>
-      </div>
-      <div class="restore-tooltip-meta">${backup.tabs.length} ${tabWord} &mdash; &ldquo;${backup.name || 'Unknown'}&rdquo;</div>
-    `;
-  }
+  // Set the title dynamically with tab count info
+  const tabWord = backup.tabs.length === 1 ? 'tab' : 'tabs';
+  btn.title = `Restore Previous Session\n${backup.tabs.length} ${tabWord} — "${backup.name || 'Unknown'}"`;
 
   // Swap listener to avoid duplicates
-  const oldBtn = document.getElementById('restoreBackupBtn');
-  if (!oldBtn) return;
-  const newBtn = oldBtn.cloneNode(true);
-  oldBtn.parentNode.replaceChild(newBtn, oldBtn);
+  const newBtn = btn.cloneNode(true);
+  btn.parentNode.replaceChild(newBtn, btn);
 
   newBtn.addEventListener('click', async () => {
     if (confirm(`Restore ${backup.tabs.length} tabs from backup?`)) {
@@ -1256,6 +1245,7 @@ function renderCollection(collection, autoSaveCollectionId) {
   const openAllBtn = collectionEl.querySelector('.open-all-tabs-btn');
   const addTabsBtn = collectionEl.querySelector('.add-tabs-btn');
   const editBtn = collectionEl.querySelector('.edit-collection-btn');
+  const shareBtn = collectionEl.querySelector('.share-collection-btn');
   const deleteBtn = collectionEl.querySelector('.delete-collection-btn');
   const tabsContainer = collectionEl.querySelector('.collection-tabs');
 
@@ -1487,6 +1477,22 @@ function renderCollection(collection, autoSaveCollectionId) {
   });
   openAllBtn.addEventListener('click', () => openAllTabsInCollection(collection.id));
   addTabsBtn.addEventListener('click', () => openAddTabsModal(collection.id));
+  if (shareBtn) {
+    shareBtn.addEventListener('click', async () => {
+      if (!collection.tabs || collection.tabs.length === 0) {
+        showToast('Collection has no tabs to share');
+        return;
+      }
+      const textToCopy = collection.tabs.map(tab => `${tab.title}\n${tab.url}`).join('\n\n');
+      try {
+        await navigator.clipboard.writeText(textToCopy);
+        showToast('Collection copied to clipboard', 1000);
+      } catch (err) {
+        console.error('Failed to copy collection links:', err);
+        showToast('Failed to copy links');
+      }
+    });
+  }
   deleteBtn.addEventListener('click', () => deleteCollection(collection.id));
 
   // Drag and drop events for collections
@@ -1745,6 +1751,48 @@ function renderTab(tab, collectionId, tabNumber) {
       console.error('Failed to open tab:', url, err);
     }
   });
+
+  // Direct click to open tab (no RAM Saver, opens in new tab)
+  const openTabDirectly = async (e) => {
+    e.stopPropagation();
+    let url = tab.url;
+    if (!url) return;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://' + url;
+    }
+    try {
+      await api.tabs.create({ url, active: true });
+    } catch (err) {
+      console.error('Failed to open tab directly:', url, err);
+    }
+  };
+
+  if (tabFaviconImg) {
+    tabFaviconImg.addEventListener('click', openTabDirectly);
+    const tabIconContainer = tabEl.querySelector('.tab-icon');
+    if (tabIconContainer) {
+      tabIconContainer.addEventListener('click', openTabDirectly);
+    }
+  }
+  if (urlSpan) {
+    urlSpan.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      try {
+        await navigator.clipboard.writeText(tab.url);
+        showToast('Link copied to clipboard', 500);
+      } catch (err) {
+        console.error('Failed to copy tab link:', err);
+        showToast('Failed to copy link');
+      }
+    });
+  }
+  if (titleInput) {
+    titleInput.addEventListener('click', (e) => {
+      if (titleInput.readOnly) {
+        openTabDirectly(e);
+      }
+    });
+  }
 
   removeBtn.addEventListener('click', () => removeTab(collectionId, tab.id));
 

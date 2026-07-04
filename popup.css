@@ -574,18 +574,19 @@ body.panel-closing {
   transform: translateY(-1px);
 }
 
-/* Restore and Sort containers stretch equally with all other action buttons */
-.restore-btn-wrapper,
-.sort-collections-container {
+/* Restore and Sort buttons stretch equally with all other action buttons */
+#restoreBackupBtn.btn-restore,
+.sort-collections-btn {
   flex: 1;
-  display: flex;
-}
-
-/* Inner buttons fill their container so the click area matches */
-.restore-btn-wrapper .btn-restore,
-.sort-collections-container .sort-collections-btn {
+  position: relative;
+  overflow: visible;
   width: auto;
   height: 36px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  font-size: 15px;
+  transition: all 0.25s ease;
 }
 
 /* Restore button colour accent */
@@ -596,11 +597,7 @@ body.panel-closing {
   transform: translateY(-1px);
 }
 
-/* Tooltip wrapper — positioned under the button */
-.restore-btn-wrapper {
-  position: relative;
-}
-
+/* Tooltip — positioned below the restore button */
 .restore-tooltip {
   display: none;
   position: absolute;
@@ -618,7 +615,7 @@ body.panel-closing {
   pointer-events: none;
 }
 
-.restore-btn-wrapper:hover .restore-tooltip {
+#restoreBackupBtn:hover .restore-tooltip {
   display: block;
   animation: slideFadeIn 0.15s ease forwards;
 }
@@ -1027,8 +1024,8 @@ body.panel-closing {
 /* Expanded state */
 .collection-tabs.expanded {
   padding: 0 20px 20px;
-  max-height: 450px;
-  overflow-y:auto;
+  max-height: none;
+  overflow: visible;
   opacity: 1;
   transform: translateY(0);
   border-top-color: var(--border);
@@ -1160,6 +1157,13 @@ body.panel-closing {
   justify-content: center;
   font-size: 11px;
   flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.tab-icon:hover {
+  transform: scale(1.05);
+  border-color: var(--accent);
 }
 
 .tab-number {
@@ -1202,10 +1206,24 @@ body.panel-closing {
   overflow: hidden;
 }
 
-.tab-title:focus {
+.tab-title:not([readonly]) {
+  cursor: text;
+}
+
+.tab-title:not([readonly]):focus {
   outline: none;
   background: rgba(255, 255, 255, 0.07);
   border-color: var(--accent);
+}
+
+.tab-title[readonly] {
+  cursor: pointer;
+}
+
+.tab-title[readonly]:focus {
+  outline: none;
+  border-color: transparent;
+  background: transparent;
 }
 
 .tab-url {
@@ -1217,7 +1235,14 @@ body.panel-closing {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 380px;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s ease, color 0.2s ease;
+  cursor: pointer;
+}
+
+.tab-url:hover {
+  color: var(--accent) !important;
+  text-decoration: underline;
+  opacity: 1 !important;
 }
 
 .tab-item:hover .tab-url {
@@ -1281,6 +1306,19 @@ body.panel-closing {
   display: none !important;
 }
 
+/* Fix stacking issues when dropdown menus are open */
+.collection:has(.collection-dropdown-menu:not(.hidden)),
+.collection:has(.tab-dropdown-menu:not(.hidden)),
+.collection:has(.sort-dropdown-menu:not(.hidden)) {
+  position: relative;
+  z-index: 100;
+}
+
+.tab-item:has(.tab-dropdown-menu:not(.hidden)) {
+  position: relative;
+  z-index: 101;
+}
+
 .dropdown-option {
   width: 100%;
   padding: 8px 12px;
@@ -1327,6 +1365,12 @@ body.panel-closing {
   background: rgba(108, 99, 255, 0.1) !important;
   color: var(--accent) !important;
   border-color: rgba(108, 99, 255, 0.2) !important;
+}
+
+.collection-dropdown-menu .share-collection-btn:hover {
+  background: rgba(108, 99, 255, 0.08) !important;
+  color: var(--accent-hover) !important;
+  border-color: rgba(108, 99, 255, 0.15) !important;
 }
 
 .collection-dropdown-menu .delete-collection-btn:hover {
@@ -2025,9 +2069,11 @@ mark.search-hl {
 
 /* Sort Dropdown Components */
 .sort-tabs-container,
-.sort-collections-container {
+.sort-collections-btn {
   position: relative;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .sort-dropdown-menu {
@@ -2101,22 +2147,6 @@ mark.search-hl {
   background: rgba(108, 99, 255, 0.15);
   border-color: rgba(108, 99, 255, 0.3);
   color: var(--accent);
-}
-
-.sort-collections-btn {
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-primary);
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  width:auto;
-  height: 36px;
-  padding: 5px;
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: var(--transition);
 }
 
 .sort-collections-btn:hover {
