@@ -1,12 +1,20 @@
 // Tab Collection Manager - Popup Logic
 // STRICT STATE MANAGEMENT: READ → CLONE → MODIFY → SAVE → RENDER
 
-//=============== Render Version Info from Manifest file =================
-document.addEventListener('DOMContentLoaded', () => {
+//=============== Render Version Info from Manifest file & Theme =================
+document.addEventListener('DOMContentLoaded', async () => {
     const appInfo = chrome.runtime.getManifest();
     // Set name on the <span id="app-name"> — NOT the <h1> — to preserve the icon and version sub element
     document.getElementById('app-name').textContent = appInfo.name;
     document.getElementById('version').textContent = `v${appInfo.version}`;
+    
+    // Apply theme as early as possible
+    try {
+        const state = await getState();
+        document.documentElement.setAttribute('data-theme', state.theme || 'dark');
+    } catch (err) {
+        console.warn('Failed to load theme state:', err);
+    }
 });
 
 // =====================CONSTANTS=========================
@@ -35,7 +43,7 @@ const DEFAULT_MAX_PINNED_TABS_PER_COLLECTION = 3;
 
 // ==================== STORAGE HELPERS ====================
 async function getState() {
-  const result = await api.storage.local.get(['collections', 'autoSaveCollectionId', 'lastSessionBackup', 'ramSaverEnabled', 'collectionSortType', 'enforceMaxPinnedCollections', 'enforceMaxPinnedTabs', 'maxPinnedCollections', 'maxPinnedTabs', 'layoutViewMode']);
+  const result = await api.storage.local.get(['collections', 'autoSaveCollectionId', 'lastSessionBackup', 'ramSaverEnabled', 'collectionSortType', 'enforceMaxPinnedCollections', 'enforceMaxPinnedTabs', 'maxPinnedCollections', 'maxPinnedTabs', 'layoutViewMode', 'theme']);
   return {
     collections: result.collections || [],
     autoSaveCollectionId: result.autoSaveCollectionId || null,
@@ -46,7 +54,8 @@ async function getState() {
     enforceMaxPinnedTabs: result.enforceMaxPinnedTabs !== false,
     maxPinnedCollections: result.maxPinnedCollections ?? DEFAULT_MAX_PINNED_COLLECTIONS,
     maxPinnedTabs: result.maxPinnedTabs ?? DEFAULT_MAX_PINNED_TABS_PER_COLLECTION,
-    layoutViewMode: result.layoutViewMode || 'list'
+    layoutViewMode: result.layoutViewMode || 'list',
+    theme: result.theme || 'dark'
   };
 }
 
@@ -1885,6 +1894,7 @@ async function setupSettingsModal() {
   const closeSettingsModal = document.getElementById('closeSettingsModal');
   const autoSaveToggle = document.getElementById('autoSaveToggle');
   const ramSaverToggle = document.getElementById('ramSaverToggle');
+  const lightModeToggle = document.getElementById('lightModeToggle');
   const enforceMaxPinnedCollectionsToggle = document.getElementById('enforceMaxPinnedCollectionsToggle');
   const enforceMaxPinnedTabsToggle = document.getElementById('enforceMaxPinnedTabsToggle');
   const maxPinnedCollectionsInput = document.getElementById('maxPinnedCollectionsInput');
@@ -1896,6 +1906,7 @@ async function setupSettingsModal() {
   const state = await getState();
   if (autoSaveToggle) autoSaveToggle.checked = !!state.autoSaveCollectionId;
   if (ramSaverToggle) ramSaverToggle.checked = state.ramSaverEnabled;
+  if (lightModeToggle) lightModeToggle.checked = state.theme === 'light';
   if (enforceMaxPinnedCollectionsToggle) enforceMaxPinnedCollectionsToggle.checked = state.enforceMaxPinnedCollections;
   if (enforceMaxPinnedTabsToggle) enforceMaxPinnedTabsToggle.checked = state.enforceMaxPinnedTabs;
   if (maxPinnedCollectionsInput) maxPinnedCollectionsInput.value = state.maxPinnedCollections;
@@ -1947,6 +1958,17 @@ async function setupSettingsModal() {
       } else {
         showToast('RAM Saver OFF — tabs load normally');
       }
+    });
+  }
+
+  // Light Mode toggle
+  if (lightModeToggle) {
+    lightModeToggle.addEventListener('change', async (e) => {
+      const enabled = e.target.checked;
+      const theme = enabled ? 'light' : 'dark';
+      await api.storage.local.set({ theme });
+      document.documentElement.setAttribute('data-theme', theme);
+      showToast(theme === 'light' ? 'Light Mode enabled' : 'Dark Mode enabled');
     });
   }
 
