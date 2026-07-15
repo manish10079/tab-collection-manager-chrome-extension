@@ -5,13 +5,13 @@
 /* 1. DARK THEME VARIABLES (DEFAULT) */
 :root {
   color-scheme: dark;
-  --bg-primary: #000000;
-  --bg-secondary: #0d0d0d;
+  --bg-primary: #202124;
+  --bg-secondary: #202124;
   --bg-glass: rgba(13, 13, 13, 0.95);
-  --bg-gradient: #000000;
-  --bg-card: #111111;
+  --bg-gradient: #202124;
+  --bg-card: #202124;
   --bg-card-hover: #161616;
-  --bg-dropdown: #0d0d0d;
+  --bg-dropdown: #202124;
   --text-primary: #f2f2f2;
   --text-secondary: #9090a8;
   --border: rgba(255, 255, 255, 0.07);
