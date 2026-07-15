@@ -18,11 +18,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // ==================== SESSION HISTORY MODAL CONTROLLER ====================
 document.addEventListener('DOMContentLoaded', () => {
+  // --- DOM Elements Setup ---
   const historyBtn = document.getElementById('historyBtn');
   const historyModal = document.getElementById('historyModal');
   const closeHistoryModal = document.getElementById('closeHistoryModal');
   const historyListContainer = document.getElementById('historyListContainer');
 
+  const sessionDetailsModal = document.getElementById('sessionDetailsModal');
+  const closeDetailsModal = document.getElementById('closeDetailsModal');
+  const detailsTabList = document.getElementById('detailsTabList');
+
+  // --- Modal Visibility Handlers ---
   if (historyBtn) {
     historyBtn.addEventListener('click', openHistoryModal);
   }
@@ -31,8 +37,13 @@ document.addEventListener('DOMContentLoaded', () => {
       historyModal.style.display = 'none';
     });
   }
+  if (closeDetailsModal) {
+    closeDetailsModal.addEventListener('click', () => {
+      sessionDetailsModal.style.display = 'none';
+    });
+  }
 
-  // Close modal when clicking on the transparent background overlay
+  // Close modals when clicking on the transparent background overlay
   if (historyModal) {
     historyModal.addEventListener('click', (e) => {
       if (e.target === historyModal) {
@@ -40,7 +51,54 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+  if (sessionDetailsModal) {
+    sessionDetailsModal.addEventListener('click', (e) => {
+      if (e.target === sessionDetailsModal) {
+        sessionDetailsModal.style.display = 'none';
+      }
+    });
+  }
 
+  // --- Helper Function: Show Read-Only Session Details ---
+  function showSessionDetails(session, dateString) {
+    if (!detailsTabList || !sessionDetailsModal) return;
+    
+    detailsTabList.innerHTML = '';
+    
+    const header = sessionDetailsModal.querySelector('h3');
+    if (header) {
+      header.innerHTML = `<i class="fas fa-list"></i> Session Detail <span style="font-size: 11px; font-weight: normal; display: block; color: var(--text-secondary); margin-top: 4px;">Saved on ${dateString}</span>`;
+    }
+
+    session.tabs.forEach(tab => {
+      const tabDetailRow = document.createElement('div');
+      tabDetailRow.className = 'tab-item';
+      tabDetailRow.style.padding = '8px';
+      tabDetailRow.style.borderBottom = '1px solid var(--border-color, #eee)';
+      tabDetailRow.style.display = 'flex';
+      tabDetailRow.style.alignItems = 'center';
+      tabDetailRow.style.gap = '10px';
+
+      const faviconSrc = tab.url ? `chrome-extension://${chrome.runtime.id}/_favicon/?pageUrl=${encodeURIComponent(tab.url)}&size=32` : 'icons/icon16.png';
+
+      tabDetailRow.innerHTML = `
+        <img src="${faviconSrc}" style="width: 16px; height: 16px; flex-shrink: 0; border-radius: 2px;" />
+        <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-weight: 500; font-size: 12.5px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${tab.title}">
+            ${tab.title || 'Untitled'}
+          </span>
+          <span style="font-size: 10px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${tab.url}">
+            ${tab.url}
+          </span>
+        </div>
+      `;
+      detailsTabList.appendChild(tabDetailRow);
+    });
+
+    sessionDetailsModal.style.display = 'flex';
+  }
+
+  // --- Core Function: Open History Modal ---
   async function openHistoryModal() {
     // 1. Fetch current extension state
     const state = await chrome.storage.local.get(['sessionHistory', 'ramSaverEnabled']);
@@ -68,14 +126,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const sessionCard = document.createElement('div');
       sessionCard.className = 'tab-item';
+      
+      // UI styling for card interaction
+      sessionCard.style.cursor = 'pointer'; 
       sessionCard.style.flexDirection = 'column';
       sessionCard.style.alignItems = 'stretch';
       sessionCard.style.gap = '8px';
       sessionCard.style.padding = '12px';
+      sessionCard.style.transition = 'background-color 0.2s';
+
+      // Hover interaction
+      sessionCard.addEventListener('mouseenter', () => sessionCard.style.backgroundColor = 'var(--bg-hover, #f5f5f5)');
+      sessionCard.addEventListener('mouseleave', () => sessionCard.style.backgroundColor = 'transparent');
 
       sessionCard.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div>
+          <div class="card-click-area" style="flex-grow: 1; margin-right: 8px;">
             <strong style="font-size: 13.5px; color: var(--text-primary);">
               Snapshot #${history.length - index}
             </strong>
@@ -83,11 +149,11 @@ document.addEventListener('DOMContentLoaded', () => {
               <i class="far fa-calendar-alt"></i> ${dateString} • <strong>${tabCount} tabs</strong>
             </div>
           </div>
-          <button class="btn-success open-all-session-btn" style="padding: 6px 12px; font-size: 11px;">
+          <button class="btn-success open-all-session-btn" style="padding: 6px 12px; font-size: 11px; z-index: 10;">
             <i class="fas fa-external-link-alt"></i> Open All
           </button>
         </div>
-        <div class="tabs-preview" style="display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px;">
+        <div class="tabs-preview card-click-area" style="display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px; flex-grow: 1;">
           <!-- Favicon list previews -->
         </div>
       `;
@@ -96,7 +162,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const previewContainer = sessionCard.querySelector('.tabs-preview');
       session.tabs.slice(0, 10).forEach(tab => {
         const img = document.createElement('img');
-        // Fallback placeholder using chrome favicon fetcher or default globe
         img.src = tab.url ? `chrome-extension://${chrome.runtime.id}/_favicon/?pageUrl=${encodeURIComponent(tab.url)}&size=32` : 'icons/icon16.png';
         img.style.width = '16px';
         img.style.height = '16px';
@@ -113,9 +178,20 @@ document.addEventListener('DOMContentLoaded', () => {
         previewContainer.appendChild(moreCount);
       }
 
-      // 5. Attach event handler for "Open All"
+      // 5. View Details Event Handler
+      const clickAreas = sessionCard.querySelectorAll('.card-click-area');
+      clickAreas.forEach(area => {
+        area.addEventListener('click', (e) => {
+          e.stopPropagation(); // Stop click bleeding
+          showSessionDetails(session, dateString);
+        });
+      });
+
+      // 6. Attach event handler for "Open All"
       const openBtn = sessionCard.querySelector('.open-all-session-btn');
-      openBtn.addEventListener('click', async () => {
+      openBtn.addEventListener('click', async (e) => {
+        e.stopPropagation(); // Prevents details modal from opening when clicking 'Open All'
+        
         // Close modal
         historyModal.style.display = 'none';
         
