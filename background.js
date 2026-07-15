@@ -3,14 +3,23 @@
 // checking git is working or not
 // ==================== STORAGE HELPERS ====================
 async function getState() {
-  const result = await api.storage.local.get(['collections', 'autoSaveCollectionId', 'lastSessionBackup', 'ramSaverEnabled', 'enforceMaxPinnedTabs', 'maxPinnedTabs']);
+  const result = await api.storage.local.get([
+    'collections', 
+    'autoSaveCollectionId', 
+    'lastSessionBackup', 
+    'ramSaverEnabled', 
+    'enforceMaxPinnedTabs', 
+    'maxPinnedTabs',
+    'sessionHistory'
+  ]);
   return {
     collections: result.collections || [],
     autoSaveCollectionId: result.autoSaveCollectionId || null,
     lastSessionBackup: result.lastSessionBackup || null,
     ramSaverEnabled: !!result.ramSaverEnabled,
     enforceMaxPinnedTabs: result.enforceMaxPinnedTabs !== false,
-    maxPinnedTabs: result.maxPinnedTabs ?? 3
+    maxPinnedTabs: result.maxPinnedTabs ?? 3,
+    sessionHistory: result.sessionHistory || []
   };
 }
 
@@ -83,7 +92,6 @@ async function saveSession() {
   // Check if collection still exists
   const collectionExists = collections.some(c => c.id === autoSaveCollectionId);
   if (!collectionExists) {
-    // Clear auto‑save ID since collection no longer exists
     console.warn(`Auto‑save collection ${autoSaveCollectionId} not found, disabling auto‑save`);
     await updateState(state => {
       state.autoSaveCollectionId = null;
@@ -94,7 +102,6 @@ async function saveSession() {
   // Get open tabs in the last focused window
   const tabs = await api.tabs.query({ lastFocusedWindow: true });
   console.log(`[saveSession] Query returned ${tabs.length} tabs total.`);
-  tabs.forEach((t, i) => console.log(`[saveSession] Raw Tab [${i}]: title="${t.title}", url="${t.url}"`));
 
   const tabObjects = tabs
     .filter(tab => validateUrl(tab.url))
@@ -110,13 +117,13 @@ async function saveSession() {
       highlighted: tab.highlighted || false
     }));
 
-  // Don't overwrite saved session with empty tabs (e.g., during browser startup)
+  // Don't overwrite saved session with empty tabs
   if (tabObjects.length === 0) {
     console.log('Auto‑save: No open tabs to save, preserving existing session');
     return;
   }
 
-  // Group tabs by window for better organization
+  // Group tabs by window
   const tabsByWindow = {};
   tabObjects.forEach(tab => {
     if (!tabsByWindow[tab.windowId]) {
@@ -125,15 +132,11 @@ async function saveSession() {
     tabsByWindow[tab.windowId].push(tab);
   });
 
-  // Sort tabs within each window by index
   Object.values(tabsByWindow).forEach(windowTabs => {
     windowTabs.sort((a, b) => a.index - b.index);
   });
 
-  // Flatten back to array (maintaining window grouping in storage)
   const sortedTabObjects = Object.values(tabsByWindow).flat();
-
-  // Limit to MAX_TABS_PER_COLLECTION
   const limitedTabObjects = sortedTabObjects.slice(0, MAX_TABS_PER_COLLECTION);
   
   if (sortedTabObjects.length > MAX_TABS_PER_COLLECTION) {
@@ -143,20 +146,16 @@ async function saveSession() {
   await updateState(state => {
     const collection = state.collections.find(c => c.id === autoSaveCollectionId);
     if (collection) {
-      // Guard Logic: Don't overwrite a high-count session with a low-count one
-      // unless it's a very small delta or specifically allowed.
-      // This protects against partial saves during crash recovery.
       const currentTabCount = collection.tabs ? collection.tabs.length : 0;
       const newTabCount = limitedTabObjects.length;
       
-      // If we are losing more than 70% of tabs AND we had at least 5 tabs, skip saving
-      // unless it's been more than 30 seconds since startup.
+      // Guard Logic
       if (currentTabCount > 5 && newTabCount < (currentTabCount * 0.3) && (Date.now() - startupTime < 30000)) {
         console.warn(`[GUARD] Refusing to overwrite ${currentTabCount} tabs with only ${newTabCount} tabs. Potential partial restoration detected.`);
         return;
       }
 
-      // Match existing tabs to preserve id, addedAt, and pinned status
+      // Match existing tabs to preserve ID, addedAt, and pinned status
       const existingTabs = [...(collection.tabs || [])];
       let preservedPinnedCount = 0;
       const MAX_PINNED_TABS = state.maxPinnedTabs;
@@ -211,14 +210,35 @@ async function saveSession() {
         };
       }
       
-      // Replace only the tabs, keep collection name and other properties
-      collection.tabs = partitionTabs(updatedTabObjects);
+      // Replace tabs in current collection
+      const finalTabs = partitionTabs(updatedTabObjects);
+      collection.tabs = finalTabs;
       collection.updatedAt = Date.now();
-      collection.windowGroups = tabsByWindow; // Store window grouping info
+      collection.windowGroups = tabsByWindow;
+
+      // ─── SESSION HISTORY STORAGE ENGINE ───
+      // Push the active set as a history snapshot
+      if (!state.sessionHistory) {
+        state.sessionHistory = [];
+      }
+
+      const historySnapshot = {
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        tabs: finalTabs
+      };
+
+      // Add to the front of the list (most recent session first)
+      state.sessionHistory.unshift(historySnapshot);
+
+      // Enforce the 30 session limit (removes oldest from the end)
+      if (state.sessionHistory.length > 30) {
+        state.sessionHistory = state.sessionHistory.slice(0, 30);
+      }
     }
   });
 
-  console.log(`Auto‑saved ${limitedTabObjects.length} tabs to collection ${autoSaveCollectionId}`);
+  console.log(`Auto‑saved ${limitedTabObjects.length} tabs to collection ${autoSaveCollectionId} and recorded in session history.`);
 }
 
 // ==================== EVENT LISTENERS ====================

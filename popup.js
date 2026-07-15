@@ -4,7 +4,6 @@
 //=============== Render Version Info from Manifest file & Theme =================
 document.addEventListener('DOMContentLoaded', async () => {
     const appInfo = chrome.runtime.getManifest();
-    // Set name on the <span id="app-name"> — NOT the <h1> — to preserve the icon and version sub element
     document.getElementById('app-name').textContent = appInfo.name;
     document.getElementById('version').textContent = `v${appInfo.version}`;
     
@@ -15,6 +14,141 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (err) {
         console.warn('Failed to load theme state:', err);
     }
+});
+
+// ==================== SESSION HISTORY MODAL CONTROLLER ====================
+document.addEventListener('DOMContentLoaded', () => {
+  const historyBtn = document.getElementById('historyBtn');
+  const historyModal = document.getElementById('historyModal');
+  const closeHistoryModal = document.getElementById('closeHistoryModal');
+  const historyListContainer = document.getElementById('historyListContainer');
+
+  if (historyBtn) {
+    historyBtn.addEventListener('click', openHistoryModal);
+  }
+  if (closeHistoryModal) {
+    closeHistoryModal.addEventListener('click', () => {
+      historyModal.style.display = 'none';
+    });
+  }
+
+  // Close modal when clicking on the transparent background overlay
+  if (historyModal) {
+    historyModal.addEventListener('click', (e) => {
+      if (e.target === historyModal) {
+        historyModal.style.display = 'none';
+      }
+    });
+  }
+
+  async function openHistoryModal() {
+    // 1. Fetch current extension state
+    const state = await chrome.storage.local.get(['sessionHistory', 'ramSaverEnabled']);
+    const history = state.sessionHistory || [];
+    const ramSaverEnabled = !!state.ramSaverEnabled;
+
+    // 2. Clear previous contents
+    historyListContainer.innerHTML = '';
+
+    if (history.length === 0) {
+      historyListContainer.innerHTML = `
+        <div class="empty-state">
+          <i class="fas fa-clock"></i>
+          <h3>No sessions saved yet</h3>
+          <p>Once you modify your open tabs, past snapshots will show up here.</p>
+        </div>`;
+      historyModal.style.display = 'flex';
+      return;
+    }
+
+    // 3. Render each session item
+    history.forEach((session, index) => {
+      const dateString = new Date(session.timestamp).toLocaleString();
+      const tabCount = session.tabs.length;
+
+      const sessionCard = document.createElement('div');
+      sessionCard.className = 'tab-item';
+      sessionCard.style.flexDirection = 'column';
+      sessionCard.style.alignItems = 'stretch';
+      sessionCard.style.gap = '8px';
+      sessionCard.style.padding = '12px';
+
+      sessionCard.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <strong style="font-size: 13.5px; color: var(--text-primary);">
+              Snapshot #${history.length - index}
+            </strong>
+            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">
+              <i class="far fa-calendar-alt"></i> ${dateString} • <strong>${tabCount} tabs</strong>
+            </div>
+          </div>
+          <button class="btn-success open-all-session-btn" style="padding: 6px 12px; font-size: 11px;">
+            <i class="fas fa-external-link-alt"></i> Open All
+          </button>
+        </div>
+        <div class="tabs-preview" style="display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px;">
+          <!-- Favicon list previews -->
+        </div>
+      `;
+
+      // 4. Generate visual small favicon list inside the session list row
+      const previewContainer = sessionCard.querySelector('.tabs-preview');
+      session.tabs.slice(0, 10).forEach(tab => {
+        const img = document.createElement('img');
+        // Fallback placeholder using chrome favicon fetcher or default globe
+        img.src = tab.url ? `chrome-extension://${chrome.runtime.id}/_favicon/?pageUrl=${encodeURIComponent(tab.url)}&size=32` : 'icons/icon16.png';
+        img.style.width = '16px';
+        img.style.height = '16px';
+        img.style.borderRadius = '3px';
+        img.title = tab.title;
+        previewContainer.appendChild(img);
+      });
+      if (session.tabs.length > 10) {
+        const moreCount = document.createElement('span');
+        moreCount.style.fontSize = '10px';
+        moreCount.style.color = 'var(--text-secondary)';
+        moreCount.style.alignSelf = 'center';
+        moreCount.textContent = `+${session.tabs.length - 10}`;
+        previewContainer.appendChild(moreCount);
+      }
+
+      // 5. Attach event handler for "Open All"
+      const openBtn = sessionCard.querySelector('.open-all-session-btn');
+      openBtn.addEventListener('click', async () => {
+        // Close modal
+        historyModal.style.display = 'none';
+        
+        // Target current active window
+        const currentWindow = await chrome.windows.getLastFocused();
+        const targetWindowId = currentWindow ? currentWindow.id : undefined;
+
+        // Restore all tabs asynchronously
+        const tabPromises = session.tabs.map(tab => {
+          let url = tab.url;
+          if (!url || url === 'about:blank') return Promise.resolve();
+          if (!url.startsWith('http')) url = 'https://' + url;
+
+          return chrome.tabs.create({
+            windowId: targetWindowId,
+            url: url,
+            pinned: !!tab.pinned,
+            active: false
+          }).then(createdTab => {
+            if (ramSaverEnabled && createdTab && createdTab.id) {
+              chrome.tabs.discard(createdTab.id).catch(() => {});
+            }
+          }).catch(err => console.error('Failed to restore historical tab:', err));
+        });
+
+        await Promise.all(tabPromises);
+      });
+
+      historyListContainer.appendChild(sessionCard);
+    });
+
+    historyModal.style.display = 'flex';
+  }
 });
 
 // =====================CONSTANTS=========================

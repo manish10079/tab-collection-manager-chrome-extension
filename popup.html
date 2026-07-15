@@ -63,6 +63,10 @@
                 <div class="sort-option" data-value="tabCountAsc"><i class="fa-solid fa-arrow-down-1-9"></i> Tab Count (Lowest)</div>
               </div>
             </button>
+          <!-- session history -->
+          <button class="icon-btn" id="historyBtn" title="Session History">
+            <i class="fas fa-history"></i>
+          </button>
           </div>
 
           <!-- Dynamic Search Input -->
@@ -366,6 +370,24 @@
       </label>
     </div>
   </template>
+
+
+
+
+  <!-- Session History Modal -->
+<div class="modal-overlay" id="historyModal" style="display: none;">
+  <div class="modal" style="max-width: 480px;">
+    <div class="modal-header">
+      <h3><i class="fas fa-history"></i> Saved Sessions History</h3>
+      <button class="close-modal" id="closeHistoryModal">&times;</button>
+    </div>
+    <div class="modal-body" style="min-height: 250px; max-height: 70vh; overflow-y: auto; padding: 16px;">
+      <div id="historyListContainer" class="tabs-list">
+        <!-- History items will be dynamically generated here -->
+      </div>
+    </div>
+  </div>
+</div>
 
   <script src="popup.js"></script>
 </body>
