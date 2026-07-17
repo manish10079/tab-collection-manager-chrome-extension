@@ -1,6 +1,45 @@
 // Tab Collection Manager - Popup Logic
 // STRICT STATE MANAGEMENT: READ → CLONE → MODIFY → SAVE → RENDER
 
+/**
+ * RAM Saver: Discards a tab ONLY after it has fully loaded.
+ * Calling chrome.tabs.discard() immediately after chrome.tabs.create() causes
+ * a race condition where the tab gets stuck in an infinite loading spinner.
+ * This helper waits for status === 'complete' before discarding.
+ * @param {number} tabId - The ID of the tab to discard.
+ * @param {number} [timeoutMs=10000] - Max wait time before giving up.
+ */
+function discardWhenLoaded(tabId, timeoutMs = 10000) {
+  return new Promise((resolve) => {
+    let settled = false;
+
+    const cleanup = (listener) => {
+      if (settled) return;
+      settled = true;
+      chrome.tabs.onUpdated.removeListener(listener);
+    };
+
+    // Safety timeout — discard anyway after timeoutMs to avoid memory leak
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      chrome.tabs.discard(tabId).catch(() => {});
+      resolve();
+    }, timeoutMs);
+
+    function onUpdated(updatedTabId, changeInfo) {
+      if (updatedTabId !== tabId || changeInfo.status !== 'complete') return;
+      cleanup(onUpdated);
+      clearTimeout(timer);
+      chrome.tabs.discard(tabId).catch(() => {});
+      resolve();
+    }
+
+    chrome.tabs.onUpdated.addListener(onUpdated);
+  });
+}
+
 //=============== Render Version Info from Manifest file & Theme =================
 document.addEventListener('DOMContentLoaded', async () => {
     const appInfo = chrome.runtime.getManifest();
@@ -136,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
       sessionCard.style.transition = 'background-color 0.2s';
 
       // Hover interaction
-      sessionCard.addEventListener('mouseenter', () => sessionCard.style.backgroundColor = 'var(--bg-hover, #f5f5f5)');
+      sessionCard.addEventListener('mouseenter', () => sessionCard.style.backgroundColor = 'var(--bg-card-hover)');
       sessionCard.addEventListener('mouseleave', () => sessionCard.style.backgroundColor = 'transparent');
 
       sessionCard.innerHTML = `
@@ -212,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
             active: false
           }).then(createdTab => {
             if (ramSaverEnabled && createdTab && createdTab.id) {
-              chrome.tabs.discard(createdTab.id).catch(() => {});
+              discardWhenLoaded(createdTab.id);
             }
           }).catch(err => console.error('Failed to restore historical tab:', err));
         });
@@ -1192,11 +1231,9 @@ async function openAllTabsSimple(collectionId) {
     }
     try {
       const createdTab = await api.tabs.create({ url, active: false });
-      // RAM Saver: discard tab immediately so it only loads when user clicks it
+      // RAM Saver: wait for tab to finish loading before discarding to avoid infinite spinner
       if (state.ramSaverEnabled && createdTab && createdTab.id) {
-        api.tabs.discard(createdTab.id).catch(err => {
-          console.warn(`RAM Saver: Failed to discard tab ${createdTab.id}:`, err);
-        });
+        discardWhenLoaded(createdTab.id);
       }
     } catch (err) {
       console.error('Failed to open tab:', url, err);
@@ -1967,9 +2004,7 @@ function renderTab(tab, collectionId, tabNumber) {
       const createdTab = await api.tabs.create({ url, active: false });
       const state = await getState();
       if (state.ramSaverEnabled && createdTab && createdTab.id) {
-        api.tabs.discard(createdTab.id).catch(err => {
-          console.warn(`RAM Saver: Failed to discard tab ${createdTab.id}:`, err);
-        });
+        discardWhenLoaded(createdTab.id);
         showToast('Tab opened (RAM Saver — loads on click)');
       } else {
         showToast('Tab opened in background');
@@ -2406,7 +2441,7 @@ async function filterResults(query) {
         const created = await api.tabs.create({ url, active: false });
         const st = await getState();
         if (st.ramSaverEnabled && created && created.id) {
-          api.tabs.discard(created.id).catch(() => {});
+          discardWhenLoaded(created.id);
           showToast('Tab opened (RAM Saver — loads on click)');
         } else {
           showToast('Tab opened in background');
