@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const header = sessionDetailsModal.querySelector('h3');
     if (header) {
-      header.innerHTML = `<i class="fas fa-list"></i> Session Detail <span style="font-size: 11px; font-weight: normal; display: block; color: var(--text-secondary); margin-top: 4px;">Saved on ${dateString}</span>`;
+      header.innerHTML = `<i class="fas fa-list"></i> <span style="font-size: 0.7rem;">Session Detail</span> <span style="font-size: 11px; font-weight: normal; display: block; color: var(--text-secondary); margin-top: 4px;">Saved on ${dateString}</span>`;
     }
 
     session.tabs.forEach(tab => {
