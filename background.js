@@ -231,9 +231,9 @@ async function saveSession() {
       // Add to the front of the list (most recent session first)
       state.sessionHistory.unshift(historySnapshot);
 
-      // Enforce the 30 session limit (removes oldest from the end)
-      if (state.sessionHistory.length > 30) {
-        state.sessionHistory = state.sessionHistory.slice(0, 30);
+      // Enforce the 100 session limit (removes oldest from the end)
+      if (state.sessionHistory.length > 100) {
+        state.sessionHistory = state.sessionHistory.slice(0, 100);
       }
     }
   });
