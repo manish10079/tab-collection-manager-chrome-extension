@@ -33,7 +33,7 @@
 /* 2. LIGHT THEME VARIABLES */
 [data-theme="light"] {
   color-scheme: light;
-  --bg-primary: #ffffff;
+  --bg-primary: #e4e0e0;
   --bg-secondary: #f4f4f6;
   --bg-glass: rgba(244, 244, 246, 0.95);
   --bg-gradient: #ffffff;
