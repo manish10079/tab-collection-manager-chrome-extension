@@ -13,24 +13,41 @@ function discardWhenLoaded(tabId, timeoutMs = 10000) {
   return new Promise((resolve) => {
     let settled = false;
 
-    const cleanup = (listener) => {
-      if (settled) return;
-      settled = true;
-      chrome.tabs.onUpdated.removeListener(listener);
-    };
-
-    // Safety timeout — discard anyway after timeoutMs to avoid memory leak
-    const timer = setTimeout(() => {
+    const cleanup = () => {
       if (settled) return;
       settled = true;
       chrome.tabs.onUpdated.removeListener(onUpdated);
-      chrome.tabs.discard(tabId).catch(() => {});
+    };
+
+    // Safety timeout — discard anyway after timeoutMs to avoid memory leak if not active
+    const timer = setTimeout(async () => {
+      if (settled) return;
+      cleanup();
+      try {
+        const tab = await chrome.tabs.get(tabId);
+        if (tab && !tab.active) {
+          chrome.tabs.discard(tabId).catch(() => {});
+        }
+      } catch (e) {
+        // Tab might have been closed
+      }
       resolve();
     }, timeoutMs);
 
-    function onUpdated(updatedTabId, changeInfo) {
-      if (updatedTabId !== tabId || changeInfo.status !== 'complete') return;
-      cleanup(onUpdated);
+    function onUpdated(updatedTabId, changeInfo, tab) {
+      if (updatedTabId !== tabId) return;
+
+      // If user activated/clicked the tab while loading, cancel the discard
+      if (tab && tab.active) {
+        cleanup();
+        clearTimeout(timer);
+        resolve();
+        return;
+      }
+
+      if (changeInfo.status !== 'complete') return;
+
+      cleanup();
       clearTimeout(timer);
       chrome.tabs.discard(tabId).catch(() => {});
       resolve();

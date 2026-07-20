@@ -560,12 +560,69 @@ api.runtime.onStartup.addListener(async () => {
   }, 10000); // 10 seconds to allow for full restoration
 });
 
+/**
+ * RAM Saver: Discards a tab ONLY after it has fully loaded and is not active.
+ * Calling api.tabs.discard() immediately after api.tabs.create() causes
+ * a race condition where the tab gets stuck in an infinite loading spinner.
+ * This helper waits for status === 'complete' before discarding, and checks tab.active.
+ * @param {number} tabId - The ID of the tab to discard.
+ * @param {number} [timeoutMs=10000] - Max wait time before giving up.
+ */
+function discardWhenLoaded(tabId, timeoutMs = 10000) {
+  return new Promise((resolve) => {
+    let settled = false;
+
+    const cleanup = () => {
+      if (settled) return;
+      settled = true;
+      api.tabs.onUpdated.removeListener(onUpdated);
+    };
+
+    // Safety timeout — discard anyway after timeoutMs to avoid memory leak, if not active
+    const timer = setTimeout(async () => {
+      if (settled) return;
+      cleanup();
+      try {
+        const tab = await api.tabs.get(tabId);
+        if (tab && !tab.active) {
+          api.tabs.discard(tabId).catch(() => {});
+        }
+      } catch (e) {
+        // Tab might have been closed
+      }
+      resolve();
+    }, timeoutMs);
+
+    function onUpdated(updatedTabId, changeInfo, tab) {
+      if (updatedTabId !== tabId) return;
+
+      // If user activated/clicked the tab while loading, cancel the discard
+      if (tab && tab.active) {
+        cleanup();
+        clearTimeout(timer);
+        resolve();
+        return;
+      }
+
+      if (changeInfo.status !== 'complete') return;
+
+      cleanup();
+      clearTimeout(timer);
+      api.tabs.discard(tabId).catch(() => {});
+      resolve();
+    }
+
+    api.tabs.onUpdated.addListener(onUpdated);
+  });
+}
+
 // ==================== RESTORE FUNCTIONALITY ====================
 // Expose restore functionality to popup
 api.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.command === 'forceAutoSave') {
     saveSession().then(() => {
       sendResponse({ success: true });
+      
     }).catch(err => {
       console.error('Error in forceAutoSave handler:', err);
       sendResponse({ success: false });
@@ -643,9 +700,7 @@ async function restoreSession(collectionId, backupData = null) {
         index: undefined // Let Chrome append them to the end
       }).then(createdTab => {
         if (state.ramSaverEnabled && createdTab && createdTab.id) {
-          api.tabs.discard(createdTab.id).catch(err => {
-            console.warn(`Failed to discard tab ${createdTab.id}:`, err);
-          });
+          discardWhenLoaded(createdTab.id);
         }
         return createdTab;
       }).catch(err => console.error(`Failed to create tab: ${url}`, err));
@@ -659,7 +714,7 @@ async function restoreSession(collectionId, backupData = null) {
     for (const tab of collection.tabs) {
       api.tabs.create({ url: tab.url, active: false }).then(createdTab => {
         if (state.ramSaverEnabled && createdTab && createdTab.id) {
-          api.tabs.discard(createdTab.id).catch(() => {});
+          discardWhenLoaded(createdTab.id);
         }
       }).catch(() => {});
     }
