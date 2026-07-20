@@ -26,8 +26,10 @@
   --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
   --shadow-card-hover: 0 12px 30px rgba(0, 0, 0, 0.5);
   --shadow-item-hover: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.6);
-  --modal-overlay-bg: rgba(0, 0, 0, 0.7);
+  --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(124, 111, 255, 0.12), 0 4px 16px rgba(0, 0, 0, 0.5);
+  --modal-overlay-bg: rgba(10, 10, 18, 0.55);
+  --modal-glass-border: rgba(124, 111, 255, 0.18);
+  --modal-header-bg: rgba(124, 111, 255, 0.06);
 }
 
 /* 2. LIGHT THEME VARIABLES */
@@ -54,8 +56,10 @@
   --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.05);
   --shadow-card-hover: 0 12px 24px rgba(0, 0, 0, 0.08);
   --shadow-item-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.15);
-  --modal-overlay-bg: rgba(0, 0, 0, 0.4);
+  --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(124, 111, 255, 0.1);
+  --modal-overlay-bg: rgba(100, 90, 140, 0.22);
+  --modal-glass-border: rgba(124, 111, 255, 0.15);
+  --modal-header-bg: rgba(124, 111, 255, 0.05);
 }
 
 /* 3. COMMON VARIABLES (SAME FOR BOTH LIGHT & DARK) */
@@ -1470,67 +1474,104 @@ body.panel-closing {
   border-color: rgba(255, 107, 139, 0.2) !important;
 }
 
-/* Modal */
+/* ===== Modal System ===== */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
+  /* Frosted glass overlay — translucent tinted blur, NOT solid black */
   background: var(--modal-overlay-bg);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
   display: flex;
-  align-items: flex-start; /* Start from top to allow scrolling */
+  align-items: flex-start;
   justify-content: center;
   z-index: 1000;
-  padding: 40px 20px; /* Extra top/bottom padding for modal */
-  overflow-y: auto; /* Allow scrolling if modal is too tall */
+  padding: 32px 16px;
+  overflow-y: auto;
+  animation: overlayFadeIn 0.2s ease forwards;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .modal {
+  /* Uses the same surface color as the rest of the extension */
   background: var(--bg-secondary);
-  border-radius: var(--radius);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-radius: 20px;
   width: 100%;
   max-width: 440px;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
+  border: 1px solid var(--modal-glass-border);
+  box-shadow: var(--shadow-modal);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes modalSlideUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);    }
 }
 
 .modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px;
-  border-bottom: 1px solid var(--border);
+  padding: 16px 20px;
+  background: var(--modal-header-bg);
+  border-bottom: 1px solid var(--modal-glass-border);
 }
 
 .modal-header h3 {
-  font-size: 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   display: flex;
   align-items: center;
-  gap: 12px;
-}
-
-.close-modal {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 28px;
-  cursor: pointer;
-  line-height: 1;
-  transition: var(--transition);
-}
-
-.close-modal:hover {
+  gap: 10px;
   color: var(--text-primary);
 }
 
+.modal-header h3 i {
+  color: var(--accent);
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.close-modal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: var(--bg-translucent-normal);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.close-modal:hover {
+  background: rgba(255, 92, 122, 0.15);
+  border-color: rgba(255, 92, 122, 0.3);
+  color: var(--danger);
+  transform: scale(1.1);
+}
+
 .modal-body {
-  padding: 24px;
-  min-height: 360px; /* Prevent layout jump */
+  padding: 20px;
+  min-height: 360px;
   display: flex;
   flex-direction: column;
 }
@@ -2330,7 +2371,7 @@ mark.search-hl {
   background: rgba(245, 158, 11, 0.02);
 }
 
-/* Settings UI Styles */
+/* ===== Settings UI Styles ===== */
 .header-actions {
   display: flex;
   align-items: center;
@@ -2340,13 +2381,26 @@ mark.search-hl {
 .settings-modal-body {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 16px 8px;
+  gap: 6px;
+  padding: 16px;
 }
 
+/* Individual settings row */
 .settings-option {
   display: flex;
   align-items: center;
+  padding: 13px 16px;
+  border-radius: 12px;
+  background: var(--bg-translucent-subtle);
+  border: 1px solid var(--border);
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.15s ease;
+  cursor: pointer;
+}
+
+.settings-option:hover {
+  background: var(--bg-translucent-normal);
+  border-color: rgba(124, 111, 255, 0.22);
+  transform: translateX(2px);
 }
 
 /* Limit Settings styling */
@@ -2368,8 +2422,9 @@ mark.search-hl {
 }
 
 .limit-label {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-secondary);
+  font-weight: 500;
 }
 
 .limit-input {
@@ -2378,17 +2433,19 @@ mark.search-hl {
   padding: 4px 6px;
   background: var(--bg-translucent-normal);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text-primary);
   font-size: 13px;
   text-align: center;
   transition: var(--transition);
   outline: none;
+  font-weight: 600;
 }
 
 .limit-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.2);
+  box-shadow: 0 0 0 2px rgba(124, 111, 255, 0.2);
+  background: var(--bg-translucent-hover);
 }
 
 /* Chrome, Safari, Edge, Opera: Remove spin buttons from number input */
@@ -2461,9 +2518,75 @@ mark.search-hl {
   padding-left: 6px;
 }
 
-.view-collection-modal .tab-item .icon-btn.pin-tab-btn,
-.view-collection-modal .tab-item .icon-btn.tab-menu-btn {
-  width: 28px;
-  height: 28px;
+/* ===== Settings Modal specific ===== */
+.settings-modal {
+  max-width: 400px;
+}
+
+.settings-section-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0.75;
+  padding: 4px 4px 2px;
+  margin-top: 4px;
+}
+
+.settings-section-label:first-child {
+  margin-top: 0;
+}
+
+.settings-option-text {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.settings-option-icon {
   font-size: 12px;
+  color: var(--accent);
+  opacity: 0.8;
+  width: 14px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* Make the label fill the full row and pointer-friendly */
+.settings-option .checkbox-label {
+  width: 100%;
+  cursor: pointer;
+}
+
+/* ===== History / Session Details Modal ===== */
+.history-modal {
+  max-width: 480px;
+}
+
+.session-details-modal {
+  max-width: 440px;
+}
+
+.history-modal-body {
+  padding: 16px;
+  min-height: 220px;
+  max-height: 68vh;
+  overflow-y: auto;
+}
+
+.history-modal-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.history-modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.history-modal-body::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
 }

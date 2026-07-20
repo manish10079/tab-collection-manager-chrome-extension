@@ -159,45 +159,72 @@
 
     <!-- Settings Modal -->
     <div class="modal-overlay" id="settingsModal" style="display: none;">
-      <div class="modal">
+      <div class="modal settings-modal">
         <div class="modal-header">
-          <h3><i class="fas fa-cog"></i> Settings</h3>
+          <h3><i class="fas fa-sliders-h"></i> Settings</h3>
           <button class="close-modal" id="closeSettingsModal">&times;</button>
         </div>
         <div class="modal-body settings-modal-body">
+
+          <!-- Section: Session -->
+          <p class="settings-section-label">Session</p>
           <div class="settings-option">
-            <label class="checkbox-label">
+            <label class="checkbox-label" style="width:100%;">
               <input type="checkbox" id="autoSaveToggle">
-              <span>Enable Auto‑Save to Current Session</span>
+              <span class="settings-option-text">
+                <i class="fas fa-save settings-option-icon"></i>
+                Enable Auto&#8209;Save to Current Session
+              </span>
             </label>
           </div>
+
+          <!-- Section: Performance -->
+          <p class="settings-section-label">Performance</p>
           <div class="settings-option">
-            <label class="checkbox-label ram-saver-label" title="When enabled, restored tabs load in the background and only fully load when you click on them — saving RAM.">
+            <label class="checkbox-label ram-saver-label" style="width:100%;" title="When enabled, restored tabs load in the background and only fully load when you click on them — saving RAM.">
               <input type="checkbox" id="ramSaverToggle">
-              <span>RAM Saver <span class="ram-saver-badge">💾 Lazy Load</span></span>
+              <span class="settings-option-text">
+                <i class="fas fa-memory settings-option-icon"></i>
+                RAM Saver <span class="ram-saver-badge">💾 Lazy Load</span>
+              </span>
             </label>
           </div>
+
+          <!-- Section: Appearance -->
+          <p class="settings-section-label">Appearance</p>
           <div class="settings-option">
-            <label class="checkbox-label">
+            <label class="checkbox-label" style="width:100%;">
               <input type="checkbox" id="lightModeToggle">
-              <span>Light Mode</span>
+              <span class="settings-option-text">
+                <i class="fas fa-sun settings-option-icon"></i>
+                Light Mode
+              </span>
             </label>
           </div>
+
+          <!-- Section: Limits -->
+          <p class="settings-section-label">Limits</p>
           <div class="settings-option settings-limit-row">
-            <label class="checkbox-label" title="When enabled, restricts how many collections can be pinned.">
+            <label class="checkbox-label" style="flex:1;" title="When enabled, restricts how many collections can be pinned.">
               <input type="checkbox" id="enforceMaxPinnedCollectionsToggle">
-              <span>Limit pinned collections</span>
+              <span class="settings-option-text">
+                <i class="fas fa-layer-group settings-option-icon"></i>
+                Limit pinned collections
+              </span>
             </label>
             <div class="limit-input-group" id="maxPinnedCollectionsGroup">
               <span class="limit-label">Max</span>
               <input type="number" id="maxPinnedCollectionsInput" class="limit-input" min="1" max="20" value="3">
-              <span class="limit-label">collections</span>
+              <span class="limit-label">cols</span>
             </div>
           </div>
           <div class="settings-option settings-limit-row">
-            <label class="checkbox-label" title="When enabled, restricts how many tabs can be pinned per collection.">
+            <label class="checkbox-label" style="flex:1;" title="When enabled, restricts how many tabs can be pinned per collection.">
               <input type="checkbox" id="enforceMaxPinnedTabsToggle">
-              <span>Limit pinned tabs per collection</span>
+              <span class="settings-option-text">
+                <i class="fas fa-thumbtack settings-option-icon"></i>
+                Limit pinned tabs per collection
+              </span>
             </label>
             <div class="limit-input-group" id="maxPinnedTabsGroup">
               <span class="limit-label">Max</span>
@@ -205,6 +232,7 @@
               <span class="limit-label">tabs</span>
             </div>
           </div>
+
         </div>
       </div>
     </div>
@@ -376,12 +404,12 @@
 
   <!-- Session History Modal -->
 <div class="modal-overlay" id="historyModal" style="display: none;">
-  <div class="modal" style="max-width: 480px;">
+  <div class="modal history-modal">
     <div class="modal-header">
-      <h3><i class="fas fa-history"></i> Saved Sessions History</h3>
+      <h3><i class="fas fa-history"></i> Session History</h3>
       <button class="close-modal" id="closeHistoryModal">&times;</button>
     </div>
-    <div class="modal-body" style="min-height: 250px; max-height: 70vh; overflow-y: auto; padding: 16px;">
+    <div class="modal-body history-modal-body">
       <div id="historyListContainer" class="tabs-list">
         <!-- History items will be dynamically generated here -->
       </div>
@@ -391,12 +419,12 @@
 
 <!-- Secondary Session Details Modal (Read-Only List) -->
 <div class="modal-overlay" id="sessionDetailsModal" style="display: none; z-index: 2000;">
-  <div class="modal" style="max-width: 440px;">
+  <div class="modal session-details-modal">
     <div class="modal-header">
       <h3><i class="fas fa-list"></i> Session Tabs</h3>
       <button class="close-modal" id="closeDetailsModal">&times;</button>
     </div>
-    <div class="modal-body" style="max-height: 60vh; overflow-y: auto; padding: 16px;">
+    <div class="modal-body history-modal-body">
       <div id="detailsTabList" class="tabs-list">
         <!-- Individual tab items (Title + URL) will be rendered here -->
       </div>
