@@ -696,25 +696,14 @@ async function exportAllCollections() {
   const url = URL.createObjectURL(blob);
   const filename = `tab_collections_backup_${getFormattedDateTime()}.json`;
 
-  if (api.downloads && api.downloads.download) {
-    api.downloads.download({
-      url: url,
-      filename: filename,
-      saveAs: true
-    }, () => {
-      URL.revokeObjectURL(url);
-      showToast('All collections exported successfully');
-    });
-  } else {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 100);
-    showToast('All collections exported successfully');
-  }
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 100);
+  showToast('All collections exported successfully');
 }
 
 function importAllCollections() {
@@ -875,25 +864,14 @@ function exportCollection(collection) {
   const url = URL.createObjectURL(blob);
   const filename = `${collection.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_tabs_${getFormattedDateTime()}.json`;
 
-  if (api.downloads && api.downloads.download) {
-    api.downloads.download({
-      url: url,
-      filename: filename,
-      saveAs: true
-    }, () => {
-      URL.revokeObjectURL(url);
-      showToast('Collection exported successfully');
-    });
-  } else {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 100);
-    showToast('Collection exported successfully');
-  }
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 100);
+  showToast('Collection exported successfully');
 }
 
 function importCollection(collectionId) {

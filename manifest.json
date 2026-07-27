@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tab Collection Manager",
-  "version": "2.8.6",
+  "version": "1.8.6",
   "description": "Auto-save and manage tab collections with premium dark mode UI",
   "permissions": [
     "tabs",
