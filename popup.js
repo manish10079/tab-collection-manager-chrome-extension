@@ -2261,6 +2261,77 @@ async function setupSettingsModal() {
       showToast(`Pinned tabs limit set to ${val} per collection`);
     });
   }
+
+  // Google Drive Cloud Backup Settings
+  const gdriveBackupToggle = document.getElementById('gdriveBackupToggle');
+  const gdriveBackupActions = document.getElementById('gdriveBackupActions');
+  const gdriveBackupNowBtn = document.getElementById('gdriveBackupNowBtn');
+  const gdriveRestoreNowBtn = document.getElementById('gdriveRestoreNowBtn');
+
+  if (gdriveBackupToggle) {
+    const { gdrive_backup_enabled } = await api.storage.local.get(['gdrive_backup_enabled']);
+    gdriveBackupToggle.checked = !!gdrive_backup_enabled;
+    if (gdriveBackupActions) {
+      gdriveBackupActions.style.display = gdrive_backup_enabled ? 'flex' : 'none';
+    }
+
+    gdriveBackupToggle.addEventListener('change', async (e) => {
+      const enabled = e.target.checked;
+      await api.storage.local.set({ gdrive_backup_enabled: enabled });
+      if (gdriveBackupActions) {
+        gdriveBackupActions.style.display = enabled ? 'flex' : 'none';
+      }
+      showToast(enabled ? 'Google Drive auto-backup enabled' : 'Google Drive auto-backup disabled');
+    });
+  }
+
+  if (gdriveBackupNowBtn) {
+    gdriveBackupNowBtn.addEventListener('click', async () => {
+      gdriveBackupNowBtn.disabled = true;
+      const originalText = gdriveBackupNowBtn.innerHTML;
+      gdriveBackupNowBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+      
+      api.runtime.sendMessage({ command: 'gdrive_backup_now' }, (response) => {
+        gdriveBackupNowBtn.disabled = false;
+        gdriveBackupNowBtn.innerHTML = originalText;
+        
+        if (response && response.success) {
+          showToast('Backup successfully uploaded to Google Drive!');
+        } else {
+          const errorMsg = (response && response.error) ? response.error : 'Connection error';
+          showToast(`Backup failed: ${errorMsg}`);
+        }
+      });
+    });
+  }
+
+  if (gdriveRestoreNowBtn) {
+    gdriveRestoreNowBtn.addEventListener('click', () => {
+      if (!confirm('Are you sure you want to restore from Google Drive? This will replace your current settings and collections (except the live Current Session).')) {
+        return;
+      }
+      
+      gdriveRestoreNowBtn.disabled = true;
+      const originalText = gdriveRestoreNowBtn.innerHTML;
+      gdriveRestoreNowBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Restoring...';
+      
+      api.runtime.sendMessage({ command: 'gdrive_restore_now' }, (response) => {
+        gdriveRestoreNowBtn.disabled = false;
+        gdriveRestoreNowBtn.innerHTML = originalText;
+        
+        if (response && response.success) {
+          showToast(`Restore completed! Loaded ${response.count} collections.`);
+          // Reload the collections view
+          getState().then(newState => {
+            renderCollections(newState);
+          });
+        } else {
+          const errorMsg = (response && response.error) ? response.error : 'No backup found or connection error';
+          showToast(`Restore failed: ${errorMsg}`);
+        }
+      });
+    });
+  }
 }
 
 // ==================== SEARCH / FILTER ====================

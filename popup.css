@@ -444,11 +444,6 @@ body.panel-closing {
   gap: 12px;
 }
 
-/* RAM Saver toggle label */
-.ram-saver-label {
-  opacity: 0.9;
-}
-
 /* Pill badge next to "RAM Saver" text */
 .ram-saver-badge {
   display: inline-flex;
@@ -2378,41 +2373,242 @@ mark.search-hl {
   gap: 8px;
 }
 
+/* ============================================================
+   MATERIAL 3 SETTINGS MODAL
+   ============================================================ */
+
 .settings-modal-body {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 12px;
   padding: 16px;
+  min-height: auto; /* Override default 360px min-height from .modal-body */
 }
 
-/* Individual settings row */
-.settings-option {
-  display: flex;
-  align-items: center;
-  padding: 13px 16px;
-  border-radius: 12px;
+/* Settings Cards - Material 3 elevated surface */
+.settings-card {
   background: var(--bg-translucent-subtle);
   border: 1px solid var(--border);
-  transition: background 0.18s ease, border-color 0.18s ease, transform 0.15s ease;
-  cursor: pointer;
+  border-radius: 16px;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.settings-option:hover {
-  background: var(--bg-translucent-normal);
-  border-color: rgba(124, 111, 255, 0.22);
-  transform: translateX(2px);
+.settings-card:hover {
+  border-color: rgba(124, 111, 255, 0.15);
 }
 
-/* Limit Settings styling */
-.settings-limit-row {
+.settings-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0.8;
+}
+
+.settings-card-icon {
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.settings-card-body {
+  padding: 4px 0;
+}
+
+/* Settings Rows inside cards */
+.settings-row {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
-  width: 100%;
+  padding: 12px 16px;
+  gap: 12px;
+  transition: background 0.15s ease;
+  border-bottom: 1px solid var(--border);
 }
+
+.settings-row:last-child {
+  border-bottom: none;
+}
+
+.settings-row:hover {
+  background: var(--bg-translucent-normal);
+}
+
+.settings-row-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-row-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(124, 111, 255, 0.15), rgba(124, 111, 255, 0.05));
+  border: 1px solid rgba(124, 111, 255, 0.12);
+  flex-shrink: 0;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.settings-row-icon i {
+  font-size: 13px;
+  color: var(--accent);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-row:hover .settings-row-icon {
+  transform: scale(1.05);
+  background: linear-gradient(135deg, rgba(124, 111, 255, 0.2), rgba(124, 111, 255, 0.08));
+}
+
+.settings-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.settings-row-label {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-row-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  opacity: 0.75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.settings-row-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Action buttons row in settings */
+.settings-row-actions {
+  padding: 10px 16px 12px;
+  gap: 8px;
+  justify-content: flex-start;
+  border-top: 1px solid var(--border);
+  margin-top: 0;
+}
+
+.settings-action-btn {
+  padding: 7px 14px !important;
+  font-size: 11px !important;
+  border-radius: 10px !important;
+  height: auto !important;
+  gap: 6px !important;
+}
+
+/* ============================================================
+   MATERIAL 3 TOGGLE SWITCH
+   ============================================================ */
+
+.toggle-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toggle-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.toggle-track {
+  position: relative;
+  width: 48px;
+  height: 26px;
+  background: var(--bg-translucent-strong);
+  border-radius: 13px;
+  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  padding: 0 3px;
+  flex-shrink: 0;
+}
+
+.toggle-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--text-primary);
+  border-radius: 50%;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.25s ease, box-shadow 0.25s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  will-change: transform;
+}
+
+/* Checked state */
+.toggle-input:checked + .toggle-track {
+  background: var(--accent);
+}
+
+.toggle-input:checked + .toggle-track .toggle-thumb {
+  transform: translateX(22px);
+  background: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Hover state */
+.toggle-switch:hover .toggle-track {
+  background: var(--bg-translucent-strong);
+  filter: brightness(1.2);
+}
+
+.toggle-switch:hover .toggle-input:checked + .toggle-track {
+  filter: brightness(1.15);
+}
+
+/* Focus-visible ring for keyboard navigation */
+.toggle-input:focus-visible + .toggle-track {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* Disabled state */
+.toggle-input:disabled + .toggle-track {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   LIMIT INPUT GROUP (used with toggles)
+   ============================================================ */
 
 .limit-input-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
@@ -2422,20 +2618,22 @@ mark.search-hl {
 }
 
 .limit-label {
-  font-size: 12px;
+  font-size: 10px;
   color: var(--text-secondary);
-  font-weight: 500;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .limit-input {
-  width: 55px;
-  height: 32px;
-  padding: 4px 6px;
+  width: 48px;
+  height: 28px;
+  padding: 2px 4px;
   background: var(--bg-translucent-normal);
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 12px;
   text-align: center;
   transition: var(--transition);
   outline: none;
@@ -2520,46 +2718,7 @@ mark.search-hl {
 
 /* ===== Settings Modal specific ===== */
 .settings-modal {
-  max-width: 400px;
-}
-
-.settings-section-label {
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent);
-  opacity: 0.75;
-  padding: 4px 4px 2px;
-  margin-top: 4px;
-}
-
-.settings-section-label:first-child {
-  margin-top: 0;
-}
-
-.settings-option-text {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13.5px;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.settings-option-icon {
-  font-size: 12px;
-  color: var(--accent);
-  opacity: 0.8;
-  width: 14px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-/* Make the label fill the full row and pointer-friendly */
-.settings-option .checkbox-label {
-  width: 100%;
-  cursor: pointer;
+  max-width: 420px;
 }
 
 /* ===== History / Session Details Modal ===== */
