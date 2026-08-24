@@ -10,15 +10,8 @@
     "downloads",
     "favicon",
     "sidePanel",
-    "identity",
     "alarms"
   ],
-  "oauth2": {
-    "client_id": "106712929251-af4a2kgch9i38p5olf1oge7bofs9pbb5.apps.googleusercontent.com",
-    "scopes": [
-      "https://www.googleapis.com/auth/drive.appdata"
-    ]
-  },
   "action": {
     "default_title": "Tab Collection Manager",
     "default_icon": {

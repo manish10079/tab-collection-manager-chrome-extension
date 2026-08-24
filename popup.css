@@ -2421,6 +2421,105 @@ mark.search-hl {
   padding: 4px 0;
 }
 
+/* ── Keyboard Shortcuts card ─────────────────────────────── */
+.shortcut-grid {
+  padding: 8px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 4px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.shortcut-row:last-child {
+  border-bottom: none;
+}
+
+.shortcut-keys {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.shortcut-keys kbd {
+  display: inline-block;
+  min-width: 26px;
+  padding: 2px 8px;
+  text-align: center;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-translucent-strong);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+}
+
+.shortcut-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+/* ── Shortcuts Help modal ─────────────────────────────────── */
+.shortcuts-help-modal {
+  max-width: 420px;
+}
+
+.shortcuts-help-body {
+  padding: 8px 20px 16px;
+  min-height: auto;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.shortcuts-help-footer {
+  justify-content: center;
+  padding: 12px 20px;
+}
+
+.shortcuts-help-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.shortcuts-help-hint i {
+  color: var(--accent);
+  opacity: 0.9;
+}
+
+/* ── Jump-to-collection highlight (1-9 shortcut) ─────────── */
+.collection.shortcut-jump-highlight {
+  border-color: rgba(124, 111, 255, 0.55);
+  box-shadow: 0 0 0 2px rgba(124, 111, 255, 0.25), var(--shadow-card-hover);
+  animation: jumpPulse 1.2s ease;
+}
+
+@keyframes jumpPulse {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 /* Settings Rows inside cards */
 .settings-row {
   display: flex;
@@ -2523,6 +2622,7 @@ mark.search-hl {
   height: auto !important;
   gap: 6px !important;
 }
+
 
 /* ============================================================
    MATERIAL 3 TOGGLE SWITCH

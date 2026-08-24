@@ -1,6 +1,7 @@
 // Background Service Worker - Auto‑Save Engine
 // Handles Chrome tab events and auto‑save logic with debounce
 // checking git is working or not
+
 // ==================== STORAGE HELPERS ====================
 async function getState() {
   const result = await api.storage.local.get([
@@ -436,16 +437,6 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 let _contextMenuRebuildTimer = null;
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'local') {
-    const keys = Object.keys(changes);
-    const hasDataChanges = keys.some(key => key === 'collections' || key === 'ramSaverEnabled' || key === 'enforceMaxPinnedTabs' || key === 'maxPinnedTabs');
-    if (hasDataChanges && !changes.gdrive_backup_dirty) {
-      api.storage.local.set({ gdrive_backup_dirty: true });
-    }
-
-    if (changes.gdrive_backup_enabled) {
-      setupBackupAlarm();
-    }
-
     if (changes.collections) {
       clearTimeout(_contextMenuRebuildTimer);
       _contextMenuRebuildTimer = setTimeout(() => {
@@ -659,25 +650,7 @@ api.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Keep message channel open for async response
   }
 
-  if (request.command === 'gdrive_backup_now') {
-    performGDriveBackup(true).then((result) => {
-      sendResponse(result);
-    }).catch(err => {
-      console.error('GDrive Backup request failed:', err);
-      sendResponse({ success: false, error: err.message });
-    });
-    return true; // Keep message channel open for async response
-  }
 
-  if (request.command === 'gdrive_restore_now') {
-    performGDriveRestore(true).then((result) => {
-      sendResponse(result);
-    }).catch(err => {
-      console.error('GDrive Restore request failed:', err);
-      sendResponse({ success: false, error: err.message });
-    });
-    return true; // Keep message channel open for async response
-  }
 });
 
 async function restoreSession(collectionId, backupData = null) {
@@ -753,238 +726,85 @@ async function restoreSession(collectionId, backupData = null) {
   }
 }
 
-// ==================== GOOGLE DRIVE AUTO‑BACKUP ====================
 
-// Setup the alarm on startup/installation or settings change
-async function setupBackupAlarm() {
-  const settings = await api.storage.local.get(['gdrive_backup_enabled']);
-  if (settings.gdrive_backup_enabled) {
-    // Alarms must be configured with a positive integer periodInMinutes (minimum 1 min)
-    await api.alarms.create('gdrive_backup_alarm', { periodInMinutes: 15 });
-    console.log('Google Drive backup alarm initialized for 15-minute intervals');
-  } else {
-    await api.alarms.clear('gdrive_backup_alarm');
-    console.log('Google Drive backup alarm disabled');
+
+
+// ==================== LOCAL DAILY BACKUP (disabled) ====================
+// Automatically downloads a JSON backup to the user's Downloads folder
+// every day at 10:00 PM sharp.
+
+function msUntilNext10PM() {
+  const now = new Date();
+  const target = new Date(now);
+  target.setHours(22, 0, 0, 0); // 10:00 PM
+  if (now >= target) {
+    target.setDate(target.getDate() + 1); // tomorrow
   }
+  return target.getTime() - now.getTime();
 }
 
-// Trigger Google Drive upload
-async function performGDriveBackup(interactive = false) {
+async function scheduleDailyLocalBackup() {
+  const delayMs = msUntilNext10PM();
+  const delayMin = Math.max(1, Math.round(delayMs / 60000));
+  await api.alarms.create('local_daily_backup', { delayInMinutes: delayMin });
+  const targetTime = new Date(Date.now() + delayMs).toLocaleTimeString();
+  console.log(`Local daily backup scheduled for ${targetTime} (in ${delayMin} min)`);
+}
+
+async function performLocalBackup() {
   try {
-    const status = await api.storage.local.get(['gdrive_backup_enabled', 'gdrive_backup_dirty']);
-    if (!interactive && (!status.gdrive_backup_enabled || !status.gdrive_backup_dirty)) {
-      console.log('Skipping GDrive backup: not enabled or not dirty');
-      return { success: true, skipped: true };
-    }
-
-    // Get Auth Token
-    const tokenResult = await new Promise((resolve, reject) => {
-      api.identity.getAuthToken({ interactive }, (token) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
-        } else {
-          resolve(token);
-        }
-      });
-    });
-
-    if (!tokenResult) {
-      throw new Error('Failed to acquire OAuth token');
-    }
-
-    console.log('Acquired GDrive auth token, proceeding with backup');
-
-    // Retrieve state to back up
     const state = await getState();
     const backupData = {
+      backupType: 'local-daily',
       exportedAt: new Date().toISOString(),
+      version: api.runtime.getManifest().version,
       collections: state.collections,
       settings: {
         ramSaverEnabled: state.ramSaverEnabled,
         enforceMaxPinnedTabs: state.enforceMaxPinnedTabs,
-        maxPinnedTabs: state.maxPinnedTabs
+        maxPinnedTabs: state.maxPinnedTabs,
+        sessionHistory: (state.sessionHistory || []).slice(0, 50) // limit history in backup
       }
     };
 
-    // Find if the file already exists in appDataFolder
-    const searchUrl = 'https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent("name='tab_collections_backup.json' and 'appDataFolder' in parents and trashed=false") + '&spaces=appDataFolder';
-    const searchResponse = await fetch(searchUrl, {
-      headers: { 'Authorization': `Bearer ${tokenResult}` }
+    const json = JSON.stringify(backupData, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
+    const timeStr = now.toTimeString().slice(0, 5).replace(':', ''); // HHmm
+    const filename = `tab_manager_backup_${dateStr}_${timeStr}.json`;
+
+    await api.downloads.download({
+      url: url,
+      filename: filename,
+      saveAs: false,
+      conflictAction: 'uniquify'
     });
 
-    if (searchResponse.status === 401) {
-      // Token expired or invalid, revoke it and throw
-      await new Promise((resolve) => api.identity.removeCachedAuthToken({ token: tokenResult }, resolve));
-      throw new Error('Token expired, please try again.');
-    }
+    // Revoke after a short delay to let the download start
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
 
-    if (!searchResponse.ok) {
-      throw new Error(`Search failed: ${searchResponse.statusText}`);
-    }
-
-    const searchData = await searchResponse.json();
-    const existingFile = searchData.files && searchData.files[0];
-    const fileContent = JSON.stringify(backupData, null, 2);
-
-    let uploadUrl = '';
-    let method = 'POST';
-    let headers = {
-      'Authorization': `Bearer ${tokenResult}`,
-      'Content-Type': 'application/json'
-    };
-
-    if (existingFile) {
-      // Update existing file
-      uploadUrl = `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}?uploadType=media`;
-      method = 'PATCH';
-    } else {
-      // Create new file
-      uploadUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
-      method = 'POST';
-    }
-
-    let response;
-    if (existingFile) {
-      response = await fetch(uploadUrl, {
-        method,
-        headers,
-        body: fileContent
-      });
-    } else {
-      // Multipart upload for creating metadata and file content together
-      const boundary = '-------314159265358979323846';
-      const delimiter = `\r\n--${boundary}\r\n`;
-      const closeDelim = `\r\n--${boundary}--`;
-
-      const metadata = {
-        name: 'tab_collections_backup.json',
-        parents: ['appDataFolder']
-      };
-
-      const multipartBody = 
-        delimiter +
-        'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
-        JSON.stringify(metadata) +
-        delimiter +
-        'Content-Type: application/json\r\n\r\n' +
-        fileContent +
-        closeDelim;
-
-      response = await fetch(uploadUrl, {
-        method,
-        headers: {
-          'Authorization': `Bearer ${tokenResult}`,
-          'Content-Type': `multipart/related; boundary=${boundary}`
-        },
-        body: multipartBody
-      });
-    }
-
-    if (!response.ok) {
-      throw new Error(`Upload failed with status: ${response.status}`);
-    }
-
-    console.log('Google Drive auto-backup succeeded');
-    await api.storage.local.set({ gdrive_backup_dirty: false, last_gdrive_backup_time: Date.now() });
-    return { success: true };
-
-  } catch (error) {
-    console.error('Google Drive Backup Error:', error);
-    throw error;
-  }
-}
-
-// Trigger Google Drive download and restore
-async function performGDriveRestore(interactive = true) {
-  try {
-    // Get Auth Token
-    const tokenResult = await new Promise((resolve, reject) => {
-      api.identity.getAuthToken({ interactive }, (token) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
-        } else {
-          resolve(token);
-        }
-      });
-    });
-
-    if (!tokenResult) {
-      throw new Error('Failed to acquire OAuth token');
-    }
-
-    // Find if the file already exists in appDataFolder
-    const searchUrl = 'https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent("name='tab_collections_backup.json' and 'appDataFolder' in parents and trashed=false") + '&spaces=appDataFolder';
-    const searchResponse = await fetch(searchUrl, {
-      headers: { 'Authorization': `Bearer ${tokenResult}` }
-    });
-
-    if (searchResponse.status === 401) {
-      await new Promise((resolve) => api.identity.removeCachedAuthToken({ token: tokenResult }, resolve));
-      throw new Error('Token expired, please try again.');
-    }
-
-    if (!searchResponse.ok) {
-      throw new Error(`Search failed: ${searchResponse.statusText}`);
-    }
-
-    const searchData = await searchResponse.json();
-    const existingFile = searchData.files && searchData.files[0];
-    if (!existingFile) {
-      throw new Error('No backup file found in Google Drive.');
-    }
-
-    // Download file content
-    const downloadUrl = `https://www.googleapis.com/drive/v3/files/${existingFile.id}?alt=media`;
-    const downloadResponse = await fetch(downloadUrl, {
-      headers: { 'Authorization': `Bearer ${tokenResult}` }
-    });
-
-    if (!downloadResponse.ok) {
-      throw new Error(`Download failed: ${downloadResponse.statusText}`);
-    }
-
-    const backupData = await downloadResponse.json();
-
-    // Validate backup data
-    if (!backupData || !Array.isArray(backupData.collections)) {
-      throw new Error('Invalid backup file format in Google Drive.');
-    }
-
-    // Apply to local state
-    await updateState(state => {
-      if (backupData.settings) {
-        if (backupData.settings.ramSaverEnabled !== undefined) {
-          state.ramSaverEnabled = !!backupData.settings.ramSaverEnabled;
-        }
-        if (backupData.settings.enforceMaxPinnedTabs !== undefined) {
-          state.enforceMaxPinnedTabs = !!backupData.settings.enforceMaxPinnedTabs;
-        }
-        if (backupData.settings.maxPinnedTabs !== undefined) {
-          state.maxPinnedTabs = backupData.settings.maxPinnedTabs;
-        }
-      }
-
-      const currentSession = state.collections.find(c => c.id === CURRENT_SESSION_ID);
-      let newCollections = backupData.collections.filter(c => c.id !== CURRENT_SESSION_ID);
-      if (currentSession) {
-        newCollections.unshift(currentSession);
-      }
-      state.collections = newCollections;
-    });
-
-    return { success: true, count: backupData.collections.length };
-  } catch (error) {
-    console.error('Google Drive Restore Error:', error);
-    throw error;
+    await api.storage.local.set({ last_local_backup_time: Date.now() });
+    console.log(`Local daily backup saved: ${filename}`);
+    return { success: true, filename };
+  } catch (err) {
+    console.error('Local daily backup failed:', err);
+    return { success: false, error: err.message };
   }
 }
 
 // Alarm event listener
 api.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === 'gdrive_backup_alarm') {
-    performGDriveBackup(false).catch(err => console.error('Periodic GDrive Backup Failed:', err));
+  if (alarm.name === 'local_daily_backup') {
+    performLocalBackup()
+      .then(() => scheduleDailyLocalBackup()) // reschedule for next day
+      .catch(err => {
+        console.error('Local daily backup alarm failed:', err);
+        scheduleDailyLocalBackup(); // reschedule even on failure
+      });
   }
 });
 
-// Setup alarm on service worker startup
-setupBackupAlarm();
+

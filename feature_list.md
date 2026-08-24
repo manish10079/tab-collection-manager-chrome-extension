@@ -337,16 +337,21 @@ Friend Imports Collection
 
 ---
 
-## Keyboard Shortcuts ⌨️
+## Keyboard Shortcuts ⌨️ ✅ Implemented
 
 Quick actions without touching the mouse.
 
-### Examples
+### Implemented Shortcuts
 
 * Ctrl + F → Search
 * Ctrl + N → New Collection
-* Ctrl + E → Expand All
-* Esc → Close Modal
+* Ctrl + E → Expand All (toggle expand/collapse all collections)
+* Ctrl + Shift + E → Expand Current Session only
+* Ctrl + D → Toggle list / grid view
+* 1 – 9 → Jump to the Nth collection
+* ? → Open keyboard shortcuts help overlay
+* Esc → Close Modal / Slide / Dropdown
+* X → Close Panel
 
 ---
 
@@ -444,11 +449,11 @@ Top Domain: github.com
 
 Recommended implementation order:
 
-1. Pinned Collections
+1. Pinned Collections ✅
 2. Notes Per Collection
 3. Archive Mode
 4. Statistics Dashboard
-5. Keyboard Shortcuts
+5. Keyboard Shortcuts ✅
 6. Tagging System
 7. Automatic Cleanup Rules
 8. Folder Hierarchy

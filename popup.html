@@ -29,10 +29,10 @@
       <div class="controls">        <div class="compact-controls-row">
           <!-- Default Actions Bar -->
           <div class="actions-bar-default" id="actionsBarDefault">
-            <button class="icon-btn" id="toggleSearchBtn" title="Search Collections or Tabs">
+            <button class="icon-btn" id="toggleSearchBtn" title="Search Collections or Tabs (Ctrl+F)">
               <i class="fas fa-search"></i>
             </button>
-            <button class="icon-btn" id="toggleCreateBtn" title="Create New Collection">
+            <button class="icon-btn" id="toggleCreateBtn" title="Create New Collection (Ctrl+N)">
               <i class="fas fa-plus"></i>
             </button>
             <button class="icon-btn" id="globalImportBtn" title="Import All Collections (JSON)">
@@ -241,6 +241,54 @@
             </div>
           </div>
 
+          <!-- Section: Keyboard Shortcuts -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <i class="fas fa-keyboard settings-card-icon"></i>
+              <span>Keyboard Shortcuts</span>
+            </div>
+            <div class="settings-card-body">
+              <div class="shortcut-grid">
+                <div class="shortcut-row">
+                  <span class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>F</kbd></span>
+                  <span class="shortcut-desc">Search collections or tabs</span>
+                </div>
+                <div class="shortcut-row">
+                  <span class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>N</kbd></span>
+                  <span class="shortcut-desc">Create new collection</span>
+                </div>
+                <div class="shortcut-row">
+                  <span class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>E</kbd></span>
+                  <span class="shortcut-desc">Expand / collapse all</span>
+                </div>
+                <div class="shortcut-row">
+                  <span class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>E</kbd></span>
+                  <span class="shortcut-desc">Expand Current Session only</span>
+                </div>
+                <div class="shortcut-row">
+                  <span class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>D</kbd></span>
+                  <span class="shortcut-desc">Toggle list / grid view</span>
+                </div>
+                <div class="shortcut-row">
+                  <span class="shortcut-keys"><kbd>1</kbd> – <kbd>9</kbd></span>
+                  <span class="shortcut-desc">Jump to collection</span>
+                </div>
+                <div class="shortcut-row">
+                  <span class="shortcut-keys"><kbd>?</kbd></span>
+                  <span class="shortcut-desc">Show shortcuts help</span>
+                </div>
+                <div class="shortcut-row">
+                  <span class="shortcut-keys"><kbd>Esc</kbd></span>
+                  <span class="shortcut-desc">Close modal or menu</span>
+                </div>
+                <div class="shortcut-row">
+                  <span class="shortcut-keys"><kbd>X</kbd></span>
+                  <span class="shortcut-desc">Close panel</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Section: Limits -->
           <div class="settings-card">
             <div class="settings-card-header">
@@ -289,39 +337,6 @@
                     <span class="limit-label">max</span>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Section: Cloud Backup -->
-          <div class="settings-card">
-            <div class="settings-card-header">
-              <i class="fas fa-cloud settings-card-icon"></i>
-              <span>Cloud Backup</span>
-            </div>
-            <div class="settings-card-body">
-              <div class="settings-row">
-                <div class="settings-row-left">
-                  <div class="settings-row-icon"><i class="fab fa-google-drive"></i></div>
-                  <div class="settings-row-text">
-                    <span class="settings-row-label">Auto-Backup to Google Drive</span>
-                    <span class="settings-row-desc">Sync collections every 15 minutes</span>
-                  </div>
-                </div>
-                <label class="toggle-switch">
-                  <input type="checkbox" id="gdriveBackupToggle" class="toggle-input">
-                  <span class="toggle-track">
-                    <span class="toggle-thumb"></span>
-                  </span>
-                </label>
-              </div>
-              <div class="settings-row settings-row-actions" id="gdriveBackupActions" style="display: none;">
-                <button id="gdriveBackupNowBtn" class="btn-primary settings-action-btn">
-                  <i class="fas fa-sync-alt"></i> Sync Now
-                </button>
-                <button id="gdriveRestoreNowBtn" class="btn-outline settings-action-btn">
-                  <i class="fas fa-file-import"></i> Restore from Drive
-                </button>
               </div>
             </div>
           </div>
@@ -521,6 +536,59 @@
       <div id="detailsTabList" class="tabs-list">
         <!-- Individual tab items (Title + URL) will be rendered here -->
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Keyboard Shortcuts Help Modal (opened with ?) -->
+<div class="modal-overlay" id="shortcutsHelpModal" style="display: none; z-index: 3000;">
+  <div class="modal shortcuts-help-modal">
+    <div class="modal-header">
+      <h3><i class="fas fa-keyboard"></i> Keyboard Shortcuts</h3>
+      <button class="close-modal" id="closeShortcutsHelpModal">&times;</button>
+    </div>
+    <div class="modal-body shortcuts-help-body">
+      <div class="shortcut-grid">
+        <div class="shortcut-row">
+          <span class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>F</kbd></span>
+          <span class="shortcut-desc">Search collections or tabs</span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>N</kbd></span>
+          <span class="shortcut-desc">Create new collection</span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>E</kbd></span>
+          <span class="shortcut-desc">Expand / collapse all</span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>E</kbd></span>
+          <span class="shortcut-desc">Expand Current Session only</span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>D</kbd></span>
+          <span class="shortcut-desc">Toggle list / grid view</span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-keys"><kbd>1</kbd> – <kbd>9</kbd></span>
+          <span class="shortcut-desc">Jump to collection</span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-keys"><kbd>?</kbd></span>
+          <span class="shortcut-desc">Show this help</span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-keys"><kbd>Esc</kbd></span>
+          <span class="shortcut-desc">Close modal or menu</span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-keys"><kbd>X</kbd></span>
+          <span class="shortcut-desc">Close panel</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer shortcuts-help-footer">
+      <span class="shortcuts-help-hint"><i class="fas fa-lightbulb"></i> Tip: press <kbd>?</kbd> anytime to see these shortcuts</span>
     </div>
   </div>
 </div>

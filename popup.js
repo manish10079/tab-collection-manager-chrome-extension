@@ -2262,77 +2262,10 @@ async function setupSettingsModal() {
     });
   }
 
-  // Google Drive Cloud Backup Settings
-  const gdriveBackupToggle = document.getElementById('gdriveBackupToggle');
-  const gdriveBackupActions = document.getElementById('gdriveBackupActions');
-  const gdriveBackupNowBtn = document.getElementById('gdriveBackupNowBtn');
-  const gdriveRestoreNowBtn = document.getElementById('gdriveRestoreNowBtn');
 
-  if (gdriveBackupToggle) {
-    const { gdrive_backup_enabled } = await api.storage.local.get(['gdrive_backup_enabled']);
-    gdriveBackupToggle.checked = !!gdrive_backup_enabled;
-    if (gdriveBackupActions) {
-      gdriveBackupActions.style.display = gdrive_backup_enabled ? 'flex' : 'none';
-    }
-
-    gdriveBackupToggle.addEventListener('change', async (e) => {
-      const enabled = e.target.checked;
-      await api.storage.local.set({ gdrive_backup_enabled: enabled });
-      if (gdriveBackupActions) {
-        gdriveBackupActions.style.display = enabled ? 'flex' : 'none';
-      }
-      showToast(enabled ? 'Google Drive auto-backup enabled' : 'Google Drive auto-backup disabled');
-    });
-  }
-
-  if (gdriveBackupNowBtn) {
-    gdriveBackupNowBtn.addEventListener('click', async () => {
-      gdriveBackupNowBtn.disabled = true;
-      const originalText = gdriveBackupNowBtn.innerHTML;
-      gdriveBackupNowBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
-      
-      api.runtime.sendMessage({ command: 'gdrive_backup_now' }, (response) => {
-        gdriveBackupNowBtn.disabled = false;
-        gdriveBackupNowBtn.innerHTML = originalText;
-        
-        if (response && response.success) {
-          showToast('Backup successfully uploaded to Google Drive!');
-        } else {
-          const errorMsg = (response && response.error) ? response.error : 'Connection error';
-          showToast(`Backup failed: ${errorMsg}`);
-        }
-      });
-    });
-  }
-
-  if (gdriveRestoreNowBtn) {
-    gdriveRestoreNowBtn.addEventListener('click', () => {
-      if (!confirm('Are you sure you want to restore from Google Drive? This will replace your current settings and collections (except the live Current Session).')) {
-        return;
-      }
-      
-      gdriveRestoreNowBtn.disabled = true;
-      const originalText = gdriveRestoreNowBtn.innerHTML;
-      gdriveRestoreNowBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Restoring...';
-      
-      api.runtime.sendMessage({ command: 'gdrive_restore_now' }, (response) => {
-        gdriveRestoreNowBtn.disabled = false;
-        gdriveRestoreNowBtn.innerHTML = originalText;
-        
-        if (response && response.success) {
-          showToast(`Restore completed! Loaded ${response.count} collections.`);
-          // Reload the collections view
-          getState().then(newState => {
-            renderCollections(newState);
-          });
-        } else {
-          const errorMsg = (response && response.error) ? response.error : 'No backup found or connection error';
-          showToast(`Restore failed: ${errorMsg}`);
-        }
-      });
-    });
-  }
 }
+
+
 
 // ==================== SEARCH / FILTER ====================
 let searchDebounceTimer = null;
@@ -2920,6 +2853,7 @@ function setupEventListeners() {
 async function init() {
   console.log('--- POPUP INIT ---');
   setupEventListeners();
+  setupShortcutsHelpModal();
   await setupSettingsModal();
   
   // Force an auto-save to ensure the Current Session is completely up-to-date
@@ -3137,19 +3071,276 @@ document.getElementById('closePanelBtn').addEventListener('click', () => {
   }, 220);
 });
 
-// Global keyboard shortcut: Press 'x' to close the extension
+// ==================== GLOBAL KEYBOARD SHORTCUTS ====================
+// Ctrl/Cmd + F       → toggle global search
+// Ctrl/Cmd + N       → toggle new-collection input
+// Ctrl/Cmd + E       → expand / collapse all collections
+// Ctrl/Cmd + Shift+E → expand only the Current Session
+// Ctrl/Cmd + D       → toggle list / grid layout
+// 1-9                → jump to the Nth collection (Current Session = 1)
+// ?                  → open keyboard shortcuts help
+// Esc                → close topmost modal, slide, or dropdown
+// x / X              → close the extension panel
+
+function toggleGlobalSearch() {
+  const actionsBarDefault = document.getElementById('actionsBarDefault');
+  const searchSlideContainer = document.getElementById('searchSlideContainer');
+  const createSlideContainer = document.getElementById('createSlideContainer');
+  if (!searchSlideContainer || !actionsBarDefault || !elements.searchBox) return;
+
+  const isOpen = !searchSlideContainer.classList.contains('hidden');
+  if (isOpen) {
+    // Close search
+    elements.searchBox.value = '';
+    filterResults('');
+    searchSlideContainer.classList.add('hidden');
+    actionsBarDefault.classList.remove('hidden');
+    elements.searchBox.blur();
+  } else {
+    // Open search
+    createSlideContainer.classList.add('hidden');
+    searchSlideContainer.classList.remove('hidden');
+    actionsBarDefault.classList.add('hidden');
+    elements.searchBox.focus();
+  }
+}
+
+function toggleCreateSlide() {
+  const actionsBarDefault = document.getElementById('actionsBarDefault');
+  const searchSlideContainer = document.getElementById('searchSlideContainer');
+  const createSlideContainer = document.getElementById('createSlideContainer');
+  if (!createSlideContainer || !actionsBarDefault || !elements.newCollectionName) return;
+
+  const isOpen = !createSlideContainer.classList.contains('hidden');
+  if (isOpen) {
+    // Close create input
+    elements.newCollectionName.value = '';
+    createSlideContainer.classList.add('hidden');
+    actionsBarDefault.classList.remove('hidden');
+    elements.newCollectionName.blur();
+  } else {
+    // Open create input
+    searchSlideContainer.classList.add('hidden');
+    createSlideContainer.classList.remove('hidden');
+    actionsBarDefault.classList.add('hidden');
+    elements.newCollectionName.focus();
+  }
+}
+
+async function toggleExpandAllCollections() {
+  const state = await getState();
+  const collections = state.collections || [];
+  if (collections.length === 0) {
+    showToast('No collections to expand');
+    return;
+  }
+
+  const anyCollapsed = collections.some(c => !c.isExpanded);
+  const expand = anyCollapsed; // If any are collapsed → expand all, otherwise collapse all
+  const newState = await updateState(s => {
+    s.collections.forEach(c => { c.isExpanded = expand; });
+  });
+  renderCollections(newState);
+  showToast(expand ? 'All collections expanded' : 'All collections collapsed', 1500);
+}
+
+async function expandCurrentSessionOnly() {
+  const state = await getState();
+  const hasCurrentSession = (state.collections || []).some(c => c.id === CURRENT_SESSION_ID);
+  if (!hasCurrentSession) {
+    showToast('Current Session not found');
+    return;
+  }
+  const newState = await updateState(s => {
+    s.collections.forEach(c => {
+      c.isExpanded = (c.id === CURRENT_SESSION_ID);
+    });
+  });
+  renderCollections(newState);
+  showToast('Current Session expanded', 1200);
+}
+
+// Shared list of modal overlay IDs — used by closeTopModal() and isAnyModalOpen()
+const MODAL_IDS = ['shortcutsHelpModal', 'sessionDetailsModal', 'historyModal', 'viewCollectionModal', 'duplicateUrlDialog', 'settingsModal', 'addTabsModal'];
+
+function openShortcutsHelp() {
+  const modal = document.getElementById('shortcutsHelpModal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+}
+
+function setupShortcutsHelpModal() {
+  const modal = document.getElementById('shortcutsHelpModal');
+  const closeBtn = document.getElementById('closeShortcutsHelpModal');
+  if (!modal || !closeBtn) return;
+
+  closeBtn.addEventListener('click', () => {
+    modal.style.display = 'none';
+  });
+
+  // Close when clicking the transparent overlay background
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.style.display = 'none';
+    }
+  });
+}
+
+function jumpToCollection(n) {
+  const cards = Array.from(document.querySelectorAll('#collectionsContainer > .collection'));
+  const target = cards[n - 1];
+  if (!target) {
+    showToast(`Collection ${n} not found`);
+    return;
+  }
+  const targetId = target.dataset.id;
+  target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  // Brief highlight so the user can see which collection was jumped to.
+  // Re-query by data-id when removing so the highlight survives re-renders.
+  target.classList.add('shortcut-jump-highlight');
+  setTimeout(() => {
+    const el = document.querySelector(`#collectionsContainer > .collection[data-id="${targetId}"]`);
+    if (el) el.classList.remove('shortcut-jump-highlight');
+  }, 1200);
+}
+
+function isAnyModalOpen() {
+  return MODAL_IDS.some(id => {
+    const m = document.getElementById(id);
+    return m && m.style.display === 'flex';
+  });
+}
+
+function closeTopModal() {
+  // Close the topmost open modal (sessionDetailsModal sits above historyModal)
+  for (const id of MODAL_IDS) {
+    const modal = document.getElementById(id);
+    if (modal && modal.style.display === 'flex') {
+      if (id === 'viewCollectionModal') {
+        closeViewCollectionModal(); // moves tabs container back to its card
+      } else if (id === 'addTabsModal') {
+        closeAddTabsModal(); // resets modal state & currentCollectionId
+      } else if (id === 'duplicateUrlDialog') {
+        // Click cancel so the awaiting duplicate-confirm promise resolves
+        const cancelBtn = document.getElementById('duplicateCancelBtn');
+        if (cancelBtn) cancelBtn.click();
+        else modal.style.display = 'none';
+      } else {
+        modal.style.display = 'none';
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+function closeOpenSlides() {
+  const actionsBarDefault = document.getElementById('actionsBarDefault');
+  const searchSlideContainer = document.getElementById('searchSlideContainer');
+  const createSlideContainer = document.getElementById('createSlideContainer');
+  let closed = false;
+
+  if (searchSlideContainer && elements.searchBox && !searchSlideContainer.classList.contains('hidden')) {
+    elements.searchBox.value = '';
+    filterResults('');
+    searchSlideContainer.classList.add('hidden');
+    if (actionsBarDefault) actionsBarDefault.classList.remove('hidden');
+    closed = true;
+  }
+  if (createSlideContainer && elements.newCollectionName && !createSlideContainer.classList.contains('hidden')) {
+    elements.newCollectionName.value = '';
+    createSlideContainer.classList.add('hidden');
+    if (actionsBarDefault) actionsBarDefault.classList.remove('hidden');
+    closed = true;
+  }
+  return closed;
+}
+
+function closeOpenDropdowns() {
+  let closed = false;
+  document.querySelectorAll('.sort-dropdown-menu, .collection-dropdown-menu, .tab-dropdown-menu').forEach(menu => {
+    if (!menu.classList.contains('hidden')) {
+      menu.classList.add('hidden');
+      closed = true;
+    }
+  });
+  return closed;
+}
+
 document.addEventListener('keydown', (e) => {
   const target = e.target;
-  // Ignore if user is currently typing in an input field, textarea, select, or editable element
-  if (
+  const isTyping = (
     target.tagName === 'INPUT' ||
     target.tagName === 'TEXTAREA' ||
     target.tagName === 'SELECT' ||
     target.isContentEditable
-  ) {
+  );
+  const mod = e.ctrlKey || e.metaKey;
+
+  // Ctrl/Cmd + F → toggle global search
+  if (mod && (e.key === 'f' || e.key === 'F')) {
+    e.preventDefault();
+    if (e.repeat) return; // avoid toggling rapidly while held
+    toggleGlobalSearch();
     return;
   }
-  
+
+  // Ctrl/Cmd + N → toggle new-collection input
+  if (mod && (e.key === 'n' || e.key === 'N')) {
+    e.preventDefault();
+    if (e.repeat) return; // avoid toggling rapidly while held
+    toggleCreateSlide();
+    return;
+  }
+
+  // Ctrl/Cmd + Shift + E → expand only the Current Session
+  if (mod && e.shiftKey && (e.key === 'e' || e.key === 'E')) {
+    e.preventDefault();
+    if (e.repeat) return; // avoid toggling rapidly while held
+    expandCurrentSessionOnly();
+    return;
+  }
+
+  // Ctrl/Cmd + E → expand / collapse all collections
+  if (mod && !e.shiftKey && (e.key === 'e' || e.key === 'E')) {
+    e.preventDefault();
+    if (e.repeat) return; // avoid toggling rapidly while held
+    toggleExpandAllCollections();
+    return;
+  }
+
+  // Ctrl/Cmd + D → toggle list / grid layout
+  if (mod && !e.shiftKey && (e.key === 'd' || e.key === 'D')) {
+    e.preventDefault();
+    if (e.repeat) return; // avoid toggling rapidly while held
+    if (elements.toggleLayoutBtn) elements.toggleLayoutBtn.click();
+    return;
+  }
+
+  // Esc → close topmost modal, then open slides, then dropdowns
+  if (e.key === 'Escape') {
+    if (closeTopModal()) return;
+    if (closeOpenSlides()) return;
+    closeOpenDropdowns();
+    return;
+  }
+
+  // Ignore plain keys while typing in a field
+  if (isTyping) return;
+
+  // ? → open the keyboard shortcuts help overlay
+  if (!mod && e.key === '?') {
+    openShortcutsHelp();
+    return;
+  }
+
+  // 1-9 → jump to the Nth collection (skip while a modal is open)
+  if (!mod && /^[1-9]$/.test(e.key)) {
+    if (!isAnyModalOpen()) jumpToCollection(parseInt(e.key, 10));
+    return;
+  }
+
+  // x → close the extension panel
   if (e.key === 'x' || e.key === 'X') {
     const closeBtn = document.getElementById('closePanelBtn');
     if (closeBtn) {
