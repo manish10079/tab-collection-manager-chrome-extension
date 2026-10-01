@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useRestoreFocus } from '../../../app/hooks/useRestoreFocus.js';
 
 /**
  * @typedef {object} CreateSlideProps
@@ -19,6 +20,9 @@ import { useEffect, useRef } from 'react';
 export function CreateSlide({ name, onNameChange, onSubmit, onCancel }) {
   const inputRef = useRef(/** @type {HTMLInputElement|null} */ (null));
 
+  // Capture the "new collection" toggle before the effect below moves focus into the input.
+  useRestoreFocus();
+
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
@@ -31,6 +35,7 @@ export function CreateSlide({ name, onNameChange, onSubmit, onCancel }) {
           type="text"
           value={name}
           maxLength={50}
+          aria-label="New collection name"
           placeholder="New collection name"
           autoComplete="off"
           spellCheck={false}
@@ -49,17 +54,19 @@ export function CreateSlide({ name, onNameChange, onSubmit, onCancel }) {
           type="button"
           className="icon-btn input-action-btn success-btn"
           title="Create"
+          aria-label="Create collection"
           onClick={onSubmit}
         >
-          <i className="fas fa-check" />
+          <i className="fas fa-check" aria-hidden="true" />
         </button>
         <button
           type="button"
           className="icon-btn input-action-btn cancel-btn"
           title="Cancel"
+          aria-label="Cancel new collection"
           onClick={onCancel}
         >
-          <i className="fas fa-times" />
+          <i className="fas fa-times" aria-hidden="true" />
         </button>
       </div>
     </div>

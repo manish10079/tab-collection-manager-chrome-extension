@@ -143,4 +143,35 @@ describe('ControlsBar', () => {
 
     expect(setCollectionSort).toHaveBeenCalledWith('nameAsc');
   });
+
+  it('moves focus into a slide and back to the toggle that opened it', () => {
+    const props = {
+      controller: makeController(),
+      collectionSortType: 'custom',
+      isGrid: false,
+      backup: null,
+      onOpenHistory: vi.fn(),
+    };
+    const view = render(<ControlsBar {...props} />);
+    const toggle = document.getElementById('toggleSearchBtn');
+    toggle.focus();
+    expect(document.activeElement).toBe(toggle);
+
+    view.rerender(<ControlsBar {...props} controller={makeController({ slide: 'search' })} />);
+    expect(document.activeElement).toBe(screen.getByPlaceholderText('Search collections or tabs…'));
+
+    view.rerender(<ControlsBar {...props} />);
+    expect(document.activeElement).toBe(toggle);
+  });
+
+  it('gives every icon-only control an accessible name', () => {
+    renderBar();
+
+    expect(screen.getByRole('button', { name: 'Search collections or tabs' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Create new collection' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Import all collections' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Export all collections' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Session history' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Sort collections' })).toBeTruthy();
+  });
 });

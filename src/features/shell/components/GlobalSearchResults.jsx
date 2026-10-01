@@ -108,12 +108,13 @@ export function GlobalSearchResults({ search, query, extensionId, onOpenCollecti
                           type="button"
                           className="icon-btn search-open-tab-btn"
                           title="Open tab"
+                          aria-label="Open tab"
                           onClick={(event) => {
                             event.stopPropagation();
                             onOpenTab(tab.url);
                           }}
                         >
-                          <i className="fas fa-external-link-alt" />
+                          <i className="fas fa-external-link-alt" aria-hidden="true" />
                         </button>
                       </div>
                     ))}

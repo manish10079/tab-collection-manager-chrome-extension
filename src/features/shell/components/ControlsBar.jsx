@@ -39,45 +39,50 @@ export function ControlsBar({ controller, collectionSortType, isGrid, backup, on
             className="icon-btn"
             id="toggleSearchBtn"
             title="Search Collections or Tabs (Ctrl+F)"
+            aria-label="Search collections or tabs"
             onClick={controller.toggleSearch}
           >
-            <i className="fas fa-search" />
+            <i className="fas fa-search" aria-hidden="true" />
           </button>
           <button
             type="button"
             className="icon-btn"
             id="toggleCreateBtn"
             title="Create New Collection (Ctrl+N)"
+            aria-label="Create new collection"
             onClick={controller.toggleCreate}
           >
-            <i className="fas fa-plus" />
+            <i className="fas fa-plus" aria-hidden="true" />
           </button>
           <button
             type="button"
             className="icon-btn"
             id="globalImportBtn"
             title="Import All Collections (JSON)"
+            aria-label="Import all collections"
             onClick={controller.importAll}
           >
-            <i className="fas fa-file-import" />
+            <i className="fas fa-file-import" aria-hidden="true" />
           </button>
           <button
             type="button"
             className="icon-btn"
             id="globalExportBtn"
             title="Export All Collections (JSON)"
+            aria-label="Export all collections"
             onClick={controller.exportAll}
           >
-            <i className="fas fa-file-export" />
+            <i className="fas fa-file-export" aria-hidden="true" />
           </button>
           <button
             type="button"
             className="icon-btn"
             id="toggleLayoutBtn"
             title={isGrid ? 'Switch to List View' : 'Switch to Grid View'}
+            aria-label={isGrid ? 'Switch to list view' : 'Switch to grid view'}
             onClick={controller.toggleLayout}
           >
-            <i className={isGrid ? 'fas fa-list' : 'fas fa-th-large'} />
+            <i className={isGrid ? 'fas fa-list' : 'fas fa-th-large'} aria-hidden="true" />
           </button>
 
           {/* Visible only when the worker has recorded a restorable backup. */}
@@ -86,9 +91,10 @@ export function ControlsBar({ controller, collectionSortType, isGrid, backup, on
             className={`icon-btn btn-restore${hasBackup ? '' : ' hidden'}`}
             id="restoreBackupBtn"
             title={restoreTitle}
+            aria-label="Restore previous session"
             onClick={controller.restoreBackup}
           >
-            <i className="fas fa-undo" />
+            <i className="fas fa-undo" aria-hidden="true" />
           </button>
 
           <SortMenu active={collectionSortType} onSelect={controller.setCollectionSort} />
@@ -98,9 +104,10 @@ export function ControlsBar({ controller, collectionSortType, isGrid, backup, on
             className="icon-btn"
             id="historyBtn"
             title="Session History"
+            aria-label="Session history"
             onClick={onOpenHistory}
           >
-            <i className="fas fa-history" />
+            <i className="fas fa-history" aria-hidden="true" />
           </button>
         </div>
 

@@ -367,21 +367,7 @@ body.panel-closing {
   color: var(--danger);
 }
 
-/* Search filter animations */
-.collection.search-hidden,
-.tab-item.search-hidden {
-  display: none !important;
-}
-
-.collection.search-fade-in {
-  animation: searchFadeIn 0.25s ease forwards;
-}
-
-.tab-item.search-highlight {
-  border-color: rgba(108, 99, 255, 0.4);
-  background: rgba(108, 99, 255, 0.06);
-}
-
+/* Shared by the search reveal/entrance rules below. */
 @keyframes searchFadeIn {
   from {
     opacity: 0;
@@ -436,13 +422,6 @@ body.panel-closing {
 
 /* Controls inputs (hidden by default, handled via compact row) */
 
-.auto-save-section {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-}
 
 /* Pill badge next to "RAM Saver" text */
 .ram-saver-badge {
@@ -511,29 +490,8 @@ body.panel-closing {
   transform: scale(1);
 }
 
-.select {
-  padding: 10px 16px;
-  background: var(--bg-translucent-normal);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  color: var(--text-primary);
-  font-size: 14px;
-  min-width: 180px;
-  transition: var(--transition);
-}
-
-.select:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-
-.select:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 /* Buttons */
-.btn-primary, .btn-secondary, .btn-outline {
+.btn-secondary, .btn-outline {
   padding: 12px 24px;
   border-radius: 12px;
   font-weight: 600;
@@ -545,16 +503,6 @@ body.panel-closing {
   justify-content: center;
   gap: 10px;
   transition: var(--transition);
-}
-
-.btn-primary {
-  background: var(--accent);
-  color: white;
-}
-
-.btn-primary:hover {
-  background: var(--accent-hover);
-  transform: translateY(-2px);
 }
 
 .btn-secondary {
@@ -654,45 +602,6 @@ body.panel-closing {
   border-color: rgba(78, 205, 196, 0.3) !important;
   color: var(--success) !important;
   transform: translateY(-1px);
-}
-
-/* Tooltip — positioned below the restore button */
-.restore-tooltip {
-  display: none;
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  min-width: 190px;
-  background: var(--bg-glass);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
-  box-shadow: var(--shadow);
-  z-index: 1001;
-  pointer-events: none;
-}
-
-#restoreBackupBtn:hover .restore-tooltip {
-  display: block;
-  animation: slideFadeIn 0.15s ease forwards;
-}
-
-.restore-tooltip-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--success);
-  margin-bottom: 4px;
-}
-
-.restore-tooltip-meta {
-  font-size: 11px;
-  color: var(--text-secondary);
-  line-height: 1.4;
 }
 
 /* Collections */
@@ -2644,15 +2553,6 @@ mark.search-hl {
   border-top: 1px solid var(--border);
   margin-top: 0;
 }
-
-.settings-action-btn {
-  padding: 7px 14px !important;
-  font-size: 11px !important;
-  border-radius: 10px !important;
-  height: auto !important;
-  gap: 6px !important;
-}
-
 
 /* ============================================================
    MATERIAL 3 TOGGLE SWITCH

@@ -5,7 +5,7 @@
 // script to copy (react-migration-plan.md §8). What remains here is the extension plumbing Vite
 // knows nothing about — the worker, the icons, the manifest — plus the checks that the legacy
 // shell really is gone.
-import { cp, mkdir, readFile, readdir, rename, rm } from 'node:fs/promises';
+import { cp, mkdir, readFile, readdir, rename, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'vite';
@@ -27,6 +27,22 @@ async function bundle() {
 }
 
 /**
+ * Every file under `directory`, as absolute paths.
+ *
+ * @param {string} directory
+ * @returns {Promise<string[]>}
+ */
+async function listFiles(directory) {
+  const found = [];
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const full = path.join(directory, entry.name);
+    if (entry.isDirectory()) found.push(...(await listFiles(full)));
+    else found.push(full);
+  }
+  return found;
+}
+
+/**
  * Find a file by name anywhere under `directory`.
  *
  * @param {string} directory
@@ -34,16 +50,15 @@ async function bundle() {
  * @returns {Promise<string|null>} Absolute path, or null
  */
 async function findFile(directory, name) {
-  for (const entry of await readdir(directory, { withFileTypes: true })) {
-    const full = path.join(directory, entry.name);
-    if (entry.isDirectory()) {
-      const found = await findFile(full, name);
-      if (found) return found;
-    } else if (entry.name === name) {
-      return full;
-    }
-  }
-  return null;
+  const match = (await listFiles(directory)).find((file) => path.basename(file) === name);
+  return match ?? null;
+}
+
+/** @param {number} bytes */
+function formatSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} kB`;
+  return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 }
 
 /**
@@ -115,6 +130,110 @@ function assertPage(html, manifest) {
   }
 }
 
+/** Font formats we never ship: `.woff2` covers every Chrome MV3 target, so the older fallbacks
+ * just duplicate payload. `.ttf`/`.otf`/`.eot` only exist for ancient browsers. */
+const TRIMMED_FONT_EXTENSIONS = new Set(['.woff', '.ttf', '.eot', '.otf']);
+
+/**
+ * Identify one logical font across formats.
+ *
+ * Vite hashes each emitted file separately, so `inter-latin-400-normal-<hash>.woff` and
+ * `inter-latin-400-normal-<other>.woff2` are the same font in two formats. Dropping the trailing
+ * 8-character content hash and the extension makes them comparable.
+ *
+ * @param {string} file
+ */
+function logicalFontKey(file) {
+  return path.basename(file, path.extname(file)).replace(/-[A-Za-z0-9_-]{8}$/, '');
+}
+
+/** Strip surrounding quotes and a leading `/` so a reference can be resolved against dist/. */
+function referenceToDistPath(reference) {
+  const clean = reference.replace(/^['"]|['"]$/g, '').split(/[?#]/)[0];
+  const relative = clean.startsWith('/') ? clean.slice(1) : clean;
+  return path.join(dist, relative);
+}
+
+/** Every `assets/...` reference in an emitted HTML or CSS file. */
+function assetReferences(source) {
+  const found = new Set();
+  for (const match of source.matchAll(/url\(\s*([^)]+?)\s*\)/g)) {
+    if (match[1].includes('/assets/')) found.add(match[1]);
+  }
+  for (const match of source.matchAll(/(?:src|href)="([^"]*\/assets\/[^"]+)"/g)) {
+    found.add(match[1]);
+  }
+  return [...found];
+}
+
+/**
+ * Delete duplicate font formats from dist/assets, keeping only `.woff2`.
+ *
+ * Vite emits every `src` in a font's `@font-face` rule, so `@fontsource/inter` ships woff2 plus
+ * woff and Font Awesome ships woff2 plus ttf. Shipping only the modern format keeps rendering
+ * identical while roughly halving the package.
+ *
+ * @returns {Promise<{removed: number, bytes: number}>}
+ */
+async function trimFontFallbacks() {
+  const assets = path.join(dist, 'assets');
+  let removed = 0;
+  let bytes = 0;
+  for (const file of await listFiles(assets)) {
+    if (!TRIMMED_FONT_EXTENSIONS.has(path.extname(file).toLowerCase())) continue;
+    bytes += (await stat(file)).size;
+    await rm(file, { force: true });
+    removed += 1;
+  }
+  return { removed, bytes };
+}
+
+/**
+ * Verify nothing the page or its stylesheets reference went missing.
+ *
+ * The one sanctioned gap is a trimmed font fallback: `url(...woff2)` and `url(...ttf)` both sit in
+ * one `@font-face`, and dropping the ttf is only safe because its `.woff2` sibling survived. Any
+ * other dangling reference — a truncated stylesheet, a mistyped hash — is a build failure.
+ */
+async function assertReferencedAssetsExist() {
+  const assets = path.join(dist, 'assets');
+  const existing = await listFiles(assets);
+  const woff2Fonts = new Set(
+    existing.filter((file) => file.endsWith('.woff2')).map(logicalFontKey)
+  );
+
+  const sources = [path.join(dist, SIDE_PANEL), ...existing.filter((f) => f.endsWith('.css'))];
+  const missing = [];
+  for (const source of sources) {
+    for (const reference of assetReferences(await readFile(source, 'utf8'))) {
+      const target = referenceToDistPath(reference);
+      try {
+        await stat(target);
+      } catch {
+        const trimmable = TRIMMED_FONT_EXTENSIONS.has(path.extname(target).toLowerCase());
+        if (!trimmable || !woff2Fonts.has(logicalFontKey(target))) missing.push(reference);
+      }
+    }
+  }
+  if (missing.length > 0) {
+    throw new Error(`dist/ is missing referenced assets: ${[...new Set(missing)].join(', ')}`);
+  }
+}
+
+/**
+ * Total bytes of every file under `directory`.
+ *
+ * @param {string} directory
+ * @returns {Promise<number>}
+ */
+async function directorySize(directory) {
+  let total = 0;
+  for (const file of await listFiles(directory)) {
+    total += (await stat(file)).size;
+  }
+  return total;
+}
+
 async function main() {
   await mkdir(dist, { recursive: true });
 
@@ -133,11 +252,16 @@ async function main() {
     if (asset.endsWith('.map')) await rm(path.join(dist, 'assets', asset), { force: true });
   }
 
-  const assets = await readdir(path.join(dist, 'assets'));
+  const trimmed = await trimFontFallbacks();
+  await assertReferencedAssetsExist();
+
+  const size = await directorySize(dist);
   console.log(
     `[build] side panel -> ${path.relative(root, page)} (from ${path.relative(root, ENTRY_HTML)})`
   );
-  console.log(`[build] assets: ${assets.join(', ')}`);
+  console.log(
+    `[build] dropped ${trimmed.removed} non-woff2 font files (${formatSize(trimmed.bytes)}); dist is ${formatSize(size)}`
+  );
   console.log(`[build] copied: ${[...COPY_FILES, ...COPY_DIRS].join(', ')}`);
   console.log('[build] Load dist/ unpacked at chrome://extensions to verify.');
 }

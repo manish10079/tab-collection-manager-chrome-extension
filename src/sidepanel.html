@@ -5,17 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tab Collection Manager</title>
 
-    <!-- Remote assets: self-hosted in Phase 5.4 (react-migration-plan.md §8). -->
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <!-- No remote assets: Font Awesome and Inter are self-hosted and bundled by Vite (Phase 5.4).
+       See the vendor imports in src/main.jsx. -->
 
-    <!-- The panel stylesheet. Vite bundles it into a hashed asset alongside the React bundle. -->
+    <!-- The panel stylesheet. Vite bundles it into a hashed asset alongside the React bundle;
+       `src/styles/shell.css` is imported by `src/main.jsx` and layers React-owned rules on top. -->
     <link rel="stylesheet" href="../popup.css" />
   </head>
   <body>

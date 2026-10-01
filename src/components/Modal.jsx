@@ -37,7 +37,8 @@ const FOCUSABLE_SELECTOR = [
 /**
  * The modal primitive: overlay, labelled dialog, focus into the dialog on open and back to the
  * trigger on close, Escape to close, Tab cycling inside. It renders into the shared portal root
- * and reuses the legacy `.modal-*` classes, so `popup.css` stays the only stylesheet (ADR-0005).
+ * and reuses the legacy `.modal-*` classes, so `popup.css` stays the only stylesheet
+ * (ADR-0005).
  *
  * @param {ModalProps} props
  * @returns {import('react').ReactElement}
@@ -136,7 +137,13 @@ export function Modal({
           <h3 id={titleId}>
             {icon ? <i className={`fas ${icon}`} /> : null} {title}
           </h3>
-          <button type="button" className="close-modal" title="Close" onClick={onClose}>
+          <button
+            type="button"
+            className="close-modal"
+            title="Close"
+            aria-label="Close dialog"
+            onClick={onClose}
+          >
             &times;
           </button>
         </div>

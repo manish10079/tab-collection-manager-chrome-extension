@@ -49,17 +49,22 @@ export function SortMenu({ active, onSelect }) {
         className="icon-btn sort-collections-btn"
         id="collectionSortBtn"
         title="Sort Collections"
+        aria-label="Sort collections"
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
       >
-        <i className={`fa-solid ${SORT_ICONS[active] || 'fa-arrow-up-wide-short'}`} />
+        <i
+          className={`fa-solid ${SORT_ICONS[active] || 'fa-arrow-up-wide-short'}`}
+          aria-hidden="true"
+        />
       </button>
 
       <div
         className={`sort-dropdown-menu${open ? '' : ' hidden'}`}
         id="collectionsSortMenu"
         role="menu"
+        aria-labelledby="collectionSortBtn"
       >
         {SORT_OPTIONS.map((option) => (
           <div
@@ -79,7 +84,7 @@ export function SortMenu({ active, onSelect }) {
               }
             }}
           >
-            <i className={`fas ${option.icon}`} /> {option.label}
+            <i className={`fas ${option.icon}`} aria-hidden="true" /> {option.label}
           </div>
         ))}
       </div>
