@@ -2,6 +2,10 @@
 
 - Status: accepted
 - Date: 2026-10-01
+- Amended: 2026-10-01 — the deferred drag & drop landed in Phase 3
+  (`docs/decisions/ADR-0003-drag-and-drop-hooks.md`): the legacy `reorderCollections` /
+  `moveTabToCollection*` helpers were deleted from `popup.js`, so the decision bullet below
+  describes the Phase 2 state only.
 - Context: `react-migration-plan.md` §8, Phase 2 ("read-only rendering")
 - Supersedes: —
 
@@ -37,9 +41,10 @@ working at every commit, so the list could not be left inert for a phase.
   `window.__tcmReact` from `src/app/legacy-handle.js`.
 - **The grid-view modal is React-owned** (`GridCollectionModal`). Its open state *is* the
   collection's `isExpanded`, which removes the DOM-moving entirely.
-- **Drag & drop stays legacy-until-Phase-3**: drag handles render, but reordering is not
-  wired, and the legacy DnD handlers that lived in the renderers were deleted with them.
-  `reorderCollections` / `moveTabToCollection*` remain in `popup.js` ready for the port.
+- **Drag & drop stays legacy-until-Phase-3** *(superseded by ADR-0003)*: drag handles render,
+  but reordering is not wired, and the legacy DnD handlers that lived in the renderers were
+  deleted with them. `reorderCollections` / `moveTabToCollection*` remain in `popup.js` ready
+  for the port.
 
 ## Consequences
 
