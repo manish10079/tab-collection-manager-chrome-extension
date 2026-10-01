@@ -29,7 +29,9 @@
    - **Brave**: `brave://extensions/`
    - **Edge**: `edge://extensions/`
 3. Toggle on **Developer mode** in the top-right corner.
-4. Click the **Load unpacked** button and select the root project directory containing `manifest.json`.
+4. Build the extension (`npm install && npm run build`, see [Development](#-development)) and click
+   **Load unpacked**, selecting the generated **`dist/`** folder. `dist/` is the only loadable
+   build: the side panel's state layer lives in the bundled React store.
 5. Pin the **Tab Collection Manager** icon directly to your browser's extension toolbar.
 
 ---
@@ -48,18 +50,19 @@ npm run format     # Prettier
 npm test           # unit tests (Vitest)
 ```
 
-**Build output:** `npm run build` writes `dist/`. Load **`dist/`** unpacked to get the React shell
-(Phase 1) rendered above the existing legacy UI:
+**Build output:** `npm run build` writes `dist/`, the only loadable build. It bundles the React
+side of the UI and composes `dist/sidepanel.html` from `popup.html`:
 
 | You load | You get |
 | --- | --- |
-| `dist/` (after `npm run build`) | React shell + the full legacy UI, side panel served as `sidepanel.html` |
-| the repository root | Legacy UI only — no build needed, useful for a quick zero-install check |
+| `dist/` (after `npm run build`) | The whole side panel — React-rendered collections list and tabs, plus the legacy controls, modals and worker-backed features |
+| the repository root | Not supported: the sources are uncompiled, and `popup.js` reads state through the bundled store, which only `dist/` provides |
 
-`npm run build:legacy` performs the plain copy build (no React bundling) for the pre-React
-behaviour. The React shell is read-only during Phase 1: it reports collection/tab counts from
-`chrome.storage.local` but performs no mutations — see
-[`react-migration-plan.md`](./react-migration-plan.md) §8.
+Since Phase 3 the store in `src/store/` owns the state layer: one serialized write queue over the
+`chrome.storage.local` contract, shared by both halves of the UI, so a legacy panel action and a
+React list action can no longer lose each other's write. See
+[`react-migration-plan.md`](./react-migration-plan.md) §8 and
+[`docs/decisions/ADR-0004-single-write-queue.md`](./docs/decisions/ADR-0004-single-write-queue.md).
 
 ### Dev browser helper
 

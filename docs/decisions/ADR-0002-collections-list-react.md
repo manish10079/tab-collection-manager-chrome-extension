@@ -54,7 +54,9 @@ working at every commit, so the list could not be left inert for a phase.
   legacy `updateQueue` in `popup.js`. Both do read-modify-write of the same key set, so a
   mutation from each UI in the same tick can lose one of them. The window is a single
   `chrome.storage.local.get` round trip and the risk is accepted until Phase 3 moves the
-  remaining mutators into the store and the legacy queue disappears.
+  remaining mutators into the store and the legacy queue disappears. *(Closed in Phase 3 —
+  `updateQueue` is gone and every write goes through the store; see
+  `docs/decisions/ADR-0004-single-write-queue.md`.)*
 - Two seams exist (`legacy-ui.js`, `legacy-handle.js`). They are deliberately tiny, documented
   and must be deleted in Phase 5 together with `popup.js`.
 - `README`/`docs` still describe `popup.js` as the UI renderer for everything else; Phase 5

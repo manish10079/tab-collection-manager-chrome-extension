@@ -1,5 +1,6 @@
 // Tab Collection Manager - Popup Logic
-// STRICT STATE MANAGEMENT: READ → CLONE → MODIFY → SAVE → RENDER
+// State discipline: READ → CLONE → MODIFY → SAVE → RENDER, serialized by the React bundle's
+// store queue. Every mutation in this file goes through updateState() (see STORAGE HELPERS).
 
 /**
  * RAM Saver: Discards a tab ONLY after it has fully loaded.
@@ -385,8 +386,34 @@ const DEFAULT_MAX_PINNED_COLLECTIONS = 3;
 const DEFAULT_MAX_PINNED_TABS_PER_COLLECTION = 3;
 
 // ==================== STORAGE HELPERS ====================
+// The state layer lives in the React bundle's store since Phase 3: one serialized write queue
+// for the whole storage contract, shared with the React list. popup.js is a classic script and
+// cannot import it, so it calls `window.__tcmStore` (src/app/legacy-store.js). There is
+// deliberately no second queue here — two queues over one key set is the race that used to lose
+// a write when the panel and the list mutated in the same tick.
+
+/**
+ * The store bridge published by the React bundle. Missing means the page was opened without the
+ * bundle (`dist/` is the loadable build — see README), so fail loudly rather than silently keep
+ * a second, unsynchronised way to write state.
+ */
+function storeBridge() {
+  const bridge = globalThis.__tcmStore;
+  if (!bridge) {
+    throw new Error('[state] React store bridge missing — run `npm run build` and load dist/.');
+  }
+  return bridge;
+}
+
+/**
+ * Current state in the flat shape the legacy UI reads (settings at the root, as persisted).
+ * The store's snapshot is already normalized, so these coercions only guard a wrongly typed
+ * stored value.
+ */
 async function getState() {
-  const result = await api.storage.local.get(['collections', 'autoSaveCollectionId', 'lastSessionBackup', 'ramSaverEnabled', 'collectionSortType', 'enforceMaxPinnedCollections', 'enforceMaxPinnedTabs', 'maxPinnedCollections', 'maxPinnedTabs', 'layoutViewMode', 'theme']);
+  const bridge = storeBridge();
+  if (!bridge.isReady()) await bridge.hydrate();
+  const result = bridge.getLegacyState();
   return {
     collections: result.collections || [],
     autoSaveCollectionId: result.autoSaveCollectionId || null,
@@ -402,25 +429,23 @@ async function getState() {
   };
 }
 
-async function setState(state) {
-  await api.storage.local.set(state);
+/**
+ * State after taking a fresh look at storage. Only for reads that follow a write made outside
+ * this context — the worker's auto-save, a Google Drive restore — where the snapshot can still
+ * be a storage event behind.
+ */
+async function getFreshState() {
+  await storeBridge().hydrate();
+  return getState();
 }
 
-// Queue to serialize state updates and prevent race conditions
-let updateQueue = Promise.resolve();
-
+/**
+ * Persist a change through the shared queue. Same contract as the old read → clone → modify →
+ * save helper: the mutator edits a flat state object in place, and the fresh state comes back so
+ * callers can refresh the legacy chrome from it.
+ */
 async function updateState(mutator) {
-  // Chain this update after all previous updates
-  return updateQueue = updateQueue.then(async () => {
-    const state = await getState();
-    const newState = structuredClone(state);
-    mutator(newState);
-    await setState(newState);
-    return newState;
-  }).catch(error => {
-    console.error('Error in updateState:', error);
-    throw error;
-  });
+  return storeBridge().mutateLegacy(mutator);
 }
 
 // ==================== UTILITY FUNCTIONS ====================
@@ -2181,8 +2206,9 @@ function setupEventListeners() {
       // Check if collections or autoSaveCollectionId changed
       if (changes.collections || changes.autoSaveCollectionId) {
         console.log('Storage changed, refreshing UI');
-        // Refresh the UI with updated state
-        getState().then(state => {
+        // Refresh the UI with updated state. `getFreshState` waits for the store to re-read
+        // storage, because the snapshot is a storage event behind at this point.
+        getFreshState().then(state => {
           syncLegacyChrome(state);
           // Re‑apply active search filter after the re‑render
           if (elements.searchBox && elements.searchBox.value.trim()) {
@@ -2208,7 +2234,8 @@ async function init() {
     console.warn('Failed to force auto-save on popup init:', err);
   }
   
-  const state = await getState();
+  // Fresh read: the auto-save above is written by the worker, not by this context.
+  const state = await getFreshState();
   updateCollectionSortIcon(
     state.collectionSortType || 'custom'
 );
@@ -2242,51 +2269,57 @@ async function init() {
     });
   }
   
-  let needsUpdate = false;
-  
-  // Collapse all collections by default whenever the popup is opened
-  if (state.collections) {
-    state.collections.forEach(c => {
-      if (c.isExpanded) {
-        c.isExpanded = false;
-        needsUpdate = true;
-      }
-    });
-  }
-
-  // Migrate existing tabs to have addedAt if they don't have it
-  if (state.collections) {
-    state.collections.forEach(c => {
-      const collCreatedAt = c.createdAt || Date.now();
-      if (c.tabs) {
-        c.tabs.forEach((t, idx) => {
-          if (!t.addedAt) {
-            t.addedAt = collCreatedAt + (idx * 1000);
-            needsUpdate = true;
-          }
-        });
-      }
-    });
-  }
-  
-  // Clean up any stale auto‑save collection IDs (safety check)
-  if (state.autoSaveCollectionId && state.collections) {
-    const collectionExists = state.collections.some(c => c.id === state.autoSaveCollectionId);
-    if (!collectionExists) {
-      console.warn(`Popup: Cleaning up stale auto‑save ID: ${state.autoSaveCollectionId}`);
-      state.autoSaveCollectionId = null;
-      needsUpdate = true;
-    }
-  }
-  
-  if (needsUpdate) {
-    await setState(state);
-    // Re‑fetch state after update
-    const updatedState = await getState();
-    syncLegacyChrome(updatedState);
+  if (normalizeOpenedState(state)) {
+    // Write the normalisation back through the shared queue, then refresh from its result.
+    syncLegacyChrome(await updateState(draft => normalizeOpenedState(draft)));
   } else {
     syncLegacyChrome(state);
   }
+}
+
+/**
+ * Normalise the state a panel open should not keep as-is: every collection collapsed, every
+ * saved tab carrying an `addedAt`, and no auto‑save pointing at a collection that is gone.
+ * Idempotent — returns whether anything changed, so the caller only writes when it has to.
+ *
+ * @param {object} state Flat state: a read copy, or the draft being written
+ * @returns {boolean} Whether the state was changed
+ */
+function normalizeOpenedState(state) {
+  let changed = false;
+
+  // Collapse all collections by default whenever the popup is opened
+  (state.collections || []).forEach(c => {
+    if (c.isExpanded) {
+      c.isExpanded = false;
+      changed = true;
+    }
+  });
+
+  // Migrate existing tabs to have addedAt if they don't have it
+  (state.collections || []).forEach(c => {
+    const collCreatedAt = c.createdAt || Date.now();
+    if (c.tabs) {
+      c.tabs.forEach((t, idx) => {
+        if (!t.addedAt) {
+          t.addedAt = collCreatedAt + (idx * 1000);
+          changed = true;
+        }
+      });
+    }
+  });
+
+  // Clean up any stale auto‑save collection IDs (safety check)
+  if (state.autoSaveCollectionId) {
+    const exists = (state.collections || []).some(c => c.id === state.autoSaveCollectionId);
+    if (!exists) {
+      console.warn(`Popup: Cleaning up stale auto‑save ID: ${state.autoSaveCollectionId}`);
+      state.autoSaveCollectionId = null;
+      changed = true;
+    }
+  }
+
+  return changed;
 }
 
 // Start the extension

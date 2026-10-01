@@ -6,7 +6,6 @@
   "description": "Auto-save and manage tab collections — Chrome MV3 extension",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "build:legacy": "node scripts/copy-extension.mjs",
     "dev": "node scripts/dev.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

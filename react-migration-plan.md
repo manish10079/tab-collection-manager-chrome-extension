@@ -388,8 +388,10 @@ export function installChromeMock(initial: Record<string, unknown> = {}) {
 
 ## 11. Rollback strategy
 
-Each phase lands as its own commit pair with the old build still runnable (`dist-legacy/`
-produced by the Phase 0 copy task). If a phase fails review, revert that commit only —
+Each phase lands as its own commit pair. (Until Phase 3 the old build was still runnable as
+`dist-legacy/` from the Phase 0 copy task; that task is gone, because `popup.js` now reads state
+through the bundled store and a copy build could not run.) If a phase fails review, revert that
+commit only —
 `background.js` and the storage contract never move in the same commit as UI work. Tag
 `pre-react-migration` on `main` before Phase 1.
 
@@ -413,5 +415,6 @@ produced by the Phase 0 copy task). If a phase fails review, revert that commit 
 | Version | Date | Notes |
 |---|---|---|
 | 1.0.0 | 2026-10-01 | Initial plan derived from a full audit of the vanilla implementation |
+| 1.3.0 | 2026-10-01 | The state layer is single-queue and `popup.js` no longer owns one: `getState()` / `updateState()` are wrappers over `window.__tcmStore` (`src/app/legacy-store.js`), which translates the flat legacy shape to and from the store draft, `updateQueue` and `setState` are deleted, and the six settings toggles write through the queue instead of single-key `chrome.storage.local.set` calls. This closes the race ADR-0002 accepted and makes the bundle load-bearing: the plain copy build (`build:legacy`, `scripts/copy-extension.mjs`) and the "load the repository root" path are gone — see `docs/decisions/ADR-0004-single-write-queue.md`. |
 | 1.2.0 | 2026-10-01 | Phase 3 (drag & drop) shipped: `useDraggable` / `useDropZone` / `DragAndDropProvider` drive native HTML5 reordering of collections and tabs, the four pure mutators (`reorderCollections`, `reorderTabsWithinCollection`, `moveTabToCollection`, `moveTabToCollectionAtPosition`) live in `collectionDraft.js` behind the store's `mutate()`, and the legacy helpers plus their `alert()` refusal are deleted from `popup.js`. Covered by `dragAndDrop.test.jsx` and `useCollectionActions.test.js`. See `docs/decisions/ADR-0003-drag-and-drop-hooks.md`. The rest of Phase 3 (CRUD, sort menus, search slide, layout toggle, import/export, open/restore) had already landed with Phase 2's functional-at-every-commit decision. |
 | 1.1.0 | 2026-10-01 | Language switched to **JavaScript + JSDoc** (no TypeScript, per `skill.md` 2.0.0) — the TS snippets in §4, §6 and §9 are historical and superseded by `skill.md` §5. Phase 0/1 shipped: Vite bundle composed into `dist/sidepanel.html`, store + shell. Phase 2 shipped: `CollectionList` / `CollectionCard` / `TabList` / `TabRow` / `GridCollectionModal` render from the store; the template-cloning renderers (`renderCollections`, `renderCollection`, `renderTabs`, `renderTab`) and their `<template>` markup are deleted, expand/collapse and tab sort move through the new `mutate()` queue, and two temporary seams (`src/app/legacy-ui.js`, `src/app/legacy-handle.js`) keep the remaining legacy actions working. Drag & drop stays in Phase 3. See `docs/decisions/ADR-0002-collections-list-react.md`. |

@@ -6,7 +6,8 @@
 // of markup during the strangler migration (react-migration-plan.md §8, Phase 1), so the
 // legacy DOM and the React container can never drift apart.
 //
-// `npm run build:legacy` still produces the plain copy build (scripts/copy-extension.mjs).
+// This is the only build: the React bundle carries the store, and `popup.js` reads state through
+// it, so a copy-without-bundling build would produce a side panel that cannot read or write.
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
