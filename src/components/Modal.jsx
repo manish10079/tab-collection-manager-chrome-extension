@@ -4,12 +4,15 @@ import { getPortalRoot } from './portalRoot.js';
 
 /**
  * @typedef {object} ModalProps
- * @property {string} title                       Shown in the header and used as the dialog label
+ * @property {import('react').ReactNode} title    Shown in the header and used as the dialog label.
+ *   A node, not just a string, so a dialog can carry a subtitle line (session details).
  * @property {string} [icon]                      Font Awesome class for the header icon
  * @property {() => void} onClose                 Called by Escape, the close button and the overlay
  * @property {import('react').ReactNode} children Modal body
  * @property {string} [className]                 Extra class on `.modal` (size variants)
  * @property {string} [bodyClassName]             Extra class on `.modal-body`
+ * @property {import('react').ReactNode} [footer] Rendered in a `.modal-footer` below the body
+ * @property {string} [footerClassName]           Extra class on `.modal-footer`
  * @property {number} [zIndex]                    Stacking override for a modal opened over another
  * @property {(event: MouseEvent) => void} [onOverlayClick] Replaces the default overlay close
  */
@@ -46,6 +49,8 @@ export function Modal({
   children,
   className = '',
   bodyClassName = '',
+  footer,
+  footerClassName = '',
   zIndex,
   onOverlayClick,
 }) {
@@ -136,6 +141,7 @@ export function Modal({
           </button>
         </div>
         <div className={`modal-body ${bodyClassName}`.trim()}>{children}</div>
+        {footer ? <div className={`modal-footer ${footerClassName}`.trim()}>{footer}</div> : null}
       </div>
     </div>,
     getPortalRoot()

@@ -1,4 +1,6 @@
-/** The keyboard shortcuts the panel implements, as shown in Settings (popup.js registers them). */
+// The keyboard shortcuts the panel implements, as registered by popup.js. Shared because both the
+// settings modal and the shortcuts-help dialog render them, and the two lists drifted apart when
+// they lived per feature.
 export const SHORTCUTS = Object.freeze([
   { keys: ['Ctrl', 'F'], description: 'Search collections or tabs' },
   { keys: ['Ctrl', 'N'], description: 'Create new collection' },

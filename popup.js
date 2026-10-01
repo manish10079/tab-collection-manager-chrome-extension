@@ -58,41 +58,6 @@ function discardWhenLoaded(tabId, timeoutMs = 10000) {
   });
 }
 
-// ==================== TAB GROUP HELPERS ====================
-// Chrome reports TAB_ID_NONE (-1) for tabs that are not part of any group.
-const TAB_GROUP_ID_NONE = (typeof chrome !== 'undefined' && chrome.tabGroups &&
-  typeof chrome.tabGroups.TAB_ID_NONE === 'number') ? chrome.tabGroups.TAB_ID_NONE : -1;
-
-function normalizeGroupId(groupId) {
-  return (typeof groupId === 'number' && groupId !== TAB_GROUP_ID_NONE && groupId >= 0) ? groupId : null;
-}
-
-// Metadata for the tab groups currently listed in the "Add tabs" modal.
-let openTabsGroupMeta = {};
-
-/**
- * Read the title/color/collapsed metadata for every live tab group referenced
- * by the given tabs. Returns { [groupId]: { title, color, collapsed } }.
- */
-async function captureGroupMeta(tabs) {
-  const meta = {};
-  if (!api.tabGroups || typeof api.tabGroups.get !== 'function') return meta;
-  const ids = [...new Set((tabs || []).map(t => normalizeGroupId(t.groupId)).filter(id => id !== null))];
-  for (const id of ids) {
-    try {
-      const group = await api.tabGroups.get(id);
-      meta[id] = {
-        title: group.title || '',
-        color: group.color || 'grey',
-        collapsed: !!group.collapsed
-      };
-    } catch (err) {
-      // The group disappeared between the query and this read — skip it.
-    }
-  }
-  return meta;
-}
-
 /**
  * Rebuild the Chrome tab groups a collection was saved with.
  * Saved group ids are stale, so each saved group is recreated fresh and then
@@ -150,215 +115,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// ==================== SESSION HISTORY MODAL CONTROLLER ====================
+// ==================== SESSION HISTORY BRIDGE ====================
+// The history and session-details dialogs are React-owned (src/features/dialogs); only the
+// header button that opens them is still legacy markup, so the click is forwarded through the
+// React handle published in src/app/legacy-handle.js.
 document.addEventListener('DOMContentLoaded', () => {
-  // --- DOM Elements Setup ---
   const historyBtn = document.getElementById('historyBtn');
-  const historyModal = document.getElementById('historyModal');
-  const closeHistoryModal = document.getElementById('closeHistoryModal');
-  const historyListContainer = document.getElementById('historyListContainer');
-
-  const sessionDetailsModal = document.getElementById('sessionDetailsModal');
-  const closeDetailsModal = document.getElementById('closeDetailsModal');
-  const detailsTabList = document.getElementById('detailsTabList');
-
-  // --- Modal Visibility Handlers ---
-  if (historyBtn) {
-    historyBtn.addEventListener('click', openHistoryModal);
-  }
-  if (closeHistoryModal) {
-    closeHistoryModal.addEventListener('click', () => {
-      historyModal.style.display = 'none';
-    });
-  }
-  if (closeDetailsModal) {
-    closeDetailsModal.addEventListener('click', () => {
-      sessionDetailsModal.style.display = 'none';
-    });
-  }
-
-  // Close modals when clicking on the transparent background overlay
-  if (historyModal) {
-    historyModal.addEventListener('click', (e) => {
-      if (e.target === historyModal) {
-        historyModal.style.display = 'none';
-      }
-    });
-  }
-  if (sessionDetailsModal) {
-    sessionDetailsModal.addEventListener('click', (e) => {
-      if (e.target === sessionDetailsModal) {
-        sessionDetailsModal.style.display = 'none';
-      }
-    });
-  }
-
-  // --- Helper Function: Show Read-Only Session Details ---
-  function showSessionDetails(session, dateString) {
-    if (!detailsTabList || !sessionDetailsModal) return;
-    
-    detailsTabList.innerHTML = '';
-    
-    const header = sessionDetailsModal.querySelector('h3');
-    if (header) {
-      header.innerHTML = `<i class="fas fa-list"></i> <span style="font-size: 0.7rem;">Session Detail</span> <span style="font-size: 11px; font-weight: normal; display: block; color: var(--text-secondary); margin-top: 4px;">Saved on ${dateString}</span>`;
-    }
-
-    session.tabs.forEach(tab => {
-      const tabDetailRow = document.createElement('div');
-      tabDetailRow.className = 'tab-item';
-      tabDetailRow.style.padding = '8px';
-      tabDetailRow.style.borderBottom = '1px solid var(--border-color, #eee)';
-      tabDetailRow.style.display = 'flex';
-      tabDetailRow.style.alignItems = 'center';
-      tabDetailRow.style.gap = '10px';
-
-      const faviconSrc = tab.url ? `chrome-extension://${chrome.runtime.id}/_favicon/?pageUrl=${encodeURIComponent(tab.url)}&size=32` : 'icons/icon16.png';
-
-      tabDetailRow.innerHTML = `
-        <img src="${faviconSrc}" style="width: 16px; height: 16px; flex-shrink: 0; border-radius: 2px;" />
-        <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
-          <span style="font-weight: 500; font-size: 12.5px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${tab.title}">
-            ${tab.title || 'Untitled'}
-          </span>
-          <span style="font-size: 10px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${tab.url}">
-            ${tab.url}
-          </span>
-        </div>
-      `;
-      detailsTabList.appendChild(tabDetailRow);
-    });
-
-    sessionDetailsModal.style.display = 'flex';
-  }
-
-  // --- Core Function: Open History Modal ---
-  async function openHistoryModal() {
-    // 1. Fetch current extension state
-    const state = await chrome.storage.local.get(['sessionHistory', 'ramSaverEnabled']);
-    const history = state.sessionHistory || [];
-    const ramSaverEnabled = !!state.ramSaverEnabled;
-
-    // 2. Clear previous contents
-    historyListContainer.innerHTML = '';
-
-    if (history.length === 0) {
-      historyListContainer.innerHTML = `
-        <div class="empty-state">
-          <i class="fas fa-clock"></i>
-          <h3>No sessions saved yet</h3>
-          <p>Once you modify your open tabs, past snapshots will show up here.</p>
-        </div>`;
-      historyModal.style.display = 'flex';
-      return;
-    }
-
-    // 3. Render each session item
-    history.forEach((session, index) => {
-      const dateString = new Date(session.timestamp).toLocaleString();
-      const tabCount = session.tabs.length;
-
-      const sessionCard = document.createElement('div');
-      sessionCard.className = 'tab-item';
-      
-      // UI styling for card interaction
-      sessionCard.style.cursor = 'pointer'; 
-      sessionCard.style.flexDirection = 'column';
-      sessionCard.style.alignItems = 'stretch';
-      sessionCard.style.gap = '8px';
-      sessionCard.style.padding = '12px';
-      sessionCard.style.transition = 'background-color 0.2s';
-
-      // Hover interaction
-      sessionCard.addEventListener('mouseenter', () => sessionCard.style.backgroundColor = 'var(--bg-card-hover)');
-      sessionCard.addEventListener('mouseleave', () => sessionCard.style.backgroundColor = 'transparent');
-
-      sessionCard.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div class="card-click-area" style="flex-grow: 1; margin-right: 8px;">
-            <strong style="font-size: 13.5px; color: var(--text-primary);">
-              Snapshot #${history.length - index}
-            </strong>
-            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">
-              <i class="far fa-calendar-alt"></i> ${dateString} • <strong>${tabCount} tabs</strong>
-            </div>
-          </div>
-          <button class="btn-success open-all-session-btn" style="padding: 6px 12px; font-size: 11px; z-index: 10;">
-            <i class="fas fa-external-link-alt"></i> Open All
-          </button>
-        </div>
-        <div class="tabs-preview card-click-area" style="display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px; flex-grow: 1;">
-          <!-- Favicon list previews -->
-        </div>
-      `;
-
-      // 4. Generate visual small favicon list inside the session list row
-      const previewContainer = sessionCard.querySelector('.tabs-preview');
-      session.tabs.slice(0, 10).forEach(tab => {
-        const img = document.createElement('img');
-        img.src = tab.url ? `chrome-extension://${chrome.runtime.id}/_favicon/?pageUrl=${encodeURIComponent(tab.url)}&size=32` : 'icons/icon16.png';
-        img.style.width = '16px';
-        img.style.height = '16px';
-        img.style.borderRadius = '3px';
-        img.title = tab.title;
-        previewContainer.appendChild(img);
-      });
-      if (session.tabs.length > 10) {
-        const moreCount = document.createElement('span');
-        moreCount.style.fontSize = '10px';
-        moreCount.style.color = 'var(--text-secondary)';
-        moreCount.style.alignSelf = 'center';
-        moreCount.textContent = `+${session.tabs.length - 10}`;
-        previewContainer.appendChild(moreCount);
-      }
-
-      // 5. View Details Event Handler
-      const clickAreas = sessionCard.querySelectorAll('.card-click-area');
-      clickAreas.forEach(area => {
-        area.addEventListener('click', (e) => {
-          e.stopPropagation(); // Stop click bleeding
-          showSessionDetails(session, dateString);
-        });
-      });
-
-      // 6. Attach event handler for "Open All"
-      const openBtn = sessionCard.querySelector('.open-all-session-btn');
-      openBtn.addEventListener('click', async (e) => {
-        e.stopPropagation(); // Prevents details modal from opening when clicking 'Open All'
-        
-        // Close modal
-        historyModal.style.display = 'none';
-        
-        // Target current active window
-        const currentWindow = await chrome.windows.getLastFocused();
-        const targetWindowId = currentWindow ? currentWindow.id : undefined;
-
-        // Restore all tabs asynchronously
-        const tabPromises = session.tabs.map(tab => {
-          let url = tab.url;
-          if (!url || url === 'about:blank') return Promise.resolve();
-          if (!url.startsWith('http')) url = 'https://' + url;
-
-          return chrome.tabs.create({
-            windowId: targetWindowId,
-            url: url,
-            pinned: !!tab.pinned,
-            active: false
-          }).then(createdTab => {
-            if (ramSaverEnabled && createdTab && createdTab.id) {
-              discardWhenLoaded(createdTab.id);
-            }
-          }).catch(err => console.error('Failed to restore historical tab:', err));
-        });
-
-        await Promise.all(tabPromises);
-      });
-
-      historyListContainer.appendChild(sessionCard);
-    });
-
-    historyModal.style.display = 'flex';
-  }
+  if (!historyBtn) return;
+  historyBtn.addEventListener('click', () => {
+    const handle = globalThis.__tcmReact;
+    if (handle && typeof handle.openHistory === 'function') handle.openHistory();
+  });
 });
 
 // =====================CONSTANTS=========================
@@ -574,109 +341,14 @@ function updateCollectionSortIcon(sortType) {
         `fa-solid ${COLLECTION_SORT_ICONS[sortType] || 'fa-arrow-up-wide-short'}`;
 }
 
-/**
- * Check if a URL already exists in any collection.
- * Returns an array of { collectionName, collectionId } where the URL was found.
- */
-function findDuplicateUrlsAcrossCollections(url, collections) {
-  const normalizedUrl = url.trim().toLowerCase().replace(/\/+$/, '');
-  const duplicates = [];
-
-  for (const collection of collections) {
-    // Exclude Current Session — it dynamically mirrors all open tabs,
-    // so any URL currently open will always appear there. Including it
-    // would produce a false-positive duplicate warning on every add.
-    if (collection.id === CURRENT_SESSION_ID) continue;
-
-    const found = collection.tabs.some(tab => {
-      const tabUrl = tab.url.trim().toLowerCase().replace(/\/+$/, '');
-      return tabUrl === normalizedUrl;
-    });
-    if (found) {
-      duplicates.push({
-        collectionId: collection.id,
-        collectionName: collection.name
-      });
-    }
-  }
-
-  return duplicates;
-}
-
-/**
- * Show a styled confirmation dialog when a duplicate URL is detected.
- * Returns a Promise that resolves to true (add anyway) or false (cancel).
- */
-function showDuplicateUrlConfirm(url, duplicates) {
-  return new Promise(resolve => {
-    const dialog = document.getElementById('duplicateUrlDialog');
-    const messageEl = document.getElementById('duplicateUrlMessage');
-    const listEl = document.getElementById('duplicateUrlList');
-    const confirmBtn = document.getElementById('duplicateConfirmBtn');
-    const cancelBtn = document.getElementById('duplicateCancelBtn');
-    const closeBtn = document.getElementById('closeDuplicateDialog');
-
-    // Truncate URL for display
-    const displayUrl = url.length > 60 ? url.slice(0, 60) + '…' : url;
-
-    messageEl.innerHTML = `This URL already exists in ${duplicates.length === 1 ? 'another collection' : 'other collections'}:<br><strong>${displayUrl}</strong>`;
-
-    listEl.innerHTML = duplicates.map(d =>
-      `<div class="duplicate-collection-item">
-        <i class="fas fa-folder"></i>
-        <span class="dup-collection-name" title="${d.collectionName}">${d.collectionName}</span>
-      </div>`
-    ).join('');
-
-    // Cleanup function to remove listeners and hide dialog
-    function cleanup() {
-      confirmBtn.removeEventListener('click', onConfirm);
-      cancelBtn.removeEventListener('click', onCancel);
-      closeBtn.removeEventListener('click', onCancel);
-      dialog.style.display = 'none';
-    }
-
-    function onConfirm() {
-      cleanup();
-      resolve(true);
-    }
-
-    function onCancel() {
-      cleanup();
-      resolve(false);
-    }
-
-    confirmBtn.addEventListener('click', onConfirm);
-    cancelBtn.addEventListener('click', onCancel);
-    closeBtn.addEventListener('click', onCancel);
-
-    dialog.style.display = 'flex';
-  });
-}
-
 // ==================== DOM ELEMENTS ====================
 const elements = {
   newCollectionName: document.getElementById('newCollectionName'),
   createCollection: document.getElementById('createCollection'),
   collectionsContainer: document.getElementById('collectionsContainer'),
-  autoSaveCollectionSelect: document.getElementById('autoSaveCollectionSelect'),
-  addTabsModal: document.getElementById('addTabsModal'),
-  closeModal: document.getElementById('closeModal'),
-  cancelModal: document.getElementById('cancelModal'),
-  tabModeSelector: document.querySelector('.tab-mode-selector'),
-  manualForm: document.getElementById('manualForm'),
-  multiForm: document.getElementById('multiForm'),
-  tabTitle: document.getElementById('tabTitle'),
-  tabUrl: document.getElementById('tabUrl'),
-  addManualTab: document.getElementById('addManualTab'),
-  openTabsList: document.getElementById('openTabsList'),
-  addSelectedTabs: document.getElementById('addSelectedTabs'),
   searchBox: document.getElementById('searchBox'),
   toggleLayoutBtn: document.getElementById('toggleLayoutBtn')
 };
-
-// ==================== STATE VARIABLES ====================
-let currentCollectionId = null; // For modal context
 
 // ==================== REACT LIST BRIDGE ====================
 // The collections list and its tab rows are rendered by React (src/features/collections) from
@@ -974,223 +646,7 @@ function exportCollection(collection) {
   showToast('Collection exported successfully');
 }
 
-function importCollection(collectionId) {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.json';
-  input.onchange = e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async event => {
-      try {
-        const importedData = JSON.parse(event.target.result);
-        let tabs = null;
-        
-        // Support both old format (array) and new format (object with tabs array)
-        if (Array.isArray(importedData)) {
-          tabs = importedData;
-        } else if (importedData && typeof importedData === 'object' && Array.isArray(importedData.tabs)) {
-          tabs = importedData.tabs;
-        } else {
-          alert('Invalid file format. The file must contain an array of tabs or a tabs backup object.');
-          return;
-        }
-        
-        // Filter out invalid tabs
-        const validTabs = tabs.filter(t => t && typeof t === 'object' && t.url);
-        if (validTabs.length === 0) {
-          alert('No valid tabs found in the imported file.');
-          return;
-        }
-
-        // Add them to the collection
-        await addTabsFromSelection(collectionId, validTabs);
-        const state = await getState();
-        syncLegacyChrome(state);
-        showToast(`Imported ${validTabs.length} tabs successfully`);
-      } catch (err) {
-        console.error('Error importing tabs:', err);
-        alert('Failed to parse file. Make sure it is a valid JSON file.');
-      }
-    };
-    reader.readAsText(file);
-  };
-  input.click();
-}
-
 // ==================== TAB OPERATIONS ====================
-async function addManualTab(collectionId, title, url) {
-  const trimmedTitle = title.trim() || 'Untitled';
-  const trimmedUrl = url.trim();
-
-  if (!validateUrl(trimmedUrl)) {
-    alert('Please enter a valid URL (e.g., https://example.com)');
-    return false;
-  }
-
-  // Check for duplicate URLs across all collections
-  const currentState = await getState();
-  const duplicates = findDuplicateUrlsAcrossCollections(trimmedUrl, currentState.collections);
-  if (duplicates.length > 0) {
-    const proceed = await showDuplicateUrlConfirm(trimmedUrl, duplicates);
-    if (!proceed) return false;
-  }
-
-  let canAdd = true;
-  await updateState(state => {
-    const collection = state.collections.find(c => c.id === collectionId);
-    if (collection) {
-      if (collection.tabs.length >= MAX_TABS_PER_COLLECTION) {
-        canAdd = false;
-        return;
-      }
-      collection.tabs.push({
-        id: generateId(),
-        title: trimmedTitle,
-        url: trimmedUrl,
-        pinned: false,
-        index: collection.tabs.length, // Append at the end
-        windowId: 0, // Default window
-        active: false,
-        discarded: false,
-        highlighted: false,
-        addedAt: Date.now()
-      });
-      collection.tabs = partitionTabs(collection.tabs);
-      collection.updatedAt = Date.now();
-    }
-  });
-
-  if (!canAdd) {
-    alert(`Cannot add more tabs. Maximum ${MAX_TABS_PER_COLLECTION} tabs per collection.`);
-    return false;
-  }
-
-  return true;
-}
-
-async function addTabsFromSelection(collectionId, tabsArray, groupsMeta = {}) {
-  if (!tabsArray.length) return;
-
-  // Check for duplicate URLs across all collections
-  const currentState = await getState();
-  const duplicateTabs = [];
-  const cleanTabs = [];
-
-  for (const tab of tabsArray) {
-    if (!validateUrl(tab.url)) continue;
-    const duplicates = findDuplicateUrlsAcrossCollections(tab.url, currentState.collections);
-    if (duplicates.length > 0) {
-      duplicateTabs.push({ tab, duplicates });
-    } else {
-      cleanTabs.push(tab);
-    }
-  }
-
-  // If there are duplicate tabs, ask user for confirmation
-  let confirmedDupTabs = [];
-  if (duplicateTabs.length > 0) {
-    // Consolidate all duplicate info for the dialog
-    // Show each duplicate tab and which collections it exists in
-    const allDuplicateCollections = [];
-    const seenCollections = new Set();
-    for (const { tab, duplicates } of duplicateTabs) {
-      for (const dup of duplicates) {
-        const key = `${dup.collectionId}-${tab.url}`;
-        if (!seenCollections.has(key)) {
-          seenCollections.add(key);
-          allDuplicateCollections.push(dup);
-        }
-      }
-    }
-
-    const displayUrl = duplicateTabs.length === 1
-      ? duplicateTabs[0].tab.url
-      : `${duplicateTabs.length} URLs`;
-
-    const proceed = await showDuplicateUrlConfirm(displayUrl, allDuplicateCollections);
-    if (proceed) {
-      confirmedDupTabs = duplicateTabs.map(d => d.tab);
-    }
-  }
-
-  const tabsToAdd = [...cleanTabs, ...confirmedDupTabs];
-  if (tabsToAdd.length === 0) return;
-
-  let addedCount = 0;
-  let skippedDueToLimit = 0;
-  let skippedDueToInvalidUrl = 0;
-
-  await updateState(state => {
-    const collection = state.collections.find(c => c.id === collectionId);
-    if (collection) {
-      const availableSlots = MAX_TABS_PER_COLLECTION - collection.tabs.length;
-
-      // Merge Chrome tab-group metadata for the groups being imported so the
-      // groups can be rebuilt when this collection is restored.
-      const referencedGroups = {};
-      tabsToAdd.forEach(t => {
-        const gid = normalizeGroupId(t.groupId);
-        if (gid !== null && groupsMeta[gid]) referencedGroups[gid] = groupsMeta[gid];
-      });
-      if (Object.keys(referencedGroups).length > 0) {
-        collection.chromeGroups = { ...(collection.chromeGroups || {}), ...referencedGroups };
-      }
-      let currentPinnedTabsCount = collection.tabs.filter(t => t.pinned).length;
-      
-      tabsToAdd.forEach(tab => {
-        // Validate URL before adding
-        if (!validateUrl(tab.url)) {
-          skippedDueToInvalidUrl++;
-          console.warn(`Skipping tab with invalid URL: ${tab.url}`);
-          return;
-        }
-        
-        if (collection.tabs.length >= MAX_TABS_PER_COLLECTION) {
-          skippedDueToLimit++;
-          return;
-        }
-        
-        let isTabPinned = !!tab.pinned;
-        if (isTabPinned) {
-          if (currentPinnedTabsCount < state.maxPinnedTabs) {
-            currentPinnedTabsCount++;
-          } else {
-            isTabPinned = false;
-          }
-        }
-
-        const trimmedTitle = (tab.title || '').trim() || 'Untitled';
-        collection.tabs.push({
-          id: generateId(),
-          title: trimmedTitle,
-          url: tab.url,
-          pinned: isTabPinned,
-          index: collection.tabs.length, // Append at the end
-          windowId: 0, // Default window
-          active: false,
-          discarded: false,
-          highlighted: false,
-          addedAt: tab.addedAt || Date.now(),
-          chromeGroupId: normalizeGroupId(tab.groupId)
-        });
-        addedCount++;
-      });
-      collection.tabs = partitionTabs(collection.tabs);
-      collection.updatedAt = Date.now();
-    }
-  });
-
-  // Provide feedback to user
-  if (skippedDueToLimit > 0) {
-    alert(`Added ${addedCount} tabs. ${skippedDueToLimit} tabs skipped because collection cannot exceed ${MAX_TABS_PER_COLLECTION} tabs.`);
-  }
-  if (skippedDueToInvalidUrl > 0) {
-    console.warn(`${skippedDueToInvalidUrl} tabs had invalid URLs and were skipped`);
-  }
-}
-
 async function openAllTabsInCollection(collectionId) {
   // Use the background script's restore functionality for better window/tab management
   try {
@@ -1611,62 +1067,6 @@ function highlightMatch(text, query) {
   );
 }
 
-async function renderOpenTabsList() {
-  const tabs = await api.tabs.query({ currentWindow: true });
-  openTabsGroupMeta = await captureGroupMeta(tabs);
-  const container = elements.openTabsList;
-  container.innerHTML = '';
-
-  const fragment = document.createDocumentFragment();
-  tabs.forEach(tab => {
-    const template = document.getElementById('openTabTemplate');
-    const clone = template.content.cloneNode(true);
-    const item = clone.querySelector('.open-tab-item');
-    const checkbox = item.querySelector('.tab-checkbox');
-    const faviconImg = item.querySelector('.open-tab-favicon');
-    const titleSpan = item.querySelector('.tab-title');
-    const urlSpan = item.querySelector('.tab-url');
-
-    const displayTitle = (tab.title || '').trim() || 'Untitled';
-    checkbox.dataset.id = tab.id;
-    checkbox.dataset.title = displayTitle;
-    checkbox.dataset.url = tab.url;
-    checkbox.dataset.groupId = normalizeGroupId(tab.groupId) ?? '';
-    if (faviconImg) {
-      faviconImg.src = getFaviconUrl(tab.url);
-    }
-    titleSpan.textContent = displayTitle;
-    urlSpan.textContent = tab.url.length > 50 ? tab.url.slice(0, 50) + '...' : tab.url;
-    urlSpan.title = tab.url;
-
-    fragment.appendChild(item);
-  });
-  container.appendChild(fragment);
-}
-
-// ==================== MODAL MANAGEMENT ====================
-function openAddTabsModal(collectionId) {
-  currentCollectionId = collectionId;
-  elements.addTabsModal.style.display = 'flex';
-  renderOpenTabsList();
-  switchTabMode('manual');
-}
-
-function closeAddTabsModal() {
-  elements.addTabsModal.style.display = 'none';
-  currentCollectionId = null;
-  elements.tabTitle.value = '';
-  elements.tabUrl.value = '';
-}
-
-function switchTabMode(mode) {
-  document.querySelectorAll('.mode-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.mode === mode);
-  });
-  elements.manualForm.style.display = mode === 'manual' ? 'flex' : 'none';
-  elements.multiForm.style.display = mode === 'multi' ? 'flex' : 'none';
-}
-
 function updateLayoutIcon(isGrid) {
   const btn = elements.toggleLayoutBtn;
   if (!btn) return;
@@ -1849,57 +1249,8 @@ function setupEventListeners() {
     });
   }
 
-  // Modal
-  elements.closeModal.addEventListener('click', closeAddTabsModal);
-  elements.cancelModal.addEventListener('click', closeAddTabsModal);
-
-  // The grid-view collection modal is React-owned (src/features/collections).
-
-  // Tab mode switching
-  elements.tabModeSelector.addEventListener('click', (e) => {
-    if (e.target.classList.contains('mode-btn')) {
-      switchTabMode(e.target.dataset.mode);
-    }
-  });
-
-  // Add manual tab
-  elements.addManualTab.addEventListener('click', async () => {
-    const title = elements.tabTitle.value;
-    const url = elements.tabUrl.value;
-    if (await addManualTab(currentCollectionId, title, url)) {
-      elements.tabTitle.value = '';
-      elements.tabUrl.value = '';
-      const state = await getState();
-      syncLegacyChrome(state);
-      closeAddTabsModal();
-    }
-  });
-
-  // Add selected tabs
-  elements.addSelectedTabs.addEventListener('click', async () => {
-    const checkboxes = elements.openTabsList.querySelectorAll('.tab-checkbox:checked');
-    const tabs = Array.from(checkboxes).map(cb => ({
-      title: cb.dataset.title,
-      url: cb.dataset.url,
-      groupId: cb.dataset.groupId === '' ? null : Number(cb.dataset.groupId)
-    }));
-    await addTabsFromSelection(currentCollectionId, tabs, openTabsGroupMeta);
-    const state = await getState();
-    syncLegacyChrome(state);
-    closeAddTabsModal();
-  });
-
-  // Select All Tabs logic
-  const selectAllCheckbox = document.getElementById('selectAllTabs');
-  if (selectAllCheckbox) {
-    selectAllCheckbox.addEventListener('change', (e) => {
-      const isChecked = e.target.checked;
-      const checkboxes = elements.openTabsList.querySelectorAll('.tab-checkbox');
-      checkboxes.forEach(cb => {
-        cb.checked = isChecked;
-      });
-    });
-  }
+  // Every dialog (add tabs, history, session details, duplicates, shortcuts help) is React-owned
+  // and handles its own focus and Escape (src/components/Modal.jsx).
 
   // Listen for storage changes (e.g., when background.js auto-saves tabs)
   api.storage.onChanged.addListener((changes, namespace) => {
@@ -1925,7 +1276,6 @@ function setupEventListeners() {
 async function init() {
   console.log('--- POPUP INIT ---');
   setupEventListeners();
-  setupShortcutsHelpModal();
   
   // Force an auto-save to ensure the Current Session is completely up-to-date
   try {
@@ -2065,8 +1415,6 @@ window.TCMLegacyUI = {
   renameTab: (collectionId, tabId, title) => updateTabTitle(collectionId, tabId, title),
   openSavedTab,
   openAllTabs: (collectionId) => openAllTabsInCollection(collectionId),
-  openAddTabs: (collectionId) => openAddTabsModal(collectionId),
-  importTabs: (collectionId) => importCollection(collectionId),
   exportCollection: (collection) => exportCollection(collection)
 };
 
@@ -2166,33 +1514,6 @@ async function expandCurrentSessionOnly() {
   showToast('Current Session expanded', 1200);
 }
 
-// Legacy modal overlay IDs, topmost first — used by closeTopModal(). The settings modal is
-// React-owned since Phase 4 and closes itself on Escape, so it is not listed here.
-const MODAL_IDS = ['shortcutsHelpModal', 'sessionDetailsModal', 'historyModal', 'duplicateUrlDialog', 'addTabsModal'];
-
-function openShortcutsHelp() {
-  const modal = document.getElementById('shortcutsHelpModal');
-  if (!modal) return;
-  modal.style.display = 'flex';
-}
-
-function setupShortcutsHelpModal() {
-  const modal = document.getElementById('shortcutsHelpModal');
-  const closeBtn = document.getElementById('closeShortcutsHelpModal');
-  if (!modal || !closeBtn) return;
-
-  closeBtn.addEventListener('click', () => {
-    modal.style.display = 'none';
-  });
-
-  // Close when clicking the transparent overlay background
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
-      modal.style.display = 'none';
-    }
-  });
-}
-
 function jumpToCollection(n) {
   const cards = Array.from(document.querySelectorAll('#collectionsContainer > .collection'));
   const target = cards[n - 1];
@@ -2212,33 +1533,14 @@ function jumpToCollection(n) {
 }
 
 /**
- * Whether any modal is on screen. Legacy modals toggle an inline display, React modals exist only
- * while open (they portal into `#tcm-modal-root`), so ask the DOM rather than a list of ids.
+ * Whether any dialog is on screen. Every dialog is React-owned now, and a React modal exists in
+ * the DOM only while it is open (it portals into `#tcm-modal-root`), so ask the DOM rather than a
+ * list of ids. Used to keep the 1-9 jump shortcut and the Escape fallback from firing under a
+ * dialog; the dialog itself closes via the Modal primitive's own Escape handling.
  */
 function isAnyModalOpen() {
   return Array.from(document.querySelectorAll('.modal-overlay'))
     .some(overlay => getComputedStyle(overlay).display !== 'none');
-}
-
-function closeTopModal() {
-  // Close the topmost open modal (sessionDetailsModal sits above historyModal)
-  for (const id of MODAL_IDS) {
-    const modal = document.getElementById(id);
-    if (modal && modal.style.display === 'flex') {
-      if (id === 'addTabsModal') {
-        closeAddTabsModal(); // resets modal state & currentCollectionId
-      } else if (id === 'duplicateUrlDialog') {
-        // Click cancel so the awaiting duplicate-confirm promise resolves
-        const cancelBtn = document.getElementById('duplicateCancelBtn');
-        if (cancelBtn) cancelBtn.click();
-        else modal.style.display = 'none';
-      } else {
-        modal.style.display = 'none';
-      }
-      return true;
-    }
-  }
-  return false;
 }
 
 function closeOpenSlides() {
@@ -2321,9 +1623,10 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
-  // Esc → close topmost modal, then open slides, then dropdowns
+  // Esc → the React Modal primitive closes its own topmost dialog (it listens on document and
+  // runs after this handler), so only the legacy slides and dropdowns are handled here.
   if (e.key === 'Escape') {
-    if (closeTopModal()) return;
+    if (isAnyModalOpen()) return;
     if (closeOpenSlides()) return;
     closeOpenDropdowns();
     return;
@@ -2332,9 +1635,10 @@ document.addEventListener('keydown', (e) => {
   // Ignore plain keys while typing in a field
   if (isTyping) return;
 
-  // ? → open the keyboard shortcuts help overlay
+  // ? → ask React to open the shortcuts help dialog
   if (!mod && e.key === '?') {
-    openShortcutsHelp();
+    const handle = globalThis.__tcmReact;
+    if (handle && typeof handle.openShortcuts === 'function') handle.openShortcuts();
     return;
   }
 

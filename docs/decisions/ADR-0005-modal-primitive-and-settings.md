@@ -85,3 +85,46 @@ outside the store's contract precisely because the legacy modal wrote them.
   would clip and inherit the wrong box.
 - **A focus-trap library.** Rejected: Tab cycling, initial focus and focus restore are ~25 lines
   against the legacy classes, and no dependency is warranted for one dialog shape.
+
+## Update — the remaining dialogs ported to the primitive
+
+Phase 4 is finished: the five remaining legacy modals and the grid-view collection modal are now
+`Modal` consumers, so every dialog in the extension shares one focus and Escape implementation.
+
+- **`src/features/dialogs` owns them all** — `AddTabsModal` (manual + multi-select via
+  `ManualTabForm` / `OpenTabsPicker`), `DuplicateUrlDialog`, `HistoryModal`, `SessionDetailsModal`,
+  `ShortcutsHelpModal` — rendered by one `DialogHost` from `useDialogs`, which holds every open
+  flag. `DialogHost`'s render order is load-bearing: a later dialog mounts its portal later, so the
+  duplicate prompt stacks above add-tabs and session details above history, and the Modal stack
+  keeps Escape on the topmost one. Legacy stacking survives as `zIndex` 2000 / 3000 on the
+  details and shortcuts dialogs.
+- **The legacy markup and controllers are deleted, not hidden.** `popup.html` lost all five modal
+  blocks and the `#openTabTemplate`; `popup.js` lost `renderOpenTabsList`, `openAddTabsModal`,
+  `closeAddTabsModal`, `switchTabMode`, `showDuplicateUrlConfirm`, `findDuplicateUrlsAcrossCollections`,
+  `addManualTab`, `addTabsFromSelection`, `importCollection`, `captureGroupMeta`, the whole
+  session-history controller (`openHistoryModal` / `showSessionDetails`), `openShortcutsHelp`,
+  `setupShortcutsHelpModal`, `MODAL_IDS` and `closeTopModal`. `scripts/build.mjs` now asserts each
+  modal id and the template are absent from the composed page.
+- **Tab intake is one write, not two.** `useTabIntake` funnels the manual form, the multi-select
+  picker and the JSON import through `addTabsToCollection` + a single `mutate()`, so the 200-tab cap,
+  the pinned-limit rule (a pinned tab past the limit lands unpinned) and `chromeGroups` merging
+  exist once. The legacy `alert()`s became toasts, and the JSON import accepts both the bare-array
+  and `{tabs:[...]}` formats.
+- **The duplicate confirmation is a Promise.** `useDialogs` resolves it through a ref (never state)
+  and the dialog settles it on Add Anyway, Cancel, Escape and the overlay alike, so the intake
+  awaiting it can never hang.
+- **Only Escape routing stayed in `popup.js`.** The `?` shortcut and the header's history button
+  forward through `window.__tcmReact` (`openShortcuts` / `openHistory`, registered by `App`),
+  and the global Escape handler now yields to a visible React dialog via `isAnyModalOpen()` and
+  lets the primitive close it. `closeTopModal()` and `MODAL_IDS` had no remaining callers and are
+  gone.
+- **`sessionHistory` is read, never written.** `useSessionHistory` reads it (and
+  `ramSaverEnabled`) straight from `chrome.storage.local` and follows `storage.onChanged`, because
+  the key is worker-owned (ADR-0004); the UI only displays it and re-opens snapshots through
+  `openSessionTabs`.
+- **The grid-view modal is a `Modal` too**, which removes the last hand-rolled overlay and its
+  private Escape listener; closing it still collapses the collection, which stays the single source
+  of truth for whether it is open.
+- `useCollectionActions` gained an `overrides` argument: adding and importing tabs are React-owned
+  now, so `App` injects `useDialogs`' handlers instead of `popup.js`'s, and the two `legacyUi`
+  entries were dropped.

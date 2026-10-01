@@ -39,9 +39,17 @@ import {
  * UIs (docs/decisions/ADR-0002-collections-list-react.md).
  *
  * @param {Record<string, (...args: any[]) => any>} legacy Adapter injected by the app layer
+ * @param {{addTabs?: (id: string) => void, importTabs?: (id: string) => void}} [overrides]
+ *   Actions the app layer has moved into React (Phase 4 owns the add/import dialogs), supplied
+ *   here so callers still see one actions object
  * @returns {CollectionActions}
  */
-export function useCollectionActions(legacy) {
+export function useCollectionActions(legacy, overrides = {}) {
+  /** @param {string} name */
+  function unwired(name) {
+    console.warn(`[collections] "${name}" has no React handler and the legacy one is gone`);
+  }
+
   /**
    * A cross-collection tab move can be refused (the 200-tab cap). The mutator's verdict comes
    * back through the write queue and surfaces as a toast instead of the legacy alert().
@@ -73,9 +81,9 @@ export function useCollectionActions(legacy) {
 
     openAllTabs: (id) => legacy.openAllTabs(id),
 
-    addTabs: (id) => legacy.openAddTabs(id),
+    addTabs: (id) => (overrides.addTabs ? overrides.addTabs(id) : unwired('addTabs')),
 
-    importTabs: (id) => legacy.importTabs(id),
+    importTabs: (id) => (overrides.importTabs ? overrides.importTabs(id) : unwired('importTabs')),
 
     exportCollection: (collection) => legacy.exportCollection(collection),
 

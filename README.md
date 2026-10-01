@@ -55,7 +55,7 @@ side of the UI and composes `dist/sidepanel.html` from `popup.html`:
 
 | You load | You get |
 | --- | --- |
-| `dist/` (after `npm run build`) | The whole side panel — React-rendered collections list and tabs, plus the legacy controls, modals and worker-backed features |
+| `dist/` (after `npm run build`) | The whole side panel — React-rendered collections, tabs and every dialog (settings, add tabs, history, session details, duplicates, shortcuts help), plus the legacy controls bar and worker-backed features |
 | the repository root | Not supported: the sources are uncompiled, and `popup.js` reads state through the bundled store, which only `dist/` provides |
 
 Since Phase 3 the store in `src/store/` owns the state layer: one serialized write queue over the

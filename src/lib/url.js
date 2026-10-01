@@ -38,6 +38,24 @@ export function truncateUrl(url, maxLength = 50, ellipsis = '...') {
 }
 
 /**
+ * Whether a value parses as an absolute URL — the legacy `validateUrl` rule, reusing the same
+ * `new URL()` check so the tab intake and the legacy runtime accept exactly the same strings.
+ *
+ * @param {string} [url]
+ * @returns {boolean}
+ */
+export function isValidUrl(url) {
+  const value = String(url ?? '').trim();
+  if (!value) return false;
+  try {
+    new URL(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Make a stored URL openable. Returns null when there is nothing to open.
  *
  * @param {string} [url]

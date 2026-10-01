@@ -15,6 +15,17 @@ export const TAB_GROUP_COLORS = Object.freeze({
 });
 
 /**
+ * Chrome reports `TAB_ID_NONE` (-1) for tabs that are not in a group. Anything that is not a
+ * non-negative number is "ungrouped", which is what gets persisted as `chromeGroupId`.
+ *
+ * @param {unknown} groupId
+ * @returns {number|null}
+ */
+export function normalizeGroupId(groupId) {
+  return typeof groupId === 'number' && groupId >= 0 ? groupId : null;
+}
+
+/**
  * @param {string} [color] Colour name reported by Chrome
  * @returns {string} CSS colour
  */

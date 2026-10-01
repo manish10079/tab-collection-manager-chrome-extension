@@ -1,6 +1,6 @@
 import { Modal } from '../../../components/Modal.jsx';
+import { ShortcutGrid } from '../../../components/ShortcutGrid.jsx';
 import { useSettings } from '../../../store/hooks.js';
-import { SHORTCUTS } from '../lib/shortcuts.js';
 import { GDriveSection } from './GDriveSection.jsx';
 import { LimitInput } from './LimitInput.jsx';
 import { SettingsCard } from './SettingsCard.jsx';
@@ -87,21 +87,7 @@ export function SettingsModal({ onClose, actions }) {
       </SettingsCard>
 
       <SettingsCard icon="fa-keyboard" title="Keyboard Shortcuts">
-        <div className="shortcut-grid">
-          {SHORTCUTS.map((shortcut) => (
-            <div className="shortcut-row" key={shortcut.description}>
-              <span className="shortcut-keys">
-                {shortcut.keys.map((key, index) => (
-                  <span key={`${shortcut.description}-${key}`}>
-                    {index > 0 ? ' + ' : null}
-                    <kbd>{key}</kbd>
-                  </span>
-                ))}
-              </span>
-              <span className="shortcut-desc">{shortcut.description}</span>
-            </div>
-          ))}
-        </div>
+        <ShortcutGrid />
       </SettingsCard>
 
       <GDriveSection actions={actions} />

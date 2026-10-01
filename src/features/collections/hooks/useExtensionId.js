@@ -1,7 +1,6 @@
-// The extension id never changes for the life of a page, so read it once and hand it to
-// `resolveFaviconUrl` (keeps lib/ free of chrome.* — skill.md §3.3).
-const EXTENSION_ID =
-  typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id ? chrome.runtime.id : '';
+// Re-exported from `shared/` now that more than one feature needs the id (the collections list
+// resolves favicons, and so do the session-history dialogs).
+import { EXTENSION_ID } from '../../../shared/extension-id.js';
 
 /**
  * @returns {string} This extension's id, or an empty string outside an extension context.

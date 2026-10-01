@@ -30,8 +30,6 @@ export const legacyUi = Object.freeze({
   renameTab: (collectionId, tabId, title) => callLegacy('renameTab', collectionId, tabId, title),
   openSavedTab: (url, options) => callLegacy('openSavedTab', url, options),
   openAllTabs: (collectionId) => callLegacy('openAllTabs', collectionId),
-  openAddTabs: (collectionId) => callLegacy('openAddTabs', collectionId),
-  importTabs: (collectionId) => callLegacy('importTabs', collectionId),
   exportCollection: (collection) => callLegacy('exportCollection', collection),
   toast: (message, duration) => callLegacy('toast', message, duration),
 });
