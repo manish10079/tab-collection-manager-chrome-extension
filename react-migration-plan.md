@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Document version | 1.5.0 |
-| Status | In progress — Phases 0, 1 and 2 shipped (see the changelog) |
+| Document version | 1.7.0 |
+| Status | Phases 0-4 complete; Phase 5 in progress (see §2.1 and the changelog) |
 | Scope | UI layer of the MV3 extension (`popup.html` / `popup.js` / `popup.css`) |
 | Out of scope | New features, `background.js` rewrite (deferred to Phase 6), Firefox support |
 
@@ -31,6 +31,9 @@
 
 ## 2. Current architecture audit
 
+The table below is the **baseline measured for plan v1.0.0**, before any React code existed. For
+the live state see §2.1.
+
 | Layer | Size | Notes |
 |---|---|---|
 | `popup.html` | 657 lines | 7 modals, 3 `<template>` blocks, 0 inline handlers (MV3-safe), Font Awesome + Google Fonts via CDN |
@@ -38,6 +41,29 @@
 | `popup.css` | ~2,870 lines | CSS variables, glassmorphism, modal/settings sections |
 | `background.js` | ~1,290 lines | Autosave + debounce + guards, session history, context menus, alarms, GDrive, restore + tab groups |
 | Build | none | Hand-written manifest, no bundler, no deps, no tests |
+
+### 2.1 State at plan v1.7.0
+
+Phases 0-4 are complete and Phase 5 is in progress (§8). What is left in the vanilla runtime is the
+shell plus the actions React still reaches through a seam:
+
+| Layer | Size | Notes |
+|---|---|---|
+| `popup.html` | 112 lines, 23 ids | Header, controls bar, search/create slides, sort menu, React mount — no modals, no `<template>` |
+| `popup.js` | 1,613 lines, 45 functions, 16 sections | Shell wiring, collection/tab CRUD, search renderer, `TCMLegacyUI` (9 methods), `showToast` delegator |
+| `src/` (React) | 6,515 lines | 18 test files / 113 tests; `Modal` + `ToastProvider` primitives over the store's write queue |
+| `background.js` | unchanged | Untouched by the UI migration (Phase 6 scope) |
+
+Remaining legacy responsibilities, in the order Phase 5 retires them:
+
+| Responsibility | Where it lives now | Slice |
+|---|---|---|
+| Toasts | ✅ moved to `src/app/providers` (1.6.0) | done |
+| Collection/tab CRUD, pin toggles, open/restore, per-collection export | `TCMLegacyUI` (9 methods) + the collection/tab/pin sections | 5.1 |
+| Header, controls bar, slides, sort menu, layout toggle, global import/export, restore backup | shell markup + the event-listener section | 5.2 |
+| Global search results | `filterResults()` + 3 `innerHTML` writes into `#searchResultsContainer` | 5.2 |
+| Global keyboard shortcuts | the keydown section | 5.2 |
+| Shell composition itself | `popup.js` + `popup.html` composed into `dist/sidepanel.html` | 5.3 |
 
 ### Pain points this migration fixes
 
@@ -280,38 +306,67 @@ chrome.storage.onChanged.addListener((changes, ns) => {
 
 ## 8. Phased execution plan
 
-**Phase 0 — Prep (0.5 day)**
+**Phase 0 — Prep (0.5 day) — complete**
 Init `package.json`, Vite, TS config, `dist/` in `.gitignore`, and a smoke test that the current
 extension still loads from `dist/` after a trivial copy build.
 *Acceptance:* `dist/` loads unpacked; side panel opens; autosave still works.
 
-**Phase 1 — Scaffold + mount React shell (1-1.5 days)**
+**Phase 1 — Scaffold + mount React shell (1-1.5 days) — complete**
 Create `src/sidepanel.html`, `main.tsx`, `App`, and the store. Keep the existing `popup.js`
 loaded in the same page temporarily so nothing regresses while React renders only header and
 controls.
 *Acceptance:* React renders header + controls; existing behaviour untouched; no console errors.
 
-**Phase 2 — Read-only rendering (1.5-2 days)**
+**Phase 2 — Read-only rendering (1.5-2 days) — complete**
 Migrate `renderCollections` / `renderCollection` / `renderTab` to
 `CollectionList` / `CollectionCard` / `TabRow` driven by the store. Wire
 `storage.onChanged` -> single React re-render. Delete template-cloning render paths.
 *Acceptance:* identical visuals; expand/collapse persists; no focus loss on re-render.
 
-**Phase 3 — Interactions (3-4 days)**
-CRUD (create/rename/delete/duplicate check), pin toggles, sort menus, search slide + results,
-layout toggle, drag & drop reorder, import/export, open/restore actions.
-*Acceptance:* the manual test matrix passes; vanilla event-listener stubs removed.
+**Phase 3 — Interactions (3-4 days) — partially complete**
+Shipped: drag & drop reorder (ADR-0003) plus the collection list's expand/collapse, per-collection
+tab sort and the cross-collection move rules, all through the store's queue.
+**Never shipped:** CRUD (create/rename/delete/duplicate check), pin toggles, sort menus, search
+slide + results, layout toggle, import/export and open/restore. They stayed in `popup.js` because
+Phase 2's "functional at every commit" decision kept the legacy handlers alive until a React shell
+could host them, and the shape of the shell (header, controls bar) was Phase 5 work. The
+changelog entries for 1.2.0 and later overstated this as done — see §2.1 and §8.
+*Acceptance (superseded):* folded into Phase 5.1 and 5.2.
 
-**Phase 4 — Modals & settings (3-4 days)**
+**Phase 4 — Modals & settings (3-4 days) — complete**
 Add-tabs modal, settings modal, GDrive section, history + session details, collection details,
 duplicates dialog, shortcuts help. Introduce one `Modal` primitive + portal root.
 *Acceptance:* all 7 modals work; settings persist; GDrive round-trips against the unchanged
 background.
 
-**Phase 5 — Polish & parity sweep (1.5-2 days)**
-Toasts preserved, animations, keyboard shortcuts hook, focus/Escape handling, a11y labels,
-delete the last vanilla code and dead CSS, self-host fonts/icons, bundle-size check.
-*Acceptance:* `popup.js` deleted; visual diff clean; no leftover `getElementById`.
+**Phase 5 — Finish the UI, retire the shell (5-7.5 days)**
+The original 1.5-2 day figure assumed Phase 3 had already moved the remaining interactions. It had
+not (§2.1), so Phase 5 absorbs them. Estimates are against the measured 1,613-line `popup.js`.
+
+**5.1 Legacy actions → React (1.5-2 days).** Move the nine `TCMLegacyUI` methods into React:
+collection CRUD (create/rename/delete + case-insensitive uniqueness), tab edit and remove, pin
+toggles with the max-pin limits, open-a-tab, open-all/restore, and per-collection export. Each is a
+store mutation or a single `chrome.runtime.sendMessage`, and `useCollectionActions` already exposes
+the override seam used for add-tabs/import/toast.
+*Acceptance:* `TCMLegacyUI` is empty and `src/app/legacy-ui.js` is deleted; the pin limits and
+duplicate-name rules have unit tests.
+
+**5.2 Shell chrome → React (2-3 days).** `AppHeader` (settings/history/close, name/version),
+`ControlsBar` (search + create slides, sort menu, layout toggle, global import/export, restore
+backup), `SearchResults` + `useSearch` replacing the `filterResults()` `innerHTML` renderer, and
+`useKeyboardShortcuts` for the global key handler. This is the bulk of the remaining markup and
+listeners (§2.1).
+*Acceptance:* no `getElementById` in the compiled tree; `window.__tcmReact` no longer needed.
+
+**5.3 Retire the shell (0.5-1 day).** Make `src/sidepanel.html` the Vite entry so `popup.html` is
+no longer composed at build time, then delete `popup.html`, `popup.js` and `src/app/legacy-*.js`,
+drop their ESLint/Prettier/build exclusions, and assert their absence in `scripts/build.mjs`.
+*Acceptance:* `popup.js` deleted; `npm run build`, `eslint .` and `npm test` pass with the legacy
+exclusions gone.
+
+**5.4 Polish (1-1.5 days).** Self-host Font Awesome + Inter (two CDN `<link>`s remain), dead-CSS
+sweep, a11y labels, focus/Escape review, bundle-size check. Toasts already landed in 1.6.0.
+*Acceptance:* no remote assets; `dist/` loaded unpacked once more; visual diff clean.
 
 **Phase 6 — Background modernization (optional, 2-3 days)**
 Port `background.js` to TS modules; extract shared types into `shared/`; add tests for autosave
@@ -322,8 +377,9 @@ guards and tab-group restore.
 Optional `default_popup`, permission audit (`tabGroups` now used; `downloads` only for the
 disabled local backup), remove CDN links, docs update, tag a release.
 
-**Total: ~14-19 developer-days** (~3-4 weeks part-time), assuming one developer and no new
-features during the migration.
+**Total: ~19-25 developer-days** (~4-5 weeks part-time), once Phase 5's real scope is counted —
+the original 14-19 assumed Phase 3 had finished the interactions. Phases 0-4 are done; Phase 5
+remains, and Phases 6-7 stay optional.
 
 ---
 
@@ -414,9 +470,11 @@ commit only —
 
 | Version | Date | Notes |
 |---|---|---|
-| 1.0.0 | 2026-10-01 | Initial plan derived from a full audit of the vanilla implementation |
+| 1.7.0 | 2026-10-01 | Scope reconciled with reality (§2.1), and the header status line corrected from "Phases 0, 1 and 2 shipped" to Phases 0-4 complete / Phase 5 in progress. Phase 3 is recorded as partially complete — drag & drop, expand/collapse and per-collection tab sort shipped, while CRUD, pin toggles, sort menus, search slide + results, layout toggle, import/export and open/restore never left `popup.js`; the earlier changelog entries overstated them. Phase 5 is re-scoped into 5.1 legacy actions, 5.2 shell chrome, 5.3 shell retirement and 5.4 polish, with a measured inventory of what remains and the estimate corrected from 1.5-2 to 5-7.5 days (programme total 14-19 → 19-25). |
+| 1.6.0 | 2026-10-01 | Phase 5 started with the toast layer: `src/app/providers` owns a plain queue (`toastStore.js`), a `ToastProvider` that renders it through the shared body-level portal root, and a `useToast` hook. The queue is external to React on purpose, so `publishLegacyHandle()` can wire `__tcmReact.toast` to it and `popup.js`'s `showToast()` becomes a one-line delegator — its 14 call sites are untouched and a toast fired from a `DOMContentLoaded` handler cannot race React's mount. Features no longer reach into `window.TCMLegacyUI` to talk to the user: `useSettingsActions` takes `{ toast }`, `useCollectionActions` gained a `toast` override, and the provider is composed in `main.jsx`. The legacy `#toastContainer` markup and the DOM-building `showToast()` body are deleted, `scripts/build.mjs` asserts the container is gone, `TCMLegacyUI.toast` is removed from the seam, and the two helpers the Phase 4 modal port orphaned (`formatTime`, `validateUrl`) are removed. |
 | 1.5.0 | 2026-10-01 | Phase 4 finished: the five remaining legacy modals (add tabs, duplicates, history, session details, shortcuts help) and the grid-view collection modal are on the `Modal` primitive, so every dialog shares one focus/Escape implementation. `src/features/dialogs` owns the UI (`DialogHost` + `useDialogs`, `useTabIntake`, `useOpenTabs`, `useSessionHistory`, and pure `lib/` for duplicates, tab intake, open tabs and snapshot restore), tab intake funnels manual/multi-select/import through a single store mutation, and the duplicate prompt is a Promise the intake awaits. `popup.html` lost all five modal blocks and `#openTabTemplate`; `popup.js` lost the matching controllers, `MODAL_IDS` and `closeTopModal`, leaving only the `?`/history-button bridges through `window.__tcmReact`. `scripts/build.mjs` asserts the legacy modals are gone. See the update in `docs/decisions/ADR-0005-modal-primitive-and-settings.md`. |
 | 1.4.0 | 2026-10-01 | Phase 4 started: `src/components/Modal.jsx` is the one modal primitive (shared portal root on `document.body`, focus in/out, Tab trap, topmost-only Escape, overlay click) and the settings modal is its first consumer — `src/features/settings` renders Session, Performance, Appearance, Keyboard Shortcuts, Cloud Backup and Limits from the store, writes everything through `mutate()`, and the legacy markup plus the ~300-line `setupSettingsModal()` are deleted. The two GDrive flags joined the store's contract so the store stays the only writer, and `popup.js` now writes nothing to `chrome.storage.local` at all. Remaining modals (add-tabs, history, session details, duplicates, shortcuts help) and the grid-view modal's conversion to the primitive are next. See `docs/decisions/ADR-0005-modal-primitive-and-settings.md`. |
 | 1.3.0 | 2026-10-01 | The state layer is single-queue and `popup.js` no longer owns one: `getState()` / `updateState()` are wrappers over `window.__tcmStore` (`src/app/legacy-store.js`), which translates the flat legacy shape to and from the store draft, `updateQueue` and `setState` are deleted, and the six settings toggles write through the queue instead of single-key `chrome.storage.local.set` calls. This closes the race ADR-0002 accepted and makes the bundle load-bearing: the plain copy build (`build:legacy`, `scripts/copy-extension.mjs`) and the "load the repository root" path are gone — see `docs/decisions/ADR-0004-single-write-queue.md`. |
-| 1.2.0 | 2026-10-01 | Phase 3 (drag & drop) shipped: `useDraggable` / `useDropZone` / `DragAndDropProvider` drive native HTML5 reordering of collections and tabs, the four pure mutators (`reorderCollections`, `reorderTabsWithinCollection`, `moveTabToCollection`, `moveTabToCollectionAtPosition`) live in `collectionDraft.js` behind the store's `mutate()`, and the legacy helpers plus their `alert()` refusal are deleted from `popup.js`. Covered by `dragAndDrop.test.jsx` and `useCollectionActions.test.js`. See `docs/decisions/ADR-0003-drag-and-drop-hooks.md`. The rest of Phase 3 (CRUD, sort menus, search slide, layout toggle, import/export, open/restore) had already landed with Phase 2's functional-at-every-commit decision. |
+| 1.2.0 | 2026-10-01 | Phase 3 (drag & drop) shipped: `useDraggable` / `useDropZone` / `DragAndDropProvider` drive native HTML5 reordering of collections and tabs, the four pure mutators (`reorderCollections`, `reorderTabsWithinCollection`, `moveTabToCollection`, `moveTabToCollectionAtPosition`) live in `collectionDraft.js` behind the store's `mutate()`, and the legacy helpers plus their `alert()` refusal are deleted from `popup.js`. Covered by `dragAndDrop.test.jsx` and `useCollectionActions.test.js`. See `docs/decisions/ADR-0003-drag-and-drop-hooks.md`. The rest of Phase 3 (CRUD, sort menus, search slide, layout toggle, import/export, open/restore) had already landed with Phase 2's functional-at-every-commit decision. **Corrected in 1.7.0:** those items did not land and were still in `popup.js` at that time — see §2.1. |
 | 1.1.0 | 2026-10-01 | Language switched to **JavaScript + JSDoc** (no TypeScript, per `skill.md` 2.0.0) — the TS snippets in §4, §6 and §9 are historical and superseded by `skill.md` §5. Phase 0/1 shipped: Vite bundle composed into `dist/sidepanel.html`, store + shell. Phase 2 shipped: `CollectionList` / `CollectionCard` / `TabList` / `TabRow` / `GridCollectionModal` render from the store; the template-cloning renderers (`renderCollections`, `renderCollection`, `renderTabs`, `renderTab`) and their `<template>` markup are deleted, expand/collapse and tab sort move through the new `mutate()` queue, and two temporary seams (`src/app/legacy-ui.js`, `src/app/legacy-handle.js`) keep the remaining legacy actions working. Drag & drop stays in Phase 3. See `docs/decisions/ADR-0002-collections-list-react.md`. |
+| 1.0.0 | 2026-10-01 | Initial plan derived from a full audit of the vanilla implementation |
