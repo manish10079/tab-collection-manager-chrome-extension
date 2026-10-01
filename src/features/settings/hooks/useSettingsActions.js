@@ -24,10 +24,10 @@ const LIMIT_BOUNDS = Object.freeze({
  * settings modal is the last place that used to write `chrome.storage.local` directly, and it no
  * longer does (ADR-0004, ADR-0005).
  *
- * @param {Record<string, (...args: any[]) => any>} legacy Adapter injected by the app layer
+ * @param {{toast: (message: string, duration?: number) => void}} deps Injected by the app layer
  * @returns {SettingsActions}
  */
-export function useSettingsActions(legacy) {
+export function useSettingsActions({ toast }) {
   /** @param {string} key @param {unknown} value */
   const setSetting = (key, value) =>
     mutate((draft) => {
@@ -40,17 +40,17 @@ export function useSettingsActions(legacy) {
     setAutoSave: async (enabled) => {
       // Auto-save always targets Current Session, exactly like the legacy toggle.
       await setSetting('autoSaveCollectionId', enabled ? CURRENT_SESSION_ID : null);
-      legacy.toast(enabled ? 'Auto-Save enabled' : 'Auto-Save disabled');
+      toast(enabled ? 'Auto-Save enabled' : 'Auto-Save disabled');
     },
 
     setTheme: async (theme) => {
       await setSetting('theme', theme);
-      legacy.toast(theme === 'light' ? 'Light Mode enabled' : 'Dark Mode enabled');
+      toast(theme === 'light' ? 'Light Mode enabled' : 'Dark Mode enabled');
     },
 
     setRamSaver: async (enabled) => {
       await setSetting('ramSaverEnabled', enabled);
-      legacy.toast(
+      toast(
         enabled
           ? '💾 RAM Saver ON — tabs will lazy‑load on click'
           : 'RAM Saver OFF — tabs load normally'
@@ -59,7 +59,7 @@ export function useSettingsActions(legacy) {
 
     setEnforcePinnedCollections: async (enabled, limit) => {
       await setSetting('enforceMaxPinnedCollections', enabled);
-      legacy.toast(
+      toast(
         enabled
           ? `Pinned collection limit enabled (max ${limit})`
           : 'Pinned collection limit removed'
@@ -68,7 +68,7 @@ export function useSettingsActions(legacy) {
 
     setEnforcePinnedTabs: async (enabled, limit) => {
       await setSetting('enforceMaxPinnedTabs', enabled);
-      legacy.toast(
+      toast(
         enabled
           ? `Pinned tab limit enabled (max ${limit} per collection)`
           : 'Pinned tab limit removed'
@@ -87,7 +87,7 @@ export function useSettingsActions(legacy) {
       const parsed = Number.parseInt(String(value), 10);
       const clamped = Number.isNaN(parsed) ? min : Math.min(Math.max(parsed, min), max);
       await setSetting(kind === 'tabs' ? 'maxPinnedTabs' : 'maxPinnedCollections', clamped);
-      legacy.toast(
+      toast(
         kind === 'tabs'
           ? `Pinned tabs limit set to ${clamped} per collection`
           : `Pinned collections limit set to ${clamped}`
@@ -95,6 +95,6 @@ export function useSettingsActions(legacy) {
       return clamped;
     },
 
-    toast: (message, duration) => legacy.toast(message, duration),
+    toast: (message, duration) => toast(message, duration),
   };
 }

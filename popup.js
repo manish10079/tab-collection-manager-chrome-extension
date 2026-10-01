@@ -227,50 +227,16 @@ function generateId() {
   return crypto.randomUUID();
 }
 
+// Toasts are React-owned since Phase 5: the queue is `src/app/providers/toastStore.js`, published
+// on `window.__tcmReact.toast`. This stays as the one call site legacy code keeps using, so its
+// 15 existing callers do not have to know the difference.
 function showToast(message, duration = 3000) {
-  const container = document.getElementById('toastContainer');
-  if (!container) return;
-
-  const toast = document.createElement('div');
-  toast.className = 'toast';
-  toast.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
-  
-  container.appendChild(toast);
-  
-  // Trigger animation
-  setTimeout(() => toast.classList.add('show'), 10);
-  
-  // Remove after the specified duration
-  setTimeout(() => {
-    toast.classList.remove('show');
-    toast.classList.add('hide');
-    setTimeout(() => {
-      if (toast.parentNode) container.removeChild(toast);
-    }, 400);
-  }, duration);
-}
-
-function formatTime(timestamp) {
-  const now = Date.now();
-  const diff = now - timestamp;
-  const absDiff = Math.abs(diff);
-  const minutes = Math.floor(absDiff / 60000);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (diff >= 0) {
-    // Past timestamp
-    if (minutes < 1) return 'just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    return `${days}d ago`;
-  } else {
-    // Future timestamp
-    if (minutes < 1) return 'just now';
-    if (minutes < 60) return `in ${minutes}m`;
-    if (hours < 24) return `in ${hours}h`;
-    return `in ${days}d`;
+  const handle = globalThis.__tcmReact;
+  if (handle && typeof handle.toast === 'function') {
+    handle.toast(message, duration);
+    return;
   }
+  console.warn('[popup] toast bridge unavailable:', message);
 }
 
 function isNameUnique(name, collections, excludeId = null) {
@@ -288,16 +254,6 @@ function isNameUnique(name, collections, excludeId = null) {
     collName = collName.replace(/\s+/g, ' ').trim().toLowerCase();
     return collName === normalized;
   });
-}
-
-function validateUrl(url) {
-  if (!url) return false;
-  try {
-    new URL(url);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function getFaviconUrl(url) {
@@ -1406,7 +1362,6 @@ async function openSavedTab(url, options = {}) {
 }
 
 window.TCMLegacyUI = {
-  toast: (message, duration) => showToast(message, duration),
   toggleCollectionPin: (collectionId) => togglePinCollection(collectionId),
   toggleTabPin: (collectionId, tabId) => togglePinTab(collectionId, tabId),
   renameCollection: (collectionId, name) => renameCollection(collectionId, name),

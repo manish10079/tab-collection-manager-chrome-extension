@@ -7,6 +7,7 @@
 // the whole file in Phase 5.
 import { mutate } from '../store/store.js';
 import { setCollectionExpanded } from '../features/collections/index.js';
+import { pushToast } from './providers/toastStore.js';
 
 /** Replaced by the app once it mounts, so a click before then is a no-op instead of an error. */
 let openSettings = () => {};
@@ -27,6 +28,9 @@ export function publishLegacyHandle() {
     openSettings: () => openSettings(),
     openHistory: () => dialogOpeners.openHistory(),
     openShortcuts: () => dialogOpeners.openShortcuts(),
+    // Toasts are a plain queue, so legacy callers need no registration step and can toast before
+    // React has committed (popup.js's DOMContentLoaded handlers).
+    toast: (message, duration) => pushToast(message, duration),
   };
 }
 

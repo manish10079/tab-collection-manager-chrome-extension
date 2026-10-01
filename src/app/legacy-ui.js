@@ -31,5 +31,4 @@ export const legacyUi = Object.freeze({
   openSavedTab: (url, options) => callLegacy('openSavedTab', url, options),
   openAllTabs: (collectionId) => callLegacy('openAllTabs', collectionId),
   exportCollection: (collection) => callLegacy('exportCollection', collection),
-  toast: (message, duration) => callLegacy('toast', message, duration),
 });

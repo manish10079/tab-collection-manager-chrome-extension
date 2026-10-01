@@ -39,9 +39,9 @@ import {
  * UIs (docs/decisions/ADR-0002-collections-list-react.md).
  *
  * @param {Record<string, (...args: any[]) => any>} legacy Adapter injected by the app layer
- * @param {{addTabs?: (id: string) => void, importTabs?: (id: string) => void}} [overrides]
- *   Actions the app layer has moved into React (Phase 4 owns the add/import dialogs), supplied
- *   here so callers still see one actions object
+ * @param {{addTabs?: (id: string) => void, importTabs?: (id: string) => void, toast?: (message: string, duration?: number) => void}} [overrides]
+ *   Actions the app layer has moved into React (Phase 4 owns the add/import dialogs and the toast
+ *   provider), supplied here so callers still see one actions object
  * @returns {CollectionActions}
  */
 export function useCollectionActions(legacy, overrides = {}) {
@@ -49,6 +49,9 @@ export function useCollectionActions(legacy, overrides = {}) {
   function unwired(name) {
     console.warn(`[collections] "${name}" has no React handler and the legacy one is gone`);
   }
+
+  /** Prefer the React toast provider; fall back to the legacy adapter for older callers. */
+  const toast = overrides.toast ?? ((message, duration) => legacy.toast(message, duration));
 
   /**
    * A cross-collection tab move can be refused (the 200-tab cap). The mutator's verdict comes
@@ -62,7 +65,7 @@ export function useCollectionActions(legacy, overrides = {}) {
     await mutate((draft) => {
       result = mutator(draft);
     });
-    if (!result.moved && result.message) legacy.toast(result.message);
+    if (!result.moved && result.message) toast(result.message);
     return result;
   }
 
@@ -93,7 +96,7 @@ export function useCollectionActions(legacy, overrides = {}) {
 
     openTab: (url, options) => legacy.openSavedTab(url, options),
 
-    toast: (message, duration) => legacy.toast(message, duration),
+    toast: (message, duration) => toast(message, duration),
 
     moveCollection: (sourceId, targetId) =>
       mutate((draft) => reorderCollections(draft, sourceId, targetId)),
@@ -120,26 +123,26 @@ export function useCollectionActions(legacy, overrides = {}) {
     copyCollectionLinks: async (collection) => {
       const tabs = Array.isArray(collection.tabs) ? collection.tabs : [];
       if (tabs.length === 0) {
-        legacy.toast('Collection has no tabs to share');
+        toast('Collection has no tabs to share');
         return;
       }
       const text = tabs.map((tab) => `${tab.title}\n${tab.url}`).join('\n\n');
       try {
         await navigator.clipboard.writeText(text);
-        legacy.toast('Collection copied to clipboard', 1000);
+        toast('Collection copied to clipboard', 1000);
       } catch (error) {
         console.error('[collections] failed to copy collection links:', error);
-        legacy.toast('Failed to copy links');
+        toast('Failed to copy links');
       }
     },
 
     copyTabUrl: async (url) => {
       try {
         await navigator.clipboard.writeText(url);
-        legacy.toast('Link copied to clipboard', 500);
+        toast('Link copied to clipboard', 500);
       } catch (error) {
         console.error('[collections] failed to copy tab link:', error);
-        legacy.toast('Failed to copy link');
+        toast('Failed to copy link');
       }
     },
   };

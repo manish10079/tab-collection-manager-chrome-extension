@@ -3,6 +3,7 @@ import { useAppState, useSettings } from '../store/hooks.js';
 import { CollectionList, useCollectionActions } from '../features/collections/index.js';
 import { SettingsModal, useSettingsActions } from '../features/settings/index.js';
 import { DialogHost, useDialogs } from '../features/dialogs/index.js';
+import { useToast } from './providers/useToast.js';
 import { legacyUi } from './legacy-ui.js';
 import { registerDialogOpeners, registerSettingsOpener } from './legacy-handle.js';
 import { useContainerClasses } from './hooks/useContainerClasses.js';
@@ -29,11 +30,15 @@ import { useThemeAttribute } from './hooks/useThemeAttribute.js';
 export function App({ mountPoint = null }) {
   const { ready, error } = useAppState();
   const settings = useSettings();
-  const settingsActions = useSettingsActions(legacyUi);
-  const dialogs = useDialogs({ toast: legacyUi.toast });
+  // Toasts come from the provider, not the legacy adapter, so the features below no longer reach
+  // into `window.TCMLegacyUI` to tell the user anything (react-migration-plan.md §8, Phase 5).
+  const toast = useToast();
+  const settingsActions = useSettingsActions({ toast });
+  const dialogs = useDialogs({ toast });
   const actions = useCollectionActions(legacyUi, {
     addTabs: dialogs.actions.addTabs,
     importTabs: dialogs.actions.importTabs,
+    toast,
   });
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { openHistory, openShortcuts } = dialogs.actions;

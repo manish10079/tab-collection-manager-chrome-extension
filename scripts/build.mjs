@@ -82,6 +82,7 @@ function composeHtml(shell, entry) {
     'legacy session details modal removed': !html.includes('id="sessionDetailsModal"'),
     'legacy shortcuts help modal removed': !html.includes('id="shortcutsHelpModal"'),
     'legacy open-tab template removed': !html.includes('id="openTabTemplate"'),
+    'legacy toast container removed': !html.includes('id="toastContainer"'),
     'legacy markup preserved': html.includes('<div class="scrollable-content">'),
     'React bundle injected': html.includes(entry.file),
     'legacy stylesheet re-linked': html.includes('href="./popup.css"'),

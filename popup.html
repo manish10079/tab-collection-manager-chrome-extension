@@ -103,10 +103,9 @@
       <div id="searchResultsContainer" class="search-results-container"></div>
     </div>
 
-    <div id="toastContainer" class="toast-container"></div>
-
-    <!-- Every dialog (settings, add tabs, history, session details, duplicates, shortcuts help)
-         is React-owned and portals into #tcm-modal-root on document.body (src/components/Modal.jsx). -->
+    <!-- Toasts and every dialog (settings, add tabs, history, session details, duplicates,
+         shortcuts help) are React-owned and portal into #tcm-modal-root on document.body
+         (src/components/Modal.jsx, src/app/providers/ToastProvider.jsx). -->
   </div>
 
   <script src="popup.js"></script>

@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { App } from './app/App.jsx';
+import { ToastProvider } from './app/providers/ToastProvider.jsx';
 import { publishLegacyHandle } from './app/legacy-handle.js';
 import { publishStoreBridge } from './app/legacy-store.js';
 import { hydrate, startStorageSync } from './store/store.js';
@@ -21,6 +22,10 @@ if (container) {
     startStorageSync();
     hydrate();
     publishLegacyHandle();
-    createRoot(container).render(<App mountPoint={container} />);
+    createRoot(container).render(
+      <ToastProvider>
+        <App mountPoint={container} />
+      </ToastProvider>
+    );
   }
 }
