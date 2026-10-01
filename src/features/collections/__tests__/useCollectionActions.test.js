@@ -207,8 +207,8 @@ describe('useCollectionActions administration actions', () => {
     expect(legacy.toast).toHaveBeenCalledWith('No tabs to export in this collection.');
 
     expect(createObjectURL).toHaveBeenCalledTimes(1);
-    delete URL.createObjectURL;
-    delete URL.revokeObjectURL;
+    // The stubs stay installed for the rest of this file: `downloadJson` revokes the URL on a
+    // 100ms timer, so deleting them here makes that timer throw into an empty global.
   });
 
   it('removes and renames tabs through the queue', async () => {

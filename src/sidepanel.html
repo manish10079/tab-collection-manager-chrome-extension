@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tab Collection Manager</title>
+
+    <!-- Remote assets: self-hosted in Phase 5.4 (react-migration-plan.md §8). -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- The panel stylesheet. Vite bundles it into a hashed asset alongside the React bundle. -->
+    <link rel="stylesheet" href="../popup.css" />
+  </head>
+  <body>
+    <!-- The whole panel is React-rendered; `.container` keeps the legacy stylesheet's layout box and
+       `#root` is the mount point. `.creator` and every other element are rendered by the app. -->
+    <div class="container" id="root"></div>
+    <script type="module" src="./main.jsx"></script>
+  </body>
+</html>

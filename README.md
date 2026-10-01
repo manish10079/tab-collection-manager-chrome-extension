@@ -50,17 +50,18 @@ npm run format     # Prettier
 npm test           # unit tests (Vitest)
 ```
 
-**Build output:** `npm run build` writes `dist/`, the only loadable build. It bundles the React
-side of the UI and composes `dist/sidepanel.html` from `popup.html`:
+**Build output:** `npm run build` writes `dist/`, the only loadable build. Vite bundles the whole
+panel from `src/sidepanel.html` and emits the page plus its hashed assets; the build then adds the
+worker, the icons and the manifest.
 
 | You load | You get |
 | --- | --- |
 | `dist/` (after `npm run build`) | The whole side panel — React-rendered header, controls bar, collections, tabs and every dialog (settings, add tabs, history, session details, duplicates, shortcuts help) |
-| the repository root | Not supported: the sources are uncompiled, and the boot script reads state through the bundled store, which only `dist/` provides |
+| the repository root | Not supported: the sources are uncompiled and unbundled, so the panel cannot load |
 
-Since Phase 3 the store in `src/store/` owns the state layer: one serialized write queue over the
-`chrome.storage.local` contract, shared by both halves of the UI, so a legacy panel action and a
-React list action can no longer lose each other's write. See
+The store in `src/store/` owns the state layer: one serialized write queue over the
+`chrome.storage.local` contract, so no two panel actions can lose each other's write. It is the
+only place in the UI that writes storage. See
 [`react-migration-plan.md`](./react-migration-plan.md) §8 and
 [`docs/decisions/ADR-0004-single-write-queue.md`](./docs/decisions/ADR-0004-single-write-queue.md).
 
@@ -71,9 +72,13 @@ while `background.js` keeps restore. See
 
 The shell is React-owned as of Phase 5.2 as well: `src/features/shell` renders the header, the
 controls bar and its slides, the collections sort menu, the global search results and the
-global keyboard shortcuts. `popup.js` is now only the boot sequence (theme, worker auto-save,
-opened-state normalisation), which Phase 5.3 retires. See
+global keyboard shortcuts. See
 [`docs/decisions/ADR-0007-shell-in-react.md`](./docs/decisions/ADR-0007-shell-in-react.md).
+
+The legacy shell is gone as of Phase 5.3: there is no `popup.html`, no `popup.js` and no state
+bridge. `src/sidepanel.html` is the Vite entry and the boot sequence (theme, worker auto-save,
+opened-state normalisation) is React hooks. See
+[`docs/decisions/ADR-0008-retire-the-legacy-shell.md`](./docs/decisions/ADR-0008-retire-the-legacy-shell.md).
 
 ### Dev browser helper
 
@@ -120,7 +125,7 @@ Rearrange tab hierarchies by simply dragging a tab node by its handle. You can m
 
 ## 🏗️ Technical Details
 
-- **Architecture**: Chrome Manifest V3 API using a centralized Service Worker (`background.js`) alongside responsive UI instances (`popup.js`).
+- **Architecture**: Chrome Manifest V3 API using a centralized Service Worker (`background.js`) alongside a React side panel bundled from `src/sidepanel.html`.
 - **State Management**: Implements a strict asynchronous serialization queue (`updateQueue = updateQueue.then(...)`) to execute deep-cloned state adjustments sequentially, eliminating data corruption from race conditions.
 - **UI Architecture**: Vanilla CSS optimized with customized variables, glassmorphic filters (`blur(12px)`), flex-grid structures, and an explicit layout rendering flow.
 - **Cross-Browser Engine**: Engineered with unified abstraction references (`api = typeof chrome !== 'undefined' ? chrome : browser`) to ensure seamless utility in Chrome, Edge, Brave, and Firefox ecosystems.

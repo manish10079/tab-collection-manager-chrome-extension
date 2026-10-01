@@ -136,8 +136,8 @@ describe('useShellController chrome actions', () => {
 
     expect(createObjectURL).toHaveBeenCalledTimes(1);
     expect(toast).toHaveBeenCalledWith('All collections exported successfully');
-    delete URL.createObjectURL;
-    delete URL.revokeObjectURL;
+    // The stubs stay installed for the rest of this file: `downloadJson` revokes the URL on a
+    // 100ms timer, so deleting them here makes that timer throw into an empty global.
   });
 
   it('restores the backup through the worker', async () => {

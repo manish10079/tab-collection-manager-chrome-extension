@@ -12,7 +12,7 @@
 //
 // No dependencies: Node 22+ ships fetch and WebSocket, which is all CDP needs.
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, watch } from 'node:fs';
+import { existsSync, readFileSync, watch } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -24,10 +24,8 @@ const dist = path.join(root, 'dist');
 const WATCHED = [
   'manifest.json',
   'background.js',
-  'popup.html',
-  'popup.js',
   'popup.css',
-  'src',
+  'src', // includes the Vite entry, src/sidepanel.html
   'vite.config.js',
 ];
 const IGNORED = /(^|[\\/])(node_modules|dist|\.git|\.freebuff)([\\/]|$)/;
@@ -55,6 +53,21 @@ const CHROMIUM_CANDIDATES = {
 };
 
 const MARK = { log: '·', warn: '▲', error: '✖' };
+
+/**
+ * The built side-panel path. Read from `dist/manifest.json` rather than hard-coded, so the dev
+ * helper follows `scripts/build.mjs` instead of drifting from it.
+ *
+ * @returns {string}
+ */
+function sidePanelPath() {
+  try {
+    const manifest = JSON.parse(readFileSync(path.join(dist, 'manifest.json'), 'utf8'));
+    return manifest.side_panel?.default_path || 'sidepanel.html';
+  } catch {
+    return 'sidepanel.html';
+  }
+}
 
 const options = parseArgs(process.argv.slice(2));
 
@@ -352,7 +365,7 @@ function openPanelPage() {
   const alreadyOpen = [...sessions.values()].some((session) => session.kind === 'panel');
   if (alreadyOpen) return;
 
-  const url = `chrome-extension://${extensionId}/sidepanel.html`;
+  const url = `chrome-extension://${extensionId}/${sidePanelPath()}`;
   send('Target.createTarget', { url, background: true });
   console.log('[dev] opened the side panel page in a tab (wakes the worker, streams panel errors)');
 }

@@ -1,6 +1,6 @@
 // ESLint flat config — JavaScript only (skill.md 2.0.0, §5.1).
-// Lint scope starts with src/ and tooling; the legacy vanilla files are excluded
-// until they are migrated (react-migration-plan.md, Phase 2).
+// Lint scope starts with src/ and tooling. `background.js` is the last vanilla file and stays
+// excluded until Phase 6; everything the old shell owned is gone (react-migration-plan.md §8).
 import js from '@eslint/js';
 import globals from 'globals';
 import jsxA11y from 'eslint-plugin-jsx-a11y';
@@ -14,8 +14,7 @@ export default [
       'node_modules/**',
       'icons/**',
       '.freebuff/**',
-      // Legacy vanilla code — replaced during migration, not linted yet.
-      'popup.js',
+      // The vanilla service worker — Phase 6 scope, not linted yet.
       'background.js',
     ],
   },

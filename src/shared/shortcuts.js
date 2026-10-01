@@ -1,4 +1,4 @@
-// The keyboard shortcuts the panel implements, as registered by popup.js. Shared because both the
+// The keyboard shortcuts the panel implements, as bound by `useGlobalShortcuts`. Shared because the
 // settings modal and the shortcuts-help dialog render them, and the two lists drifted apart when
 // they lived per feature.
 export const SHORTCUTS = Object.freeze([

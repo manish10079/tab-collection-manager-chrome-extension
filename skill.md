@@ -5,7 +5,7 @@
 
 | Field | Value |
 | --- | --- |
-| Document version | 2.0.0 |
+| Document version | 2.1.0 |
 | Status | Active |
 | Last updated | 2026-10-01 |
 | Owner | Maintainer (`@mkn`) |
@@ -121,14 +121,21 @@ requires a compatibility shim for one release.
 
 ## 3. Repository & folder structure
 
-### 3.1 Current state (vanilla)
+### 3.1 Current state (React, post-migration)
+
+The React migration is complete through Phase 5.3, so the layout below is no longer the vanilla
+one. The UI is React + JSDoc in `src/`, bundled by Vite; `background.js` is the last vanilla file
+(Phase 6 scope) and `popup.css` is the last legacy stylesheet (Phase 5.4).
 
 ```text
-background.js   popup.html   popup.js   popup.css   manifest.json   icons/
-feature_list.md   missing_features.md   README.md
+manifest.json   background.js   popup.css   icons/
+src/sidepanel.html   src/main.jsx   src/app/   src/features/   src/store/   src/lib/   src/shared/
+scripts/build.mjs   scripts/dev.mjs   tests/
+feature_list.md   missing_features.md   README.md   react-migration-plan.md   docs/decisions/
 ```
 
-No build system, no modules, no tests. Everything in `popup.js` shares one global scope.
+There is no `popup.html`, no `popup.js` and no `window.__tcmStore` bridge; `npm run build` emits
+`dist/sidepanel.html` with hashed assets and `npm test` runs the Vitest suite.
 
 ### 3.2 Target structure
 
@@ -517,3 +524,4 @@ export { useCollectionActions } from './hooks/useCollectionActions.js';
 | --- | --- | --- |
 | 1.0.0 | 2026-10-01 | Initial standards: stack, architecture, folder structure, parallel-work rules, versioning |
 | 2.0.0 | 2026-10-01 | Reversed the language rule: React + JavaScript (ES2022+) with JSDoc instead of TypeScript; ESLint replaces the type-check gate |
+| 2.1.0 | 2026-10-01 | §3.1 corrected from "Current state (vanilla)" to the post-migration layout: the React migration is complete through Phase 5.3, so `popup.html` / `popup.js` / the store bridge no longer exist and the section no longer claims "no build system, no modules, no tests". |

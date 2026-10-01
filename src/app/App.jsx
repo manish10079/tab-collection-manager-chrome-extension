@@ -13,14 +13,17 @@ import {
   useShellController,
 } from '../features/shell/index.js';
 import { useToast } from './providers/useToast.js';
+import { useBootSequence } from './hooks/useBootSequence.js';
 import { useThemeAttribute } from './hooks/useThemeAttribute.js';
 import { EXTENSION_ID } from '../shared/extension-id.js';
 
 /**
  * The app shell. Since Phase 5.2 it owns the whole panel: the header, the controls bar (and its
  * search/create slides), the global search results and the collection list, plus every React-owned
- * dialog (settings, add tabs, history, session details, duplicates, shortcuts help). What is left
- * in `popup.js` is the boot sequence — theme, worker auto-save, opened-state normalisation.
+ * dialog (settings, add tabs, history, session details, duplicates, shortcuts help).
+ *
+ * Since Phase 5.3 this is the whole panel: the boot sequence that used to be a separate classic
+ * script is `useBootSequence`, and the theme is `useThemeAttribute`.
  *
  * `useDialogs` is created before `useCollectionActions` because the collections feature does not
  * own adding or importing tabs — those are dialogs, so their handlers are injected back into the
@@ -46,6 +49,9 @@ export function App() {
   const { openHistory, openShortcuts } = dialogs.actions;
 
   useGlobalShortcuts({ controller, onOpenShortcuts: openShortcuts });
+
+  // Worker auto-save, the fresh read that follows it, and the opened-state normalisation.
+  useBootSequence();
 
   // Hydrate first: applying the default theme before storage lands would flash the wrong palette.
   useThemeAttribute(ready ? settings.theme : undefined);

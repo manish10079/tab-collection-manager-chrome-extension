@@ -1,14 +1,11 @@
-// Build: bundle the React shell (Vite) and compose dist/sidepanel.html from the legacy
-// popup.html, then copy the untouched legacy runtime + icons and emit a manifest whose
-// side panel points at the composed page.
+// Build: bundle the whole side panel with Vite and assemble the loadable extension in dist/.
 //
-// Why compose instead of keeping a second HTML file: popup.html stays the single source
-// of markup during the strangler migration (react-migration-plan.md §8, Phase 1), so the
-// legacy DOM and the React container can never drift apart.
-//
-// This is the only build: the React bundle carries the store, and `popup.js` reads state through
-// it, so a copy-without-bundling build would produce a side panel that cannot read or write.
-import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+// Since Phase 5.3 Vite owns the page: `src/sidepanel.html` is the HTML entry, so the bundle's
+// hashed script and stylesheet are injected by Vite and there is no composition step and no legacy
+// script to copy (react-migration-plan.md §8). What remains here is the extension plumbing Vite
+// knows nothing about — the worker, the icons, the manifest — plus the checks that the legacy
+// shell really is gone.
+import { cp, mkdir, readFile, readdir, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'vite';
@@ -16,130 +13,132 @@ import { build } from 'vite';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dist = path.join(root, 'dist');
 
-// Legacy runtime copied verbatim — still owned by the old build until it is migrated.
-const LEGACY_FILES = ['popup.css', 'popup.js', 'background.js'];
-const LEGACY_DIRS = ['icons'];
+/** Copied verbatim. `background.js` is still the vanilla service worker (Phase 6 scope). */
+const COPY_FILES = ['background.js', 'manifest.json'];
+/** Copied recursively. */
+const COPY_DIRS = ['icons'];
+/** Where the source manifest says the side panel lives. */
+const SIDE_PANEL = 'sidepanel.html';
+const ENTRY_HTML = path.join(root, 'src', 'sidepanel.html');
 
-const RAW_MANIFEST = path.join(root, 'manifest.json');
-const SHELL_HTML = path.join(root, 'popup.html');
-
-/** Bundle src/main.jsx (and its CSS) into dist/assets. */
-async function bundleReact() {
+/** Bundle src/sidepanel.html (and its React tree) into dist/. */
+async function bundle() {
   await build({ configFile: path.join(root, 'vite.config.js'), mode: 'production' });
 }
 
-/** Read the entry record Vite wrote to dist/.vite/manifest.json. */
-async function readEntry() {
-  const manifestPath = path.join(dist, '.vite', 'manifest.json');
-  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
-  const key = Object.keys(manifest).find((candidate) => manifest[candidate].isEntry);
-  if (!key) throw new Error('Vite manifest contains no entry');
-  return manifest[key];
+/**
+ * Find a file by name anywhere under `directory`.
+ *
+ * @param {string} directory
+ * @param {string} name
+ * @returns {Promise<string|null>} Absolute path, or null
+ */
+async function findFile(directory, name) {
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const full = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      const found = await findFile(full, name);
+      if (found) return found;
+    } else if (entry.name === name) {
+      return full;
+    }
+  }
+  return null;
 }
 
-/** Copy the legacy scripts, stylesheet and icons beside the composed page. */
-async function copyLegacy() {
-  for (const file of LEGACY_FILES) {
+/**
+ * Move Vite's emitted page to the extension root.
+ *
+ * Vite mirrors an HTML entry's path relative to its root, so `src/sidepanel.html` lands in
+ * `dist/src/`. The emitted asset URLs are absolute (`/assets/...`), so they resolve against the
+ * extension origin wherever the page sits — moving it to the root keeps `default_path`, the icon
+ * references (`icons/...`, resolved relative to the page) and the packaged layout identical to the
+ * pre-migration extension.
+ */
+async function relocateEntry() {
+  const emitted = await findFile(dist, SIDE_PANEL);
+  if (!emitted) {
+    throw new Error(`Vite emitted no ${SIDE_PANEL} under dist/`);
+  }
+
+  const target = path.join(dist, SIDE_PANEL);
+  if (emitted !== target) {
+    await rename(emitted, target);
+    // Drop the now-empty `dist/src/` Vite created for the entry's directory.
+    await rm(path.dirname(emitted), { recursive: true, force: true });
+  }
+  return target;
+}
+
+/** Copy the worker, icons and manifest into dist/. */
+async function copyStatic() {
+  for (const file of COPY_FILES) {
     await cp(path.join(root, file), path.join(dist, file));
   }
-  for (const dir of LEGACY_DIRS) {
+  for (const dir of COPY_DIRS) {
     await cp(path.join(root, dir), path.join(dist, dir), { recursive: true });
   }
 }
 
 /**
- * Compose the side-panel page from the shell and the bundle: swap the asset tags and append the
- * module script. Since Phase 5.2 `popup.html` is a minimal shell — the `.container` and the
- * `#appRoot` React mount plus the boot script — so the checks below assert the legacy header,
- * controls bar and containers are gone rather than preserved.
+ * Fail the build if the page is not what the extension needs. These replaced the "legacy markup
+ * preserved" checks the composition build used: the interesting property is now that the legacy
+ * shell is absent and the bundle is wired in.
  *
- * @param {string} shell Raw popup.html
- * @param {{file: string, css?: string[]}} entry Vite entry record
- * @returns {string}
+ * @param {string} html Composed-or-emitted side panel page
+ * @param {string} manifest Parsed manifest.json
  */
-function composeHtml(shell, entry) {
-  const styleLinks = ['./popup.css', ...(entry.css ?? []).map((file) => `./${file}`)]
-    .map((href) => `  <link rel="stylesheet" href="${href}">`)
-    .join('\r\n');
-
-  const html = shell
-    // Drop the tags that pointed at unhashed root files; re-injected below.
-    .replace(/[ \t]*<link rel="stylesheet" href="popup\.css">\r?\n/, '')
-    .replace(/[ \t]*<script src="popup\.js"><\/script>\r?\n/, '')
-    .replace('</head>', `${styleLinks}\r\n</head>`)
-    .replace(
-      '</body>',
-      `  <script src="./popup.js"></script>\r\n  <script type="module" src="./${entry.file}"></script>\r\n</body>`
-    );
-
+function assertPage(html, manifest) {
   const checks = {
-    'React mount point present': html.includes('id="appRoot"'),
-    'container shell preserved': html.includes('class="container" id="appRoot"'),
-    'legacy header removed': !html.includes('id="settingsBtn"'),
-    'legacy controls bar removed': !html.includes('id="actionsBarDefault"'),
-    'legacy search slide removed': !html.includes('id="searchSlideContainer"'),
-    'legacy create slide removed': !html.includes('id="createSlideContainer"'),
-    'legacy collections container removed': !html.includes('id="collectionsContainer"'),
-    'legacy search results container removed': !html.includes('id="searchResultsContainer"'),
-    'legacy collection template removed': !html.includes('id="collectionTemplate"'),
-    'legacy settings modal removed': !html.includes('id="settingsModal"'),
-    'legacy add-tabs modal removed': !html.includes('id="addTabsModal"'),
-    'legacy duplicate dialog removed': !html.includes('id="duplicateUrlDialog"'),
-    'legacy history modal removed': !html.includes('id="historyModal"'),
-    'legacy session details modal removed': !html.includes('id="sessionDetailsModal"'),
-    'legacy shortcuts help modal removed': !html.includes('id="shortcutsHelpModal"'),
-    'legacy open-tab template removed': !html.includes('id="openTabTemplate"'),
-    'legacy toast container removed': !html.includes('id="toastContainer"'),
-    'React bundle injected': html.includes(entry.file),
-    'legacy stylesheet re-linked': html.includes('href="./popup.css"'),
-    'legacy script re-linked': html.includes('src="./popup.js"'),
-    'old stylesheet tag removed': !html.includes('href="popup.css"'),
-    'old script tag removed': !html.includes('<script src="popup.js">'),
+    'React root present': html.includes('id="root"'),
+    'container shell present': html.includes('class="container" id="root"'),
+    'bundled module script injected': /<script type="module"[^>]+src="\/assets\/[^"]+\.js"/.test(
+      html
+    ),
+    'bundled stylesheet linked': /<link rel="stylesheet"[^>]+href="\/assets\/[^"]+\.css"/.test(
+      html
+    ),
+    'no classic script tag': !/<script (?!type="module")[^>]*src=/.test(html),
+    'legacy script gone': !html.includes('popup.js'),
+    'legacy header gone': !html.includes('id="settingsBtn"'),
+    'legacy controls bar gone': !html.includes('id="actionsBarDefault"'),
+    'legacy collections container gone': !html.includes('id="collectionsContainer"'),
+    'legacy search results container gone': !html.includes('id="searchResultsContainer"'),
+    'manifest points at the entry': manifest.side_panel?.default_path === SIDE_PANEL,
   };
+
   const failed = Object.entries(checks)
     .filter(([, passed]) => !passed)
     .map(([name]) => name);
   if (failed.length > 0) {
-    throw new Error(`composed HTML failed checks: ${failed.join(', ')}`);
+    throw new Error(`side panel failed checks: ${failed.join(', ')}`);
   }
-
-  return html;
-}
-
-/** Emit dist/manifest.json with the side panel pointed at the composed page. */
-async function writeManifest() {
-  const source = JSON.parse(await readFile(RAW_MANIFEST, 'utf8'));
-  const manifest = {
-    ...source,
-    side_panel: { ...(source.side_panel ?? {}), default_path: 'sidepanel.html' },
-  };
-  await writeFile(
-    path.join(dist, 'manifest.json'),
-    `${JSON.stringify(manifest, null, 2)}\n`,
-    'utf8'
-  );
-  return manifest;
 }
 
 async function main() {
   await mkdir(dist, { recursive: true });
 
-  await bundleReact();
-  const entry = await readEntry();
+  await bundle();
+  const page = await relocateEntry();
 
-  await copyLegacy();
+  await copyStatic();
 
-  const shell = await readFile(SHELL_HTML, 'utf8');
-  await writeFile(path.join(dist, 'sidepanel.html'), composeHtml(shell, entry), 'utf8');
+  const html = await readFile(page, 'utf8');
+  const manifest = JSON.parse(await readFile(path.join(dist, 'manifest.json'), 'utf8'));
+  assertPage(html, manifest);
 
-  const manifest = await writeManifest();
-
-  // Build metadata is not part of the extension.
+  // Build metadata and source maps are not part of the extension.
   await rm(path.join(dist, '.vite'), { recursive: true, force: true });
+  for (const asset of await readdir(path.join(dist, 'assets'))) {
+    if (asset.endsWith('.map')) await rm(path.join(dist, 'assets', asset), { force: true });
+  }
 
-  console.log(`[build] sidepanel.html composed from popup.html + ${entry.file}`);
-  console.log(`[build] legacy assets copied: ${[...LEGACY_FILES, ...LEGACY_DIRS].join(', ')}`);
-  console.log(`[build] manifest side panel -> ${manifest.side_panel.default_path}`);
+  const assets = await readdir(path.join(dist, 'assets'));
+  console.log(
+    `[build] side panel -> ${path.relative(root, page)} (from ${path.relative(root, ENTRY_HTML)})`
+  );
+  console.log(`[build] assets: ${assets.join(', ')}`);
+  console.log(`[build] copied: ${[...COPY_FILES, ...COPY_DIRS].join(', ')}`);
   console.log('[build] Load dist/ unpacked at chrome://extensions to verify.');
 }
 
