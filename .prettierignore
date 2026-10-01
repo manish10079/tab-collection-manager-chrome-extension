@@ -1,0 +1,14 @@
+# Build output and dependencies
+dist/
+node_modules/
+
+# Legacy vanilla code — formatted only when it is migrated (skill.md §4.3)
+popup.html
+popup.css
+popup.js
+background.js
+
+# Documents and assets are append-only; mass reformatting creates merge noise
+*.md
+icons/
+.freebuff/
