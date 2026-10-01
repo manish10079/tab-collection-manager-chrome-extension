@@ -1,4 +1,5 @@
 import { useAppState } from '../../../store/hooks.js';
+import { DragAndDropProvider } from '../hooks/DragAndDropContext.jsx';
 import { useOrderedCollections } from '../hooks/useOrderedCollections.js';
 import { CollectionCard } from './CollectionCard.jsx';
 import { EmptyState } from './EmptyState.jsx';
@@ -24,7 +25,7 @@ export function CollectionList({ actions }) {
   const expanded = isGrid ? ordered.find((collection) => collection.isExpanded) : null;
 
   return (
-    <>
+    <DragAndDropProvider>
       {ordered.length === 0 ? (
         <EmptyState />
       ) : (
@@ -40,6 +41,6 @@ export function CollectionList({ actions }) {
       )}
 
       {expanded ? <GridCollectionModal collection={expanded} actions={actions} /> : null}
-    </>
+    </DragAndDropProvider>
   );
 }

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { CURRENT_SESSION_ID } from '../../../shared/storage-keys.js';
 import { formatTabCount, formatTime } from '../../../lib/format.js';
 import { useDismissable } from '../hooks/useDismissable.js';
+import { useDraggable } from '../hooks/useDraggable.js';
+import { useDropZone } from '../hooks/useDropZone.js';
 import { TabPanel } from './TabPanel.jsx';
 
 /**
@@ -37,10 +39,29 @@ export function CollectionCard({ collection, isAutoSaveTarget, isGrid, actions }
     }
   }, [isEditingName]);
 
+  // Dragging the card reorders collections; dropping onto it takes a whole collection or a
+  // tab from another collection (a tab from this one is reordered between its own rows).
+  const { isDragging, dragProps, handleProps } = useDraggable({
+    type: 'collection',
+    id: collection.id,
+  });
+  const { isDragOver, dropProps } = useDropZone({
+    accepts: (item) =>
+      item.type === 'collection'
+        ? item.id !== collection.id
+        : item.type === 'tab' && item.sourceCollectionId !== collection.id,
+    onDrop: (item) => {
+      if (item.type === 'collection') actions.moveCollection(item.id, collection.id);
+      else actions.moveTab(item.id, item.sourceCollectionId, collection.id);
+    },
+  });
+
   const classNames = ['collection'];
   if (isCurrentSession) classNames.push('current-session-collection');
   if (collection.pinned && !isCurrentSession) classNames.push('pinned');
   if (isAutoSaveTarget) classNames.push('auto-save-target');
+  if (isDragging) classNames.push('dragging');
+  if (isDragOver) classNames.push('drag-over');
 
   function toggleExpanded() {
     actions.setExpanded(collection.id, !collection.isExpanded);
@@ -76,13 +97,17 @@ export function CollectionCard({ collection, isAutoSaveTarget, isGrid, actions }
   };
 
   return (
-    <div className={classNames.join(' ')} data-id={collection.id} draggable="false">
+    <div className={classNames.join(' ')} data-id={collection.id} {...dragProps} {...dropProps}>
       {/* Clicking anywhere in the header toggles the collection as a pointer convenience —
           the chevron button below is the keyboard-accessible control. */}
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div className="collection-header" onClick={handleHeaderClick}>
         <div className="collection-left-section">
-          <div className="collection-drag-handle drag-handle" title="Drag to reorder collection">
+          <div
+            className="collection-drag-handle drag-handle"
+            title="Drag to reorder collection"
+            {...handleProps}
+          >
             <i className="fas fa-grip-vertical" />
           </div>
           <button

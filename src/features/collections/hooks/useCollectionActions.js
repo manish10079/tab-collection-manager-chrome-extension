@@ -1,5 +1,12 @@
 import { mutate } from '../../../store/store.js';
-import { setCollectionExpanded, setTabSortType } from '../lib/collectionDraft.js';
+import {
+  moveTabToCollection,
+  moveTabToCollectionAtPosition,
+  reorderCollections,
+  reorderTabsWithinCollection,
+  setCollectionExpanded,
+  setTabSortType,
+} from '../lib/collectionDraft.js';
 
 /**
  * @typedef {object} CollectionActions
@@ -14,6 +21,10 @@ import { setCollectionExpanded, setTabSortType } from '../lib/collectionDraft.js
  * @property {(id: string) => void} importTabs
  * @property {(collection: import('../../../store/schema.js').Collection) => void} exportCollection
  * @property {(collection: import('../../../store/schema.js').Collection) => Promise<void>} copyCollectionLinks
+ * @property {(sourceId: string, targetId: string) => Promise<void>} moveCollection
+ * @property {(collectionId: string, sourceTabId: string, targetTabId: string) => Promise<void>} reorderTabs
+ * @property {(tabId: string, sourceCollectionId: string, targetCollectionId: string) => Promise<{moved: boolean}>} moveTab
+ * @property {(tabId: string, sourceCollectionId: string, targetCollectionId: string, targetTabId: string) => Promise<{moved: boolean}>} moveTabToPosition
  * @property {(collectionId: string, tabId: string) => void} removeTab
  * @property {(collectionId: string, tabId: string, title: string) => void} renameTab
  * @property {(url: string, options?: {active?: boolean}) => void} openTab
@@ -22,15 +33,31 @@ import { setCollectionExpanded, setTabSortType } from '../lib/collectionDraft.js
  */
 
 /**
- * Actions available to the collections feature. Membership changes (expand, tab sort) go
- * straight to the store's write queue; everything that still lives in the legacy runtime is
- * delegated to the injected adapter, which is the only seam between the two UIs
- * (docs/decisions/ADR-0002-collections-list-react.md).
+ * Actions available to the collections feature. State changes (expand, tab sort, drag-and-drop
+ * reordering) go straight to the store's write queue; everything that still lives in the
+ * legacy runtime is delegated to the injected adapter, which is the only seam between the two
+ * UIs (docs/decisions/ADR-0002-collections-list-react.md).
  *
  * @param {Record<string, (...args: any[]) => any>} legacy Adapter injected by the app layer
  * @returns {CollectionActions}
  */
 export function useCollectionActions(legacy) {
+  /**
+   * A cross-collection tab move can be refused (the 200-tab cap). The mutator's verdict comes
+   * back through the write queue and surfaces as a toast instead of the legacy alert().
+   *
+   * @param {(draft: import('../../../store/schema.js').AppState) => {moved: boolean, message?: string}} mutator
+   * @returns {Promise<{moved: boolean, message?: string}>}
+   */
+  async function runTabMove(mutator) {
+    let result = { moved: true };
+    await mutate((draft) => {
+      result = mutator(draft);
+    });
+    if (!result.moved && result.message) legacy.toast(result.message);
+    return result;
+  }
+
   return {
     setExpanded: (id, expanded) => mutate((draft) => setCollectionExpanded(draft, id, expanded)),
 
@@ -59,6 +86,28 @@ export function useCollectionActions(legacy) {
     openTab: (url, options) => legacy.openSavedTab(url, options),
 
     toast: (message, duration) => legacy.toast(message, duration),
+
+    moveCollection: (sourceId, targetId) =>
+      mutate((draft) => reorderCollections(draft, sourceId, targetId)),
+
+    reorderTabs: (collectionId, sourceTabId, targetTabId) =>
+      mutate((draft) => reorderTabsWithinCollection(draft, collectionId, sourceTabId, targetTabId)),
+
+    moveTab: (tabId, sourceCollectionId, targetCollectionId) =>
+      runTabMove((draft) =>
+        moveTabToCollection(draft, tabId, sourceCollectionId, targetCollectionId)
+      ),
+
+    moveTabToPosition: (tabId, sourceCollectionId, targetCollectionId, targetTabId) =>
+      runTabMove((draft) =>
+        moveTabToCollectionAtPosition(
+          draft,
+          tabId,
+          sourceCollectionId,
+          targetCollectionId,
+          targetTabId
+        )
+      ),
 
     copyCollectionLinks: async (collection) => {
       const tabs = Array.isArray(collection.tabs) ? collection.tabs : [];

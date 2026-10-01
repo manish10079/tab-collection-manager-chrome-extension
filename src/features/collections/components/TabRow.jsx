@@ -4,6 +4,8 @@ import { resolveFaviconUrl, toOpenableUrl, truncateUrl } from '../../../lib/url.
 import { resolveTabGroupBadge } from '../../../lib/tabGroups.js';
 import { useExtensionId } from '../hooks/useExtensionId.js';
 import { useDismissable } from '../hooks/useDismissable.js';
+import { useDraggable } from '../hooks/useDraggable.js';
+import { useDropZone } from '../hooks/useDropZone.js';
 
 /**
  * @typedef {object} TabRowProps
@@ -32,6 +34,24 @@ export function TabRow({ tab, number, collection, actions }) {
       inputRef.current.select();
     }
   }, [isEditing]);
+
+  // Dragging a row reorders it inside its collection or moves it into another one; dropping
+  // onto a row inserts at that row's position (the legacy "drop at position" behaviour).
+  const { isDragging, dragProps, handleProps } = useDraggable({
+    type: 'tab',
+    id: tab.id,
+    sourceCollectionId: collection.id,
+  });
+  const { isDragOver, dropProps } = useDropZone({
+    accepts: (item) => item.type === 'tab' && item.id !== tab.id,
+    onDrop: (item) => {
+      if (item.sourceCollectionId === collection.id) {
+        actions.reorderTabs(collection.id, item.id, tab.id);
+      } else {
+        actions.moveTabToPosition(item.id, item.sourceCollectionId, collection.id, tab.id);
+      }
+    },
+  });
 
   const badge = resolveTabGroupBadge(tab, collection);
 
@@ -63,8 +83,15 @@ export function TabRow({ tab, number, collection, actions }) {
   };
 
   return (
-    <div className={`tab-item${tab.pinned ? ' pinned' : ''}`} data-id={tab.id} draggable="false">
-      <div className="tab-drag-handle drag-handle" title="Drag to reorder tab">
+    <div
+      className={`tab-item${tab.pinned ? ' pinned' : ''}${isDragging ? ' dragging' : ''}${
+        isDragOver ? ' drag-over' : ''
+      }`}
+      data-id={tab.id}
+      {...dragProps}
+      {...dropProps}
+    >
+      <div className="tab-drag-handle drag-handle" title="Drag to reorder tab" {...handleProps}>
         <i className="fas fa-grip-vertical" />
       </div>
       <span className="tab-number">{number}</span>
