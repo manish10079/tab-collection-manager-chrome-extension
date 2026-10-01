@@ -34,6 +34,60 @@
 
 ---
 
+## 🧰 Development
+
+Requires **Node.js 18+**. The extension is written in **JavaScript** (no TypeScript) and follows
+[`skill.md`](./skill.md).
+
+```bash
+npm install        # install dev tooling (lint, format, tests)
+npm run build      # build dist/ — load THIS folder unpacked
+npm run dev        # dev browser: streams worker/panel errors, rebuilds + reloads on change
+npm run lint       # ESLint
+npm run format     # Prettier
+npm test           # unit tests (Vitest)
+```
+
+**Build output:** `npm run build` writes `dist/`. Load **`dist/`** unpacked to get the React shell
+(Phase 1) rendered above the existing legacy UI:
+
+| You load | You get |
+| --- | --- |
+| `dist/` (after `npm run build`) | React shell + the full legacy UI, side panel served as `sidepanel.html` |
+| the repository root | Legacy UI only — no build needed, useful for a quick zero-install check |
+
+`npm run build:legacy` performs the plain copy build (no React bundling) for the pre-React
+behaviour. The React shell is read-only during Phase 1: it reports collection/tab counts from
+`chrome.storage.local` but performs no mutations — see
+[`react-migration-plan.md`](./react-migration-plan.md) §8.
+
+### Dev browser helper
+
+`npm run dev` launches a Chromium browser (Chrome → Brave → Edge, whichever is installed) with
+a **throwaway profile** and `dist/` loaded unpacked, then:
+
+- streams the **background service worker's console output and exceptions** as `[sw ·]`, `[sw ▲]`,
+  `[sw ✖]` — including crashes that happen during startup, with the source file and line;
+- streams the **side panel's** own errors as `[panel …]`;
+- **rebuilds and reloads** the extension whenever a source file changes.
+
+```bash
+npm run dev                # launch + watch
+npm run dev -- --attach    # attach to a browser already started with --remote-debugging-port
+npm run dev -- --smoke     # self-test: launch, check the worker is reachable, exit
+npm run dev -- --which     # print the detected browser path
+```
+
+Notes: the browser runs on a separate profile (`%TEMP%/tcm-dev-profile`), so your normal
+browsing profile and its extensions are untouched. After a reload, refresh the side panel tab
+the helper opens (or reopen the side panel) to see UI changes — extension pages are not
+hot-reloaded.
+
+See [`react-migration-plan.md`](./react-migration-plan.md) for the migration roadmap and
+[`skill.md`](./skill.md) for coding, folder, and versioning standards.
+
+---
+
 ## 📖 How to Use
 
 ### 1. Organizing Your Layout
