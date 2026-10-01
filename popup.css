@@ -1256,6 +1256,36 @@ body.panel-closing {
   min-width: 0; /* Enable truncation for children */
 }
 
+/* Chrome tab-group badge — marks saved tabs that came from a Chrome tab group */
+.tab-group-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  max-width: 92px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--bg-translucent-normal);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.tab-group-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #5f6368;
+  flex-shrink: 0;
+}
+
+.tab-group-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .tab-title {
   background: transparent;
   border: 1px solid transparent;
@@ -2848,4 +2878,26 @@ mark.search-hl {
 .history-modal-body::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 4px;
+}
+
+/* ===== Cloud Backup Buttons ===== */
+.cloud-backup-btn {
+  padding: 8px 14px !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  border-radius: 10px !important;
+  white-space: nowrap;
+}
+
+.cloud-backup-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.settings-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 16px 14px;
+  border-top: 1px solid var(--border);
 }

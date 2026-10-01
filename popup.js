@@ -57,6 +57,83 @@ function discardWhenLoaded(tabId, timeoutMs = 10000) {
   });
 }
 
+// ==================== TAB GROUP HELPERS ====================
+// Chrome reports TAB_ID_NONE (-1) for tabs that are not part of any group.
+const TAB_GROUP_ID_NONE = (typeof chrome !== 'undefined' && chrome.tabGroups &&
+  typeof chrome.tabGroups.TAB_ID_NONE === 'number') ? chrome.tabGroups.TAB_ID_NONE : -1;
+
+function normalizeGroupId(groupId) {
+  return (typeof groupId === 'number' && groupId !== TAB_GROUP_ID_NONE && groupId >= 0) ? groupId : null;
+}
+
+// Metadata for the tab groups currently listed in the "Add tabs" modal.
+let openTabsGroupMeta = {};
+
+/**
+ * Read the title/color/collapsed metadata for every live tab group referenced
+ * by the given tabs. Returns { [groupId]: { title, color, collapsed } }.
+ */
+async function captureGroupMeta(tabs) {
+  const meta = {};
+  if (!api.tabGroups || typeof api.tabGroups.get !== 'function') return meta;
+  const ids = [...new Set((tabs || []).map(t => normalizeGroupId(t.groupId)).filter(id => id !== null))];
+  for (const id of ids) {
+    try {
+      const group = await api.tabGroups.get(id);
+      meta[id] = {
+        title: group.title || '',
+        color: group.color || 'grey',
+        collapsed: !!group.collapsed
+      };
+    } catch (err) {
+      // The group disappeared between the query and this read — skip it.
+    }
+  }
+  return meta;
+}
+
+/**
+ * Rebuild the Chrome tab groups a collection was saved with.
+ * Saved group ids are stale, so each saved group is recreated fresh and then
+ * updated with its saved title/color/collapsed state.
+ * @param {object} collection - Collection with tabs[].chromeGroupId + chromeGroups map.
+ * @param {Array} createdTabs - Created tabs, index-aligned with collection.tabs.
+ * @param {number} targetWindowId - Window the tabs were created in.
+ */
+async function restoreTabGroups(collection, createdTabs, targetWindowId) {
+  if (!api.tabs.group || !api.tabGroups) return;
+  const savedGroups = collection.chromeGroups;
+  if (!savedGroups || typeof savedGroups !== 'object') return;
+
+  const groupedTabIds = new Map();
+  collection.tabs.forEach((tab, i) => {
+    const created = createdTabs[i];
+    if (!created || !created.id) return;
+    if (tab.pinned) return; // Chrome cannot group pinned tabs
+    const savedGroupId = tab.chromeGroupId;
+    if (savedGroupId === null || savedGroupId === undefined) return;
+    if (!savedGroups[savedGroupId]) return; // group metadata was lost
+    if (!groupedTabIds.has(savedGroupId)) groupedTabIds.set(savedGroupId, []);
+    groupedTabIds.get(savedGroupId).push(created.id);
+  });
+
+  for (const [savedGroupId, tabIds] of groupedTabIds) {
+    if (!tabIds.length) continue;
+    try {
+      const meta = savedGroups[savedGroupId] || {};
+      const createProperties = targetWindowId !== undefined ? { windowId: targetWindowId } : {};
+      const newGroupId = await api.tabs.group({ tabIds, createProperties });
+      await api.tabGroups.update(newGroupId, {
+        ...(meta.title ? { title: meta.title } : {}),
+        color: meta.color || 'grey',
+        collapsed: !!meta.collapsed
+      });
+    } catch (err) {
+      console.warn('Failed to restore tab group:', savedGroupId, err);
+    }
+  }
+}
+
 //=============== Render Version Info from Manifest file & Theme =================
 document.addEventListener('DOMContentLoaded', async () => {
     const appInfo = chrome.runtime.getManifest();
@@ -472,15 +549,6 @@ function updateCollectionSortIcon(sortType) {
         `fa-solid ${COLLECTION_SORT_ICONS[sortType] || 'fa-arrow-up-wide-short'}`;
 }
 
-function updateTabSortIcon(button, sortType) {
-    const icon = button.querySelector('i');
-
-    if (!icon) return;
-
-    icon.className =
-        `fa-solid ${TAB_SORT_ICONS[sortType] || 'fa-arrow-up-wide-short'}`;
-}
-
 /**
  * Check if a URL already exists in any collection.
  * Returns an array of { collectionName, collectionId } where the URL was found.
@@ -566,7 +634,6 @@ const elements = {
   newCollectionName: document.getElementById('newCollectionName'),
   createCollection: document.getElementById('createCollection'),
   collectionsContainer: document.getElementById('collectionsContainer'),
-  emptyState: document.getElementById('emptyState'),
   autoSaveToggle: null, // now lives inside settingsModal, resolved at runtime
   autoSaveCollectionSelect: document.getElementById('autoSaveCollectionSelect'),
   addTabsModal: document.getElementById('addTabsModal'),
@@ -586,8 +653,17 @@ const elements = {
 
 // ==================== STATE VARIABLES ====================
 let currentCollectionId = null; // For modal context
-let editingTabId = null; // Local UI state only
-let draggedItem = null; // Drag and drop state
+
+// ==================== REACT LIST BRIDGE ====================
+// The collections list and its tab rows are rendered by React (src/features/collections) from
+// chrome.storage.local. Legacy call sites that used to toggle a card in the DOM ask the React
+// store instead; `window.__tcmReact` is published in src/app/legacy-handle.js.
+function setCollectionExpandedFromLegacy(collectionId, expanded) {
+  const handle = globalThis.__tcmReact;
+  if (handle && typeof handle.setCollectionExpanded === 'function') {
+    handle.setCollectionExpanded(collectionId, expanded);
+  }
+}
 
 // ==================== COLLECTION OPERATIONS ====================
 async function createCollection(name) {
@@ -634,7 +710,7 @@ async function deleteCollection(collectionId) {
       state.autoSaveCollectionId = null;
     }
   });
-  renderCollections(newState);
+  syncLegacyChrome(newState);
 }
 
 async function renameCollection(collectionId, newName) {
@@ -674,7 +750,7 @@ async function renameCollection(collectionId, newName) {
     }
     state.collections = partitionCollections(state.collections);
   });
-  renderCollections(newState);
+  syncLegacyChrome(newState);
   return true;
 }
 
@@ -832,7 +908,7 @@ function importAllCollections() {
         });
 
         const newState = await getState();
-        renderCollections(newState);
+        syncLegacyChrome(newState);
         showToast(`Import completed: Created ${addedCount} and merged ${mergedCount} collections.`);
       } catch (err) {
         console.error('Error importing collections:', err);
@@ -907,7 +983,7 @@ function importCollection(collectionId) {
         // Add them to the collection
         await addTabsFromSelection(collectionId, validTabs);
         const state = await getState();
-        renderCollections(state);
+        syncLegacyChrome(state);
         showToast(`Imported ${validTabs.length} tabs successfully`);
       } catch (err) {
         console.error('Error importing tabs:', err);
@@ -917,116 +993,6 @@ function importCollection(collectionId) {
     reader.readAsText(file);
   };
   input.click();
-}
-
-async function toggleCollectionExpanded(collectionId) {
-  // Find the already-rendered DOM elements so we can animate in-place.
-  // We avoid calling renderCollections() here because it destroys+rebuilds
-  // the entire DOM, which kills any in-progress CSS transition.
-  const collectionEl = document.querySelector(`[data-id="${collectionId}"]`);
-  if (!collectionEl) return;
-
-  const tabsContainer = collectionEl.querySelector('.collection-tabs');
-  const expandBtn     = collectionEl.querySelector('.expand-btn');
-  if (!tabsContainer) return;
-
-  const state = await getState();
-  const isGrid = state.layoutViewMode === 'grid';
-
-  if (isGrid) {
-    // Render tabs if not populated yet
-    const tabsList = tabsContainer.querySelector('.tabs-list');
-    if (tabsList && tabsList.children.length === 0) {
-      const collection = state.collections.find(c => c.id === collectionId);
-      if (collection) renderTabs(collection, tabsList);
-    }
-
-    const modal = document.getElementById('viewCollectionModal');
-    const modalName = document.getElementById('modalCollectionName');
-    const modalCollectionTabs = document.getElementById('modalCollectionTabs');
-
-    if (modal && modalName && modalCollectionTabs) {
-      const collection = state.collections.find(c => c.id === collectionId);
-      modalName.innerHTML = `<i class="fas fa-folder-open"></i> ${collection ? collection.name : 'Collection'}`;
-      modal.dataset.currentId = collectionId;
-
-      // Move tabs container to the modal body
-      modalCollectionTabs.innerHTML = '';
-      modalCollectionTabs.appendChild(tabsContainer);
-      tabsContainer.classList.add('expanded');
-
-      if (expandBtn) expandBtn.classList.add('rotated');
-      modal.style.display = 'flex';
-
-      // Persist expanded state
-      await updateState(s => {
-        const c = s.collections.find(col => col.id === collectionId);
-        if (c) c.isExpanded = true;
-      });
-    }
-    return;
-  }
-
-  // Capture intent from current DOM state BEFORE any async work
-  const isExpanding = !tabsContainer.classList.contains('expanded');
-
-  if (isExpanding) {
-    // If tabs haven't been rendered into the list yet, populate them first.
-    // The await below naturally yields to the browser, giving the CSS
-    // transition a chance to start from the collapsed baseline.
-    const tabsList = tabsContainer.querySelector('.tabs-list');
-    if (tabsList && tabsList.children.length === 0) {
-      const collection = state.collections.find(c => c.id === collectionId);
-      if (collection) renderTabs(collection, tabsList);
-    }
-    tabsContainer.classList.add('expanded');
-    if (expandBtn) expandBtn.classList.add('rotated');
-  } else {
-    tabsContainer.classList.remove('expanded');
-    if (expandBtn) expandBtn.classList.remove('rotated');
-  }
-
-  // Persist to storage using deterministic isExpanding flag
-  // (avoids mismatch if storage and DOM ever diverge)
-  await updateState(state => {
-    const collection = state.collections.find(c => c.id === collectionId);
-    if (collection) collection.isExpanded = isExpanding;
-  });
-}
-
-function closeViewCollectionModal() {
-  const modal = document.getElementById('viewCollectionModal');
-  if (!modal || modal.style.display === 'none') return;
-
-  const collectionId = modal.dataset.currentId;
-  const modalCollectionTabs = document.getElementById('modalCollectionTabs');
-  if (collectionId && modalCollectionTabs) {
-    const tabsContainer = modalCollectionTabs.querySelector('.collection-tabs');
-    if (tabsContainer) {
-      const collectionEl = document.querySelector(`.collection[data-id="${collectionId}"]`);
-      if (collectionEl) {
-        // Move tabs container back to original collection card
-        collectionEl.appendChild(tabsContainer);
-        tabsContainer.classList.remove('expanded');
-      }
-    }
-  }
-
-  modal.dataset.currentId = '';
-  modalCollectionTabs.innerHTML = '';
-  modal.style.display = 'none';
-
-  if (collectionId) {
-    const collectionEl = document.querySelector(`.collection[data-id="${collectionId}"]`);
-    if (collectionEl) {
-      const expandBtn = collectionEl.querySelector('.expand-btn');
-      if (expandBtn) expandBtn.classList.remove('rotated');
-    }
-    updateState(state => {
-      const collection = state.collections.find(c => c.id === collectionId);
-      if (collection) collection.isExpanded = false;
-    });
-  }
 }
 
 // ==================== TAB OPERATIONS ====================
@@ -1080,7 +1046,7 @@ async function addManualTab(collectionId, title, url) {
   return true;
 }
 
-async function addTabsFromSelection(collectionId, tabsArray) {
+async function addTabsFromSelection(collectionId, tabsArray, groupsMeta = {}) {
   if (!tabsArray.length) return;
 
   // Check for duplicate URLs across all collections
@@ -1136,6 +1102,17 @@ async function addTabsFromSelection(collectionId, tabsArray) {
     const collection = state.collections.find(c => c.id === collectionId);
     if (collection) {
       const availableSlots = MAX_TABS_PER_COLLECTION - collection.tabs.length;
+
+      // Merge Chrome tab-group metadata for the groups being imported so the
+      // groups can be rebuilt when this collection is restored.
+      const referencedGroups = {};
+      tabsToAdd.forEach(t => {
+        const gid = normalizeGroupId(t.groupId);
+        if (gid !== null && groupsMeta[gid]) referencedGroups[gid] = groupsMeta[gid];
+      });
+      if (Object.keys(referencedGroups).length > 0) {
+        collection.chromeGroups = { ...(collection.chromeGroups || {}), ...referencedGroups };
+      }
       let currentPinnedTabsCount = collection.tabs.filter(t => t.pinned).length;
       
       tabsToAdd.forEach(tab => {
@@ -1171,7 +1148,8 @@ async function addTabsFromSelection(collectionId, tabsArray) {
           active: false,
           discarded: false,
           highlighted: false,
-          addedAt: tab.addedAt || Date.now()
+          addedAt: tab.addedAt || Date.now(),
+          chromeGroupId: normalizeGroupId(tab.groupId)
         });
         addedCount++;
       });
@@ -1216,24 +1194,32 @@ async function openAllTabsSimple(collectionId) {
   const collection = state.collections.find(c => c.id === collectionId);
   if (!collection) return;
 
-  // Open each tab in the collection (simple fallback)
-  for (const tab of collection.tabs) {
+  // Open each tab in the collection (simple fallback).
+  // createdTabs stays index-aligned with collection.tabs so tab groups can be rebuilt.
+  const createdTabs = [];
+  for (let i = 0; i < collection.tabs.length; i++) {
+    const tab = collection.tabs[i];
     let url = tab.url;
-    if (!url) continue;
+    if (!url) { createdTabs[i] = null; continue; }
     // Ensure URL has protocol
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       url = 'https://' + url;
     }
     try {
       const createdTab = await api.tabs.create({ url, active: false });
+      createdTabs[i] = createdTab;
       // RAM Saver: wait for tab to finish loading before discarding to avoid infinite spinner
       if (state.ramSaverEnabled && createdTab && createdTab.id) {
         discardWhenLoaded(createdTab.id);
       }
     } catch (err) {
       console.error('Failed to open tab:', url, err);
+      createdTabs[i] = null;
     }
   }
+
+  // Rebuild any Chrome tab groups this collection was saved with.
+  await restoreTabGroups(collection, createdTabs, undefined);
 }
 
 async function removeTab(collectionId, tabId) {
@@ -1316,7 +1302,7 @@ async function togglePinCollection(collectionId) {
     return;
   }
 
-  renderCollections(newState);
+  syncLegacyChrome(newState);
 }
 
 async function togglePinTab(collectionId, tabId) {
@@ -1348,25 +1334,26 @@ async function togglePinTab(collectionId, tabId) {
     return;
   }
 
-  renderCollections(newState);
+  syncLegacyChrome(newState);
 }
 
 // ==================== UI RENDERING ====================
-function renderEmptyState(show) {
-  elements.emptyState.classList.toggle('hidden', !show);
-}
-
-function renderCollections(state) {
+/**
+ * Refresh the shell chrome that React does not own yet: the collections sort menu highlight,
+ * the layout icon toggle, the auto-save toggle and the restore-backup button.
+ *
+ * Every caller that used to repaint the collection list now just calls this, because the list
+ * renders itself from the store — any write lands in chrome.storage.local and the React store
+ * re-renders from there (react-migration-plan.md §8, Phase 2).
+ *
+ * @param {object} state Result of getState()
+ */
+function syncLegacyChrome(state) {
   const { collections, autoSaveCollectionId, collectionSortType, layoutViewMode } = state;
-  const container = elements.collectionsContainer;
-  const fragment = document.createDocumentFragment();
 
-  // Apply layout class and icon
-  const isGrid = layoutViewMode === 'grid';
-  container.classList.toggle('grid-view', isGrid);
-  updateLayoutIcon(isGrid);
+  updateLayoutIcon(layoutViewMode === 'grid');
 
-  // Highlight active collection sort option in the collectionsSortMenu
+  // Highlight the active option in the collections sort menu
   const colSortType = collectionSortType || 'custom';
   const sortMenu = document.getElementById('collectionsSortMenu');
   if (sortMenu) {
@@ -1375,85 +1362,8 @@ function renderCollections(state) {
     });
   }
 
-  // Toggle sort-active class on collectionsContainer to hide drag handles when sorted
-  container.classList.toggle('sort-active', colSortType !== 'custom');
-
-  // Sort collections before rendering, keeping CURRENT_SESSION_ID always at the top
-  let sortedCollections = [...collections];
-  const currentSessionIdx = sortedCollections.findIndex(c => c.id === CURRENT_SESSION_ID);
-  let currentSession = null;
-  if (currentSessionIdx !== -1) {
-    currentSession = sortedCollections.splice(currentSessionIdx, 1)[0];
-  }
-
-  // Partition sortedCollections into pinned and unpinned groups
-  // Only unpinned collections participate in sorting
-  let pinnedCollections = sortedCollections.filter(c => c.pinned);
-  let unpinnedCollections = sortedCollections.filter(c => !c.pinned);
-
-  if (colSortType === 'lastModified') {
-    unpinnedCollections.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-  } else if (colSortType === 'nameAsc') {
-    unpinnedCollections.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
-  } else if (colSortType === 'nameDesc') {
-    unpinnedCollections.sort((a, b) => (b.name || '').localeCompare(a.name || '', undefined, { sensitivity: 'base' }));
-  } else if (colSortType === 'dateCreated') {
-    unpinnedCollections.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-  } else if (colSortType === 'dateCreatedAsc') {
-    unpinnedCollections.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-  } else if (colSortType === 'tabCount') {
-    unpinnedCollections.sort((a, b) => (b.tabs?.length || 0) - (a.tabs?.length || 0));
-  } else if (colSortType === 'tabCountAsc') {
-    unpinnedCollections.sort((a, b) => (a.tabs?.length || 0) - (b.tabs?.length || 0));
-  }
-
-  // Combine pinned and sorted unpinned collections
-  sortedCollections = [...pinnedCollections, ...unpinnedCollections];
-
-  if (currentSession) {
-    sortedCollections.unshift(currentSession);
-  }
-
-  sortedCollections.forEach(collection => {
-    const collectionEl = renderCollection(collection, autoSaveCollectionId);
-    fragment.appendChild(collectionEl);
-  });
-
-  // Clear and append
-  while (container.firstChild && container.firstChild.id !== 'emptyState') {
-    container.removeChild(container.firstChild);
-  }
-  container.insertBefore(fragment, elements.emptyState);
-
-  renderEmptyState(collections.length === 0);
   renderAutoSaveSelect(collections, autoSaveCollectionId);
   renderBackupButton(state.lastSessionBackup);
-
-  // Handle active grid-view collection modal re-renders
-  const viewColModal = document.getElementById('viewCollectionModal');
-  if (viewColModal && viewColModal.style.display === 'flex') {
-    const currentId = viewColModal.dataset.currentId;
-    if (currentId) {
-      const activeCollection = collections.find(c => c.id === currentId);
-      const newCard = container.querySelector(`.collection[data-id="${currentId}"]`);
-      if (activeCollection && newCard) {
-        const newTabsContainer = newCard.querySelector('.collection-tabs');
-        if (newTabsContainer) {
-          const tabsList = newTabsContainer.querySelector('.tabs-list');
-          if (tabsList) {
-            renderTabs(activeCollection, tabsList);
-          }
-          newTabsContainer.classList.add('expanded');
-          
-          const modalCollectionTabs = document.getElementById('modalCollectionTabs');
-          if (modalCollectionTabs) {
-            modalCollectionTabs.innerHTML = '';
-            modalCollectionTabs.appendChild(newTabsContainer);
-          }
-        }
-      }
-    }
-  }
 }
 
 function renderBackupButton(backup) {
@@ -1486,640 +1396,6 @@ function renderBackupButton(backup) {
       alert('Restoring session...');
     }
   });
-}
-
-
-function renderCollection(collection, autoSaveCollectionId) {
-  const template = document.getElementById('collectionTemplate');
-  const clone = template.content.cloneNode(true);
-  const collectionEl = clone.querySelector('.collection');
-  collectionEl.dataset.id = collection.id;
-
-  // Header elements
-  const expandBtn = collectionEl.querySelector('.expand-btn');
-  const expandIcon = expandBtn ? expandBtn.querySelector('i') : null;
-  const nameInput = collectionEl.querySelector('.collection-name');
-  const tabCount = collectionEl.querySelector('.tab-count');
-  const updatedTime = collectionEl.querySelector('.updated-time');
-  const openAllBtn = collectionEl.querySelector('.open-all-tabs-btn');
-  const addTabsBtn = collectionEl.querySelector('.add-tabs-btn');
-  const editBtn = collectionEl.querySelector('.edit-collection-btn');
-  const shareBtn = collectionEl.querySelector('.share-collection-btn');
-  const deleteBtn = collectionEl.querySelector('.delete-collection-btn');
-  const tabsContainer = collectionEl.querySelector('.collection-tabs');
-
-  // Set values
-  nameInput.value = collection.name;
-  tabCount.textContent = `${collection.tabs.length} tab${collection.tabs.length !== 1 ? 's' : ''}`;
-  updatedTime.textContent = formatTime(collection.updatedAt);
-
-  // Special handling for Current Session collection
-  if (collection.id === CURRENT_SESSION_ID) {
-    deleteBtn.style.display = 'none';
-    addTabsBtn.style.display = 'none';
-    editBtn.style.display = 'none';
-    nameInput.readOnly = true;
-    nameInput.title = 'Current Session collection cannot be renamed or have tabs added';
-    // Add a visual indicator
-    collectionEl.classList.add('current-session-collection');
-  }
-
-  // Pin collection button handling
-  const pinBtn = collectionEl.querySelector('.pin-collection-btn');
-  if (pinBtn) {
-    if (collection.id === CURRENT_SESSION_ID) {
-      pinBtn.style.display = 'none';
-    } else {
-      if (collection.pinned) {
-        pinBtn.classList.add('pinned');
-        collectionEl.classList.add('pinned');
-        pinBtn.title = 'Unpin Collection';
-      } else {
-        pinBtn.classList.remove('pinned');
-        collectionEl.classList.remove('pinned');
-        pinBtn.title = 'Pin Collection';
-      }
-      pinBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        togglePinCollection(collection.id);
-      });
-    }
-  }
-
-  // Toggle collection dropdown menu
-  const menuBtn = collectionEl.querySelector('.collection-menu-btn');
-  const dropdownMenu = collectionEl.querySelector('.collection-dropdown-menu');
-  if (menuBtn && dropdownMenu) {
-    menuBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      document.querySelectorAll('.collection-dropdown-menu, .tab-dropdown-menu').forEach(menu => {
-        if (menu !== dropdownMenu) menu.classList.add('hidden');
-      });
-      dropdownMenu.classList.toggle('hidden');
-    });
-    // Auto-close menu when clicking any action option inside it
-    dropdownMenu.addEventListener('click', (e) => {
-      e.stopPropagation();
-      dropdownMenu.classList.add('hidden');
-    });
-  }
-
-  // Expanded state
-  if (collection.isExpanded) {
-    if (expandBtn) expandBtn.classList.add('rotated');
-    tabsContainer.classList.add('expanded');
-    renderTabs(collection, tabsContainer.querySelector('.tabs-list'));
-  } else {
-    tabsContainer.classList.remove('expanded');
-  }
-
-  // Per-collection tab search bar
-  const tabSearchInput = collectionEl.querySelector('.collection-tab-search-input');
-  if (tabSearchInput) {
-    // Prevent header click-to-toggle when interacting with the search input
-    tabSearchInput.addEventListener('click', (e) => e.stopPropagation());
-
-    tabSearchInput.addEventListener('input', () => {
-      // Debounce per collection
-      clearTimeout(tabSearchDebounceTimers[collection.id]);
-      tabSearchDebounceTimers[collection.id] = setTimeout(() => {
-        filterTabsInCollection(collectionEl, tabSearchInput.value);
-      }, 150);
-    });
-
-    tabSearchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        tabSearchInput.value = '';
-        filterTabsInCollection(collectionEl, '');
-        tabSearchInput.blur();
-      }
-    });
-  }
-
-  // Import / Export button listeners inside tab search row
-  const importBtn = collectionEl.querySelector('.import-tabs-btn');
-  const exportBtn = collectionEl.querySelector('.export-tabs-btn');
-
-  if (importBtn) {
-    importBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-    });
-    if (collection.id === CURRENT_SESSION_ID) {
-      importBtn.style.display = 'none'; // Current Session is dynamic/readonly
-    } else {
-      importBtn.addEventListener('click', () => {
-        importCollection(collection.id);
-      });
-    }
-  }
-
-  if (exportBtn) {
-    exportBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      exportCollection(collection);
-    });
-  }
-
-  // Tab sort button listeners inside the collection search row
-  const sortTabsBtn = collectionEl.querySelector('.sort-tabs-btn');
-  const sortTabsMenu = collectionEl.querySelector('.sort-dropdown-menu');
-
-  if (sortTabsBtn && sortTabsMenu) {
-    // Highlight the active tab sort option for this collection
-    const activeSortType = collection.tabSortType || 'custom';
-
-    sortTabsMenu.querySelectorAll('.sort-option').forEach(opt => {
-      opt.classList.toggle('active', opt.dataset.value === activeSortType);
-    });
-
-   updateTabSortIcon(
-    sortTabsBtn,
-    activeSortType
-);
-
-    sortTabsBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      // Close other dropdowns first
-      document.querySelectorAll('.sort-dropdown-menu').forEach(menu => {
-        if (menu !== sortTabsMenu) menu.classList.add('hidden');
-      });
-      sortTabsMenu.classList.toggle('hidden');
-    });
-
-    sortTabsMenu.addEventListener('click', async (e) => {
-      const option = e.target.closest('.sort-option');
-      if (option) {
-        const value = option.dataset.value;
-        updateTabSortIcon(
-    sortTabsBtn,
-    value
-);
-        await updateState(state => {
-          const col = state.collections.find(c => c.id === collection.id);
-          if (col) {
-            col.tabSortType = value;
-            col.updatedAt = Date.now();
-          }
-        });
-        const state = await getState();
-        renderCollections(state);
-      }
-    });
-  }
-
-  // Auto‑save indicator
-  if (collection.id === autoSaveCollectionId) {
-    collectionEl.classList.add('auto-save-target');
-  }
-
-  // Event listeners
-  if (expandBtn) {
-    expandBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleCollectionExpanded(collection.id);
-    });
-  }
-  
-  // Also allow clicking header to toggle
-  const header = collectionEl.querySelector('.collection-header');
-  header.addEventListener('click', (e) => {
-    if (e.target.tagName !== 'INPUT' && !e.target.closest('.collection-actions')) {
-      toggleCollectionExpanded(collection.id);
-    }
-  });
-  
-  // Edit button toggle logic
-  editBtn.addEventListener('click', () => {
-    const isEditing = nameInput.readOnly === false;
-    if (isEditing) {
-      // Currently editing, save and switch back to edit icon
-      nameInput.readOnly = true;
-      editBtn.querySelector('i').className = 'fas fa-edit';
-      editBtn.title = 'Edit collection name';
-      // Trigger rename
-      renameCollection(collection.id, nameInput.value);
-    } else {
-      // Start editing, switch to tick icon
-      nameInput.readOnly = false;
-      nameInput.focus();
-      nameInput.select();
-      editBtn.querySelector('i').className = 'fas fa-check';
-      editBtn.title = 'Save collection name';
-    }
-  });
-  
-  nameInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      nameInput.readOnly = true;
-      editBtn.querySelector('i').className = 'fas fa-edit';
-      editBtn.title = 'Edit collection name';
-      renameCollection(collection.id, nameInput.value);
-      nameInput.blur();
-    } else if (e.key === 'Escape') {
-      nameInput.value = collection.name; // Revert to original
-      nameInput.readOnly = true;
-      editBtn.querySelector('i').className = 'fas fa-edit';
-      editBtn.title = 'Edit collection name';
-      nameInput.blur();
-    }
-  });
-  nameInput.addEventListener('change', (e) => renameCollection(collection.id, e.target.value));
-  nameInput.addEventListener('blur', (e) => {
-    // If we're editing and blur, save and switch back to edit icon
-    if (nameInput.readOnly === false) {
-      nameInput.readOnly = true;
-      editBtn.querySelector('i').className = 'fas fa-edit';
-      editBtn.title = 'Edit collection name';
-      renameCollection(collection.id, e.target.value);
-    }
-  });
-  openAllBtn.addEventListener('click', () => openAllTabsInCollection(collection.id));
-  addTabsBtn.addEventListener('click', () => openAddTabsModal(collection.id));
-  if (shareBtn) {
-    shareBtn.addEventListener('click', async () => {
-      if (!collection.tabs || collection.tabs.length === 0) {
-        showToast('Collection has no tabs to share');
-        return;
-      }
-      const textToCopy = collection.tabs.map(tab => `${tab.title}\n${tab.url}`).join('\n\n');
-      try {
-        await navigator.clipboard.writeText(textToCopy);
-        showToast('Collection copied to clipboard', 1000);
-      } catch (err) {
-        console.error('Failed to copy collection links:', err);
-        showToast('Failed to copy links');
-      }
-    });
-  }
-  deleteBtn.addEventListener('click', () => deleteCollection(collection.id));
-
-  // Drag and drop events for collections
-  const dragHandle = collectionEl.querySelector('.collection-drag-handle');
-  if (dragHandle) {
-    dragHandle.addEventListener('mousedown', () => {
-      collectionEl.setAttribute('draggable', 'true');
-    });
-    dragHandle.addEventListener('mouseup', () => {
-      collectionEl.setAttribute('draggable', 'false');
-    });
-    dragHandle.addEventListener('touchstart', () => {
-      collectionEl.setAttribute('draggable', 'true');
-    });
-    dragHandle.addEventListener('touchend', () => {
-      collectionEl.setAttribute('draggable', 'false');
-    });
-  }
-
-  collectionEl.addEventListener('dragstart', (e) => {
-    if (e.target.classList.contains('collection')) {
-      draggedItem = {
-        type: 'collection',
-        id: collection.id
-      };
-      e.dataTransfer.effectAllowed = 'move';
-      collectionEl.classList.add('dragging');
-      e.stopPropagation();
-    }
-  });
-
-  collectionEl.addEventListener('dragend', (e) => {
-    collectionEl.classList.remove('dragging');
-    collectionEl.setAttribute('draggable', 'false');
-    draggedItem = null;
-    document.querySelectorAll('.collection').forEach(c => c.classList.remove('drag-over'));
-  });
-
-  collectionEl.addEventListener('dragover', (e) => {
-    if (draggedItem && draggedItem.type === 'collection' && draggedItem.id !== collection.id) {
-      e.preventDefault();
-      collectionEl.classList.add('drag-over');
-    }
-    if (draggedItem && draggedItem.type === 'tab' && draggedItem.sourceCollectionId !== collection.id) {
-      e.preventDefault();
-      collectionEl.classList.add('drag-over');
-    }
-  });
-
-  collectionEl.addEventListener('dragleave', () => {
-    collectionEl.classList.remove('drag-over');
-  });
-
-  collectionEl.addEventListener('drop', async (e) => {
-    e.preventDefault();
-    collectionEl.classList.remove('drag-over');
-    
-    if (draggedItem) {
-      if (draggedItem.type === 'collection') {
-        const sourceId = draggedItem.id;
-        const targetId = collection.id;
-        if (sourceId !== targetId) {
-          await reorderCollections(sourceId, targetId);
-        }
-      } else if (draggedItem.type === 'tab') {
-        const sourceTabId = draggedItem.id;
-        const sourceCollId = draggedItem.sourceCollectionId;
-        const targetCollId = collection.id;
-        if (sourceCollId !== targetCollId) {
-          await moveTabToCollection(sourceTabId, sourceCollId, targetCollId);
-        }
-      }
-    }
-  });
-
-  return collectionEl;
-}
-
-function renderTabs(collection, container) {
-  if (!container) return;
-  container.innerHTML = '';
-
-  const tabSortType = collection.tabSortType || 'custom';
-  let sortedTabs = [...(collection.tabs || [])];
-
-  // Toggle sort-active class on tabs container to hide drag handles when sorted
-  container.classList.toggle('sort-active', tabSortType !== 'custom');
-
-  // Partition sortedTabs into pinned and unpinned groups
-  // Only unpinned tabs participate in sorting
-  let pinnedTabs = sortedTabs.filter(t => t.pinned);
-  let unpinnedTabs = sortedTabs.filter(t => !t.pinned);
-
-  if (tabSortType === 'dateAddedNewest') {
-    unpinnedTabs.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
-  } else if (tabSortType === 'dateAddedOldest') {
-    unpinnedTabs.sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0));
-  } else if (tabSortType === 'titleAsc') {
-    unpinnedTabs.sort((a, b) => (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' }));
-  } else if (tabSortType === 'titleDesc') {
-    unpinnedTabs.sort((a, b) => (b.title || '').localeCompare(a.title || '', undefined, { sensitivity: 'base' }));
-  }
-
-  // Combine pinned and sorted unpinned tabs
-  sortedTabs = [...pinnedTabs, ...unpinnedTabs];
-
-  if (sortedTabs.length === 0) {
-    container.innerHTML = '<div class="empty-tabs-message"><i class="fas fa-info-circle"></i> No tabs in this collection</div>';
-    return;
-  }
-
-  const fragment = document.createDocumentFragment();
-  sortedTabs.forEach((tab, index) => {
-    const tabEl = renderTab(tab, collection.id, index + 1);
-    fragment.appendChild(tabEl);
-  });
-  container.appendChild(fragment);
-}
-
-function renderTab(tab, collectionId, tabNumber) {
-  const template = document.getElementById('tabTemplate');
-  const clone = template.content.cloneNode(true);
-  const tabEl = clone.querySelector('.tab-item');
-  tabEl.dataset.id = tab.id;
-
-  const tabNumberEl = tabEl.querySelector('.tab-number');
-  const tabFaviconImg = tabEl.querySelector('.tab-favicon-img');
-  const titleInput = tabEl.querySelector('.tab-title');
-  const urlSpan = tabEl.querySelector('.tab-url');
-  const editBtn = tabEl.querySelector('.edit-tab-btn');
-  const openBtn = tabEl.querySelector('.open-tab-btn');
-  const removeBtn = tabEl.querySelector('.remove-tab-btn');
-
-  if (tabNumberEl) {
-    tabNumberEl.textContent = tabNumber;
-  }
-  if (tabFaviconImg) {
-    tabFaviconImg.src = getFaviconUrl(tab.url);
-  }
-
-  titleInput.value = tab.title;
-  urlSpan.textContent = tab.url.length > 50 ? tab.url.slice(0, 50) + '...' : tab.url;
-  urlSpan.title = tab.url;
-
-  // Pin tab button handling
-  const pinBtn = tabEl.querySelector('.pin-tab-btn');
-  if (pinBtn) {
-    if (collectionId === CURRENT_SESSION_ID) {
-      pinBtn.style.display = 'none';
-    } else {
-      if (tab.pinned) {
-        pinBtn.classList.add('pinned');
-        tabEl.classList.add('pinned');
-        pinBtn.title = 'Unpin Tab';
-      } else {
-        pinBtn.classList.remove('pinned');
-        tabEl.classList.remove('pinned');
-        pinBtn.title = 'Pin Tab';
-      }
-      pinBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        togglePinTab(collectionId, tab.id);
-      });
-    }
-  }
-
-  // Toggle tab dropdown menu
-  const tabMenuBtn = tabEl.querySelector('.tab-menu-btn');
-  const tabDropdownMenu = tabEl.querySelector('.tab-dropdown-menu');
-  if (tabMenuBtn && tabDropdownMenu) {
-    tabMenuBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      document.querySelectorAll('.collection-dropdown-menu, .tab-dropdown-menu').forEach(menu => {
-        if (menu !== tabDropdownMenu) menu.classList.add('hidden');
-      });
-      tabDropdownMenu.classList.toggle('hidden');
-    });
-    // Auto-close menu when clicking any action option inside it
-    tabDropdownMenu.addEventListener('click', (e) => {
-      e.stopPropagation();
-      tabDropdownMenu.classList.add('hidden');
-    });
-  }
-
-  // Editing state
-  if (editingTabId === tab.id) {
-    titleInput.focus();
-    titleInput.select();
-  }
-
-  // Event listeners
-  titleInput.addEventListener('change', (e) => {
-    updateTabTitle(collectionId, tab.id, e.target.value);
-  });
-  titleInput.addEventListener('blur', (e) => {
-    if (editingTabId === tab.id) editingTabId = null;
-    updateTabTitle(collectionId, tab.id, e.target.value);
-    titleInput.readOnly = true;
-    if (editBtn) {
-      const iElement = editBtn.querySelector('i');
-      if (iElement) iElement.className = 'fas fa-edit';
-      editBtn.title = 'Edit tab title';
-    }
-  });
-  titleInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.target.blur();
-    } else if (e.key === 'Escape') {
-      e.target.value = tab.title;
-      e.target.blur();
-    }
-  });
-  titleInput.addEventListener('focus', () => {
-    editingTabId = tab.id;
-  });
-
-  // Edit button for tab title
-  editBtn.addEventListener('click', () => {
-    const isEditing = titleInput.readOnly === false;
-    if (isEditing) {
-      // Currently editing, save and switch back to edit icon
-      titleInput.readOnly = true;
-      editBtn.querySelector('i').className = 'fas fa-edit';
-      editBtn.title = 'Edit tab title';
-      // Trigger update
-      updateTabTitle(collectionId, tab.id, titleInput.value);
-    } else {
-      // Start editing, switch to tick icon
-      titleInput.readOnly = false;
-      titleInput.focus();
-      titleInput.select();
-      editBtn.querySelector('i').className = 'fas fa-check';
-      editBtn.title = 'Save tab title';
-    }
-  });
-
-  // Open tab button — honours RAM Saver: discards tab so it only loads when clicked
-  openBtn.addEventListener('click', async () => {
-    let url = tab.url;
-    if (!url) return;
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = 'https://' + url;
-    }
-    try {
-      const createdTab = await api.tabs.create({ url, active: false });
-      const state = await getState();
-      if (state.ramSaverEnabled && createdTab && createdTab.id) {
-        discardWhenLoaded(createdTab.id);
-        showToast('Tab opened (RAM Saver — loads on click)');
-      } else {
-        showToast('Tab opened in background');
-      }
-    } catch (err) {
-      console.error('Failed to open tab:', url, err);
-    }
-  });
-
-  // Direct click to open tab (no RAM Saver, opens in new tab)
-  const openTabDirectly = async (e) => {
-    e.stopPropagation();
-    let url = tab.url;
-    if (!url) return;
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = 'https://' + url;
-    }
-    try {
-      await api.tabs.create({ url, active: true });
-    } catch (err) {
-      console.error('Failed to open tab directly:', url, err);
-    }
-  };
-
-  if (tabFaviconImg) {
-    tabFaviconImg.addEventListener('click', openTabDirectly);
-    const tabIconContainer = tabEl.querySelector('.tab-icon');
-    if (tabIconContainer) {
-      tabIconContainer.addEventListener('click', openTabDirectly);
-    }
-  }
-  if (urlSpan) {
-    urlSpan.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      try {
-        await navigator.clipboard.writeText(tab.url);
-        showToast('Link copied to clipboard', 500);
-      } catch (err) {
-        console.error('Failed to copy tab link:', err);
-        showToast('Failed to copy link');
-      }
-    });
-  }
-  if (titleInput) {
-    titleInput.addEventListener('click', (e) => {
-      if (titleInput.readOnly) {
-        openTabDirectly(e);
-      }
-    });
-  }
-
-  removeBtn.addEventListener('click', () => removeTab(collectionId, tab.id));
-
-  // Drag and drop events for tabs
-  const tabDragHandle = tabEl.querySelector('.tab-drag-handle');
-  if (tabDragHandle) {
-    tabDragHandle.addEventListener('mousedown', () => {
-      tabEl.setAttribute('draggable', 'true');
-    });
-    tabDragHandle.addEventListener('mouseup', () => {
-      tabEl.setAttribute('draggable', 'false');
-    });
-    tabDragHandle.addEventListener('touchstart', () => {
-      tabEl.setAttribute('draggable', 'true');
-    });
-    tabDragHandle.addEventListener('touchend', () => {
-      tabEl.setAttribute('draggable', 'false');
-    });
-  }
-
-  tabEl.addEventListener('dragstart', (e) => {
-    draggedItem = {
-      type: 'tab',
-      id: tab.id,
-      sourceCollectionId: collectionId
-    };
-    e.dataTransfer.effectAllowed = 'move';
-    tabEl.classList.add('dragging');
-    e.stopPropagation();
-  });
-
-  tabEl.addEventListener('dragend', (e) => {
-    tabEl.classList.remove('dragging');
-    tabEl.setAttribute('draggable', 'false');
-    draggedItem = null;
-    document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('drag-over'));
-  });
-
-  tabEl.addEventListener('dragover', (e) => {
-    if (draggedItem && draggedItem.type === 'tab') {
-      e.preventDefault();
-      tabEl.classList.add('drag-over');
-    }
-  });
-
-  tabEl.addEventListener('dragleave', () => {
-    tabEl.classList.remove('drag-over');
-  });
-
-  tabEl.addEventListener('drop', async (e) => {
-    e.preventDefault();
-    tabEl.classList.remove('drag-over');
-    
-    if (draggedItem && draggedItem.type === 'tab') {
-      const sourceTabId = draggedItem.id;
-      const sourceCollId = draggedItem.sourceCollectionId;
-      const targetTabId = tab.id;
-      const targetCollId = collectionId;
-      
-      if (sourceCollId === targetCollId) {
-        if (sourceTabId !== targetTabId) {
-          await reorderTabsWithinCollection(sourceCollId, sourceTabId, targetTabId);
-        }
-      } else {
-        await moveTabToCollectionAtPosition(sourceTabId, sourceCollId, targetCollId, targetTabId);
-      }
-    }
-  });
-
-  return tabEl;
 }
 
 function renderAutoSaveSelect(collections, autoSaveCollectionId) {
@@ -2183,7 +1459,7 @@ async function setupSettingsModal() {
       const enabled = e.target.checked;
       await updateAutoSaveConfig(enabled);
       const newState = await getState();
-      renderCollections(newState);
+      syncLegacyChrome(newState);
       showToast(enabled ? 'Auto-Save enabled' : 'Auto-Save disabled');
     });
   }
@@ -2262,6 +1538,159 @@ async function setupSettingsModal() {
     });
   }
 
+  // ── Google Drive Cloud Backup ───────────────────────────────────────────
+  const gdriveBackupToggle = document.getElementById('gdriveBackupToggle');
+  const gdriveAutoBackupToggle = document.getElementById('gdriveAutoBackupToggle');
+  const gdriveAutoBackupRow = document.getElementById('gdriveAutoBackupRow');
+  const gdriveLastBackupRow = document.getElementById('gdriveLastBackupRow');
+  const gdriveLastBackupLabel = document.getElementById('gdriveLastBackupLabel');
+  const gdriveActionsRow = document.getElementById('gdriveActionsRow');
+  const gdriveManualBackupBtn = document.getElementById('gdriveManualBackupBtn');
+  const gdriveRestoreBtn = document.getElementById('gdriveRestoreBtn');
+  const gdriveDisconnectBtn = document.getElementById('gdriveDisconnectBtn');
+
+  async function loadGDriveStatus() {
+    try {
+      const status = await chrome.runtime.sendMessage({ command: 'gdriveGetStatus' });
+      if (!status || !status.success) return;
+
+      if (gdriveBackupToggle) gdriveBackupToggle.checked = status.enabled;
+      if (gdriveAutoBackupToggle) gdriveAutoBackupToggle.checked = status.autoBackupEnabled;
+
+      const showSubRows = status.enabled;
+      if (gdriveAutoBackupRow) gdriveAutoBackupRow.style.display = showSubRows ? '' : 'none';
+      if (gdriveLastBackupRow) gdriveLastBackupRow.style.display = showSubRows ? '' : 'none';
+      if (gdriveActionsRow) gdriveActionsRow.style.display = showSubRows ? '' : 'none';
+
+      if (gdriveLastBackupLabel) {
+        if (status.lastBackupTimestamp) {
+          const d = new Date(status.lastBackupTime);
+          gdriveLastBackupLabel.textContent = `Last backup: ${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
+        } else {
+          gdriveLastBackupLabel.textContent = 'Last backup: —';
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load GDrive status:', err);
+    }
+  }
+
+  // Load status when settings modal opens
+  if (settingsBtn && settingsModal) {
+    settingsBtn.addEventListener('click', () => {
+      settingsModal.style.display = 'flex';
+      loadGDriveStatus();
+    });
+  }
+
+  // Enable / disable cloud backup
+  if (gdriveBackupToggle) {
+    gdriveBackupToggle.addEventListener('change', async (e) => {
+      const enabled = e.target.checked;
+      await api.storage.local.set({ gdriveBackupEnabled: enabled });
+
+      if (enabled) {
+        // Trigger initial backup + schedule auto-backup alarm if auto-backup is on
+        showToast('☁️ Connecting to Google Drive...');
+        try {
+          const result = await chrome.runtime.sendMessage({ command: 'gdriveBackup' });
+          if (result && result.success) {
+            showToast('☁️ Cloud backup enabled! Data saved to Google Drive.');
+          } else {
+            // Revert toggle on failure
+            gdriveBackupToggle.checked = false;
+            await api.storage.local.set({ gdriveBackupEnabled: false });
+            showToast(`❌ Backup failed: ${result?.error || 'Unknown error'}`);
+          }
+        } catch (err) {
+          gdriveBackupToggle.checked = false;
+          await api.storage.local.set({ gdriveBackupEnabled: false });
+          showToast(`❌ Connection failed: ${err.message}`);
+        }
+      } else {
+        // Disable auto-backup too
+        await api.storage.local.set({ gdriveAutoBackupEnabled: false });
+        await chrome.runtime.sendMessage({ command: 'gdriveEnableAutoBackup', enabled: false });
+        showToast('Cloud backup disabled');
+      }
+      loadGDriveStatus();
+    });
+  }
+
+  // Toggle auto-backup
+  if (gdriveAutoBackupToggle) {
+    gdriveAutoBackupToggle.addEventListener('change', async (e) => {
+      const enabled = e.target.checked;
+      await api.storage.local.set({ gdriveAutoBackupEnabled: enabled });
+      await chrome.runtime.sendMessage({ command: 'gdriveEnableAutoBackup', enabled });
+      showToast(enabled ? '🔄 Daily auto-backup enabled' : 'Auto-backup disabled');
+    });
+  }
+
+  // Manual backup button
+  if (gdriveManualBackupBtn) {
+    gdriveManualBackupBtn.addEventListener('click', async () => {
+      gdriveManualBackupBtn.disabled = true;
+      gdriveManualBackupBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Backing up...';
+      try {
+        const result = await chrome.runtime.sendMessage({ command: 'gdriveBackup' });
+        if (result && result.success) {
+          showToast('☁️ Backup saved to Google Drive!');
+        } else {
+          showToast(`❌ Backup failed: ${result?.error || 'Unknown error'}`);
+        }
+      } catch (err) {
+        showToast(`❌ Backup failed: ${err.message}`);
+      } finally {
+        gdriveManualBackupBtn.disabled = false;
+        gdriveManualBackupBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Backup Now';
+        loadGDriveStatus();
+      }
+    });
+  }
+
+  // Restore from Drive button
+  if (gdriveRestoreBtn) {
+    gdriveRestoreBtn.addEventListener('click', async () => {
+      if (!confirm('This will overwrite your current collections with the Google Drive backup. Continue?')) return;
+      gdriveRestoreBtn.disabled = true;
+      gdriveRestoreBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Restoring...';
+      try {
+        const result = await chrome.runtime.sendMessage({ command: 'gdriveRestore' });
+        if (result && result.success) {
+          showToast(`✅ Restored ${result.collectionsCount} collections from Drive!`);
+          // Refresh the UI
+          const newState = await getState();
+          syncLegacyChrome(newState);
+        } else {
+          showToast(`❌ Restore failed: ${result?.error || 'Unknown error'}`);
+        }
+      } catch (err) {
+        showToast(`❌ Restore failed: ${err.message}`);
+      } finally {
+        gdriveRestoreBtn.disabled = false;
+        gdriveRestoreBtn.innerHTML = '<i class="fas fa-cloud-download-alt"></i> Restore from Drive';
+        loadGDriveStatus();
+      }
+    });
+  }
+
+  // Disconnect button
+  if (gdriveDisconnectBtn) {
+    gdriveDisconnectBtn.addEventListener('click', async () => {
+      if (!confirm('Disconnect Google Drive? This will remove the backup from Drive.')) return;
+      try {
+        await chrome.runtime.sendMessage({ command: 'gdriveDeleteBackup' });
+      } catch (e) { /* ignore */ }
+      await api.storage.local.set({ gdriveBackupEnabled: false, gdriveAutoBackupEnabled: false });
+      await chrome.runtime.sendMessage({ command: 'gdriveEnableAutoBackup', enabled: false });
+      try {
+        await chrome.runtime.sendMessage({ command: 'gdriveSignOut' });
+      } catch (e) { /* ignore */ }
+      showToast('Google Drive disconnected');
+      loadGDriveStatus();
+    });
+  }
 
 }
 
@@ -2269,7 +1698,6 @@ async function setupSettingsModal() {
 
 // ==================== SEARCH / FILTER ====================
 let searchDebounceTimer = null;
-let tabSearchDebounceTimers = {};
 
 /**
  * Global search — shows results in two sections:
@@ -2287,12 +1715,6 @@ async function filterResults(query) {
   if (!q) {
     container.style.display  = '';
     if (resultsBox) { resultsBox.style.display = 'none'; resultsBox.innerHTML = ''; }
-    container.querySelectorAll('.collection').forEach(el => {
-      el.classList.remove('search-hidden', 'search-fade-in');
-    });
-    elements.emptyState.classList.toggle(
-      'hidden', container.querySelectorAll('.collection').length > 0
-    );
     return;
   }
 
@@ -2423,7 +1845,7 @@ async function filterResults(query) {
         collEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         const tabs = collEl.querySelector('.collection-tabs');
         if (tabs && !tabs.classList.contains('expanded')) {
-          toggleCollectionExpanded(collId);
+          setCollectionExpandedFromLegacy(collId, true);
         }
       }, 60);
     });
@@ -2470,60 +1892,9 @@ function highlightMatch(text, query) {
   );
 }
 
-
-/**
- * Live‑filter tabs within a single expanded collection.
- * Walks every `.tab-item` inside the given collection element,
- * matching tab title and URL against the query.
- */
-function filterTabsInCollection(collectionEl, query) {
-  const q = (query || '').trim().toLowerCase();
-  const tabsList = collectionEl.querySelector('.tabs-list');
-  if (!tabsList) return;
-
-  // Remove any previous per-collection "no results" banner
-  const oldNoResults = collectionEl.querySelector('.collection-tabs-no-results');
-  if (oldNoResults) oldNoResults.remove();
-
-  const tabItems = tabsList.querySelectorAll('.tab-item');
-
-  // If the query is empty, show all tabs
-  if (!q) {
-    tabItems.forEach(tabEl => {
-      tabEl.classList.remove('search-hidden', 'search-highlight');
-    });
-    return;
-  }
-
-  let anyVisible = false;
-
-  tabItems.forEach(tabEl => {
-    const titleInput = tabEl.querySelector('.tab-title');
-    const urlDiv = tabEl.querySelector('.tab-url');
-    const title = (titleInput ? titleInput.value : '').toLowerCase();
-    const url = (urlDiv ? (urlDiv.title || urlDiv.textContent) : '').toLowerCase();
-
-    if (title.includes(q) || url.includes(q)) {
-      tabEl.classList.remove('search-hidden');
-      tabEl.classList.add('search-highlight');
-      anyVisible = true;
-    } else {
-      tabEl.classList.add('search-hidden');
-      tabEl.classList.remove('search-highlight');
-    }
-  });
-
-  if (!anyVisible) {
-    const noResults = document.createElement('div');
-    noResults.className = 'collection-tabs-no-results';
-    noResults.textContent = 'No tabs match your search.';
-    const tabsContainer = collectionEl.querySelector('.collection-tabs');
-    tabsContainer.appendChild(noResults);
-  }
-}
-
 async function renderOpenTabsList() {
   const tabs = await api.tabs.query({ currentWindow: true });
+  openTabsGroupMeta = await captureGroupMeta(tabs);
   const container = elements.openTabsList;
   container.innerHTML = '';
 
@@ -2541,6 +1912,7 @@ async function renderOpenTabsList() {
     checkbox.dataset.id = tab.id;
     checkbox.dataset.title = displayTitle;
     checkbox.dataset.url = tab.url;
+    checkbox.dataset.groupId = normalizeGroupId(tab.groupId) ?? '';
     if (faviconImg) {
       faviconImg.src = getFaviconUrl(tab.url);
     }
@@ -2671,15 +2043,8 @@ function setupEventListeners() {
         s.layoutViewMode = newLayout;
       });
 
-      // Apply layout change dynamically and smoothly
-      const container = elements.collectionsContainer;
-      if (newLayout === 'grid') {
-        container.classList.add('grid-view');
-        updateLayoutIcon(true);
-      } else {
-        container.classList.remove('grid-view');
-        updateLayoutIcon(false);
-      }
+      // The React list applies the grid/list classes from the store; only the icon is legacy.
+      updateLayoutIcon(newLayout === 'grid');
     });
   }
 
@@ -2689,10 +2054,6 @@ function setupEventListeners() {
   if (sortColBtn && sortColMenu) {
     sortColBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      // Close other dropdowns first
-      document.querySelectorAll('.sort-dropdown-menu').forEach(menu => {
-        if (menu !== sortColMenu) menu.classList.add('hidden');
-      });
       sortColMenu.classList.toggle('hidden');
     });
 
@@ -2705,24 +2066,19 @@ function setupEventListeners() {
           state.collectionSortType = value;
         });
         const state = await getState();
-        renderCollections(state);
+        syncLegacyChrome(state);
         sortColMenu.classList.add('hidden');
       }
     });
   }
 
-  // Close any open sort dropdown menus on click outside
+  // Close the collections sort dropdown on click outside. The per-collection and per-tab menus
+  // now belong to the React cards, which close themselves — never touch their DOM from here.
   document.addEventListener('click', (e) => {
-    document.querySelectorAll('.sort-dropdown-menu').forEach(menu => {
-      if (!menu.classList.contains('hidden') && !menu.parentNode.contains(e.target)) {
-        menu.classList.add('hidden');
-      }
-    });
-    document.querySelectorAll('.collection-dropdown-menu, .tab-dropdown-menu').forEach(menu => {
-      if (!menu.classList.contains('hidden') && !menu.parentNode.contains(e.target)) {
-        menu.classList.add('hidden');
-      }
-    });
+    const sortColMenu = document.getElementById('collectionsSortMenu');
+    if (sortColMenu && !sortColMenu.classList.contains('hidden') && !sortColMenu.parentNode.contains(e.target)) {
+      sortColMenu.classList.add('hidden');
+    }
   });
 
   // Create collection
@@ -2735,7 +2091,7 @@ function setupEventListeners() {
         actionsBarDefault.classList.remove('hidden');
       }
       const state = await getState();
-      renderCollections(state);
+      syncLegacyChrome(state);
     }
   });
 
@@ -2749,7 +2105,7 @@ function setupEventListeners() {
           actionsBarDefault.classList.remove('hidden');
         }
         const state = await getState();
-        renderCollections(state);
+        syncLegacyChrome(state);
       }
     }
   });
@@ -2771,19 +2127,7 @@ function setupEventListeners() {
   elements.closeModal.addEventListener('click', closeAddTabsModal);
   elements.cancelModal.addEventListener('click', closeAddTabsModal);
 
-  // View Collection Modal
-  const viewCollectionModal = document.getElementById('viewCollectionModal');
-  const closeViewColModalBtn = document.getElementById('closeViewCollectionModal');
-  if (closeViewColModalBtn) {
-    closeViewColModalBtn.addEventListener('click', closeViewCollectionModal);
-  }
-  if (viewCollectionModal) {
-    viewCollectionModal.addEventListener('click', (e) => {
-      if (e.target === viewCollectionModal) {
-        closeViewCollectionModal();
-      }
-    });
-  }
+  // The grid-view collection modal is React-owned (src/features/collections).
 
   // Tab mode switching
   elements.tabModeSelector.addEventListener('click', (e) => {
@@ -2800,7 +2144,7 @@ function setupEventListeners() {
       elements.tabTitle.value = '';
       elements.tabUrl.value = '';
       const state = await getState();
-      renderCollections(state);
+      syncLegacyChrome(state);
       closeAddTabsModal();
     }
   });
@@ -2810,11 +2154,12 @@ function setupEventListeners() {
     const checkboxes = elements.openTabsList.querySelectorAll('.tab-checkbox:checked');
     const tabs = Array.from(checkboxes).map(cb => ({
       title: cb.dataset.title,
-      url: cb.dataset.url
+      url: cb.dataset.url,
+      groupId: cb.dataset.groupId === '' ? null : Number(cb.dataset.groupId)
     }));
-    await addTabsFromSelection(currentCollectionId, tabs);
+    await addTabsFromSelection(currentCollectionId, tabs, openTabsGroupMeta);
     const state = await getState();
-    renderCollections(state);
+    syncLegacyChrome(state);
     closeAddTabsModal();
   });
 
@@ -2838,7 +2183,7 @@ function setupEventListeners() {
         console.log('Storage changed, refreshing UI');
         // Refresh the UI with updated state
         getState().then(state => {
-          renderCollections(state);
+          syncLegacyChrome(state);
           // Re‑apply active search filter after the re‑render
           if (elements.searchBox && elements.searchBox.value.trim()) {
             filterResults(elements.searchBox.value);
@@ -2938,14 +2283,59 @@ async function init() {
     await setState(state);
     // Re‑fetch state after update
     const updatedState = await getState();
-    renderCollections(updatedState);
+    syncLegacyChrome(updatedState);
   } else {
-    renderCollections(state);
+    syncLegacyChrome(state);
   }
 }
 
 // Start the extension
 document.addEventListener('DOMContentLoaded', init);
+
+// ==================== REACT UI ADAPTER ====================
+// The collection list is React-owned since Phase 2 (react-migration-plan.md §8). React reaches
+// the actions that still live here through `window.TCMLegacyUI`; src/app/legacy-ui.js is the
+// only caller. Delete this whole section together with the rest of popup.js in Phase 5.
+
+/**
+ * Open a saved tab. `active: true` behaves like clicking the row (loads immediately); the
+ * background variant honours RAM Saver, exactly like the old tab menu entry.
+ */
+async function openSavedTab(url, options = {}) {
+  if (!url) return;
+  const active = options.active !== false;
+  const target = (url.startsWith('http://') || url.startsWith('https://')) ? url : 'https://' + url;
+
+  try {
+    const createdTab = await api.tabs.create({ url: target, active });
+    if (active) return;
+
+    const state = await getState();
+    if (state.ramSaverEnabled && createdTab && createdTab.id) {
+      discardWhenLoaded(createdTab.id);
+      showToast('Tab opened (RAM Saver — loads on click)');
+    } else {
+      showToast('Tab opened in background');
+    }
+  } catch (err) {
+    console.error('Failed to open tab:', target, err);
+  }
+}
+
+window.TCMLegacyUI = {
+  toast: (message, duration) => showToast(message, duration),
+  toggleCollectionPin: (collectionId) => togglePinCollection(collectionId),
+  toggleTabPin: (collectionId, tabId) => togglePinTab(collectionId, tabId),
+  renameCollection: (collectionId, name) => renameCollection(collectionId, name),
+  deleteCollection: (collectionId) => deleteCollection(collectionId),
+  removeTab: (collectionId, tabId) => removeTab(collectionId, tabId),
+  renameTab: (collectionId, tabId, title) => updateTabTitle(collectionId, tabId, title),
+  openSavedTab,
+  openAllTabs: (collectionId) => openAllTabsInCollection(collectionId),
+  openAddTabs: (collectionId) => openAddTabsModal(collectionId),
+  importTabs: (collectionId) => importCollection(collectionId),
+  exportCollection: (collection) => exportCollection(collection)
+};
 
 // ==================== DRAG AND DROP HELPERS ====================
 async function reorderCollections(sourceId, targetId) {
@@ -2961,7 +2351,7 @@ async function reorderCollections(sourceId, targetId) {
     }
     state.collections = partitionCollections(state.collections);
   });
-  renderCollections(newState);
+  syncLegacyChrome(newState);
 }
 
 async function moveTabToCollection(tabId, sourceCollId, targetCollId) {
@@ -2997,7 +2387,7 @@ async function moveTabToCollection(tabId, sourceCollId, targetCollId) {
   if (!canMove) {
     alert(`Cannot move tab. Maximum ${MAX_TABS_PER_COLLECTION} tabs per collection.`);
   } else {
-    renderCollections(newState);
+    syncLegacyChrome(newState);
   }
 }
 
@@ -3018,7 +2408,7 @@ async function reorderTabsWithinCollection(collectionId, sourceTabId, targetTabI
       collection.tabs = partitionTabs(collection.tabs);
     }
   });
-  renderCollections(newState);
+  syncLegacyChrome(newState);
 }
 
 async function moveTabToCollectionAtPosition(tabId, sourceCollId, targetCollId, targetTabId) {
@@ -3058,7 +2448,7 @@ async function moveTabToCollectionAtPosition(tabId, sourceCollId, targetCollId, 
   if (!canMove) {
     alert(`Cannot move tab. Maximum ${MAX_TABS_PER_COLLECTION} tabs per collection.`);
   } else {
-    renderCollections(newState);
+    syncLegacyChrome(newState);
   }
 }
 
@@ -3140,7 +2530,7 @@ async function toggleExpandAllCollections() {
   const newState = await updateState(s => {
     s.collections.forEach(c => { c.isExpanded = expand; });
   });
-  renderCollections(newState);
+  syncLegacyChrome(newState);
   showToast(expand ? 'All collections expanded' : 'All collections collapsed', 1500);
 }
 
@@ -3156,12 +2546,12 @@ async function expandCurrentSessionOnly() {
       c.isExpanded = (c.id === CURRENT_SESSION_ID);
     });
   });
-  renderCollections(newState);
+  syncLegacyChrome(newState);
   showToast('Current Session expanded', 1200);
 }
 
 // Shared list of modal overlay IDs — used by closeTopModal() and isAnyModalOpen()
-const MODAL_IDS = ['shortcutsHelpModal', 'sessionDetailsModal', 'historyModal', 'viewCollectionModal', 'duplicateUrlDialog', 'settingsModal', 'addTabsModal'];
+const MODAL_IDS = ['shortcutsHelpModal', 'sessionDetailsModal', 'historyModal', 'duplicateUrlDialog', 'settingsModal', 'addTabsModal'];
 
 function openShortcutsHelp() {
   const modal = document.getElementById('shortcutsHelpModal');
@@ -3216,9 +2606,7 @@ function closeTopModal() {
   for (const id of MODAL_IDS) {
     const modal = document.getElementById(id);
     if (modal && modal.style.display === 'flex') {
-      if (id === 'viewCollectionModal') {
-        closeViewCollectionModal(); // moves tabs container back to its card
-      } else if (id === 'addTabsModal') {
+      if (id === 'addTabsModal') {
         closeAddTabsModal(); // resets modal state & currentCollectionId
       } else if (id === 'duplicateUrlDialog') {
         // Click cancel so the awaiting duplicate-confirm promise resolves
@@ -3256,15 +2644,12 @@ function closeOpenSlides() {
   return closed;
 }
 
+/** Escape closes the collections sort menu; the React cards close their own menus. */
 function closeOpenDropdowns() {
-  let closed = false;
-  document.querySelectorAll('.sort-dropdown-menu, .collection-dropdown-menu, .tab-dropdown-menu').forEach(menu => {
-    if (!menu.classList.contains('hidden')) {
-      menu.classList.add('hidden');
-      closed = true;
-    }
-  });
-  return closed;
+  const sortColMenu = document.getElementById('collectionsSortMenu');
+  if (!sortColMenu || sortColMenu.classList.contains('hidden')) return false;
+  sortColMenu.classList.add('hidden');
+  return true;
 }
 
 document.addEventListener('keydown', (e) => {

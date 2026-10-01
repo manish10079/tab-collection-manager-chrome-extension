@@ -94,14 +94,10 @@
         </div>
       </div>
 
-      <div class="collections-container" id="collectionsContainer">
-        <!-- Collections will be rendered here -->
-        <div class="empty-state" id="emptyState">
-          <i class="fas fa-inbox"></i>
-          <h3>No collections yet</h3>
-          <p>Create your first collection to start organizing tabs</p>
-        </div>
-      </div>
+      <!-- Rendered by React (src/features/collections) straight from chrome.storage.local.
+           The container keeps its legacy id and classes so popup.css and the remaining
+           legacy lookups stay valid. -->
+      <div class="collections-container" id="collectionsContainer"></div>
 
       <!-- Global search results (shown instead of collectionsContainer when a query is active) -->
       <div id="searchResultsContainer" class="search-results-container"></div>
@@ -289,6 +285,66 @@
             </div>
           </div>
 
+          <!-- Section: Cloud Backup (Google Drive) -->
+          <div class="settings-card">
+            <div class="settings-card-header">
+              <i class="fas fa-cloud settings-card-icon"></i>
+              <span>Cloud Backup <span class="ram-saver-badge">☁️ Google Drive</span></span>
+            </div>
+            <div class="settings-card-body">
+              <div class="settings-row">
+                <div class="settings-row-left">
+                  <div class="settings-row-icon"><i class="fab fa-google-drive"></i></div>
+                  <div class="settings-row-text">
+                    <span class="settings-row-label">Enable Cloud Backup</span>
+                    <span class="settings-row-desc">Save all collections to your Google Drive (private app data folder)</span>
+                  </div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="gdriveBackupToggle" class="toggle-input">
+                  <span class="toggle-track">
+                    <span class="toggle-thumb"></span>
+                  </span>
+                </label>
+              </div>
+              <div class="settings-row" id="gdriveAutoBackupRow" style="display: none;">
+                <div class="settings-row-left">
+                  <div class="settings-row-icon"><i class="fas fa-sync-alt"></i></div>
+                  <div class="settings-row-text">
+                    <span class="settings-row-label">Auto-Backup Daily</span>
+                    <span class="settings-row-desc">Automatically back up once per day in the background</span>
+                  </div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="gdriveAutoBackupToggle" class="toggle-input">
+                  <span class="toggle-track">
+                    <span class="toggle-thumb"></span>
+                  </span>
+                </label>
+              </div>
+              <div class="settings-row" id="gdriveLastBackupRow" style="display: none;">
+                <div class="settings-row-left">
+                  <div class="settings-row-icon"><i class="fas fa-clock"></i></div>
+                  <div class="settings-row-text">
+                    <span class="settings-row-label" id="gdriveLastBackupLabel">Last backup: —</span>
+                    <span class="settings-row-desc">Stored in your private Drive app data folder</span>
+                  </div>
+                </div>
+              </div>
+              <div class="settings-row-actions" id="gdriveActionsRow" style="display: none;">
+                <button class="btn-secondary cloud-backup-btn" id="gdriveManualBackupBtn">
+                  <i class="fas fa-cloud-upload-alt"></i> Backup Now
+                </button>
+                <button class="btn-secondary cloud-backup-btn" id="gdriveRestoreBtn">
+                  <i class="fas fa-cloud-download-alt"></i> Restore from Drive
+                </button>
+                <button class="btn-outline cloud-backup-btn" id="gdriveDisconnectBtn">
+                  <i class="fas fa-unlink"></i> Disconnect
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- Section: Limits -->
           <div class="settings-card">
             <div class="settings-card-header">
@@ -365,132 +421,7 @@
       </div>
     </div>
 
-    <!-- View Collection Modal (for Grid View) -->
-    <div class="modal-overlay" id="viewCollectionModal" style="display: none;">
-      <div class="modal view-collection-modal">
-        <div class="modal-header">
-          <h3 id="modalCollectionName"><i class="fas fa-folder-open"></i> Collection Name</h3>
-          <button class="close-modal" id="closeViewCollectionModal">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div id="modalCollectionTabs">
-            <!-- Dynamically moved from collection card -->
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
-
-  <template id="collectionTemplate">
-    <div class="collection" data-id="" draggable="false">
-      <div class="collection-header">
-        <div class="collection-left-section">
-          <div class="collection-drag-handle drag-handle" title="Drag to reorder collection">
-            <i class="fas fa-grip-vertical"></i>
-          </div>
-          <button class="expand-btn">
-            <i class="fas fa-chevron-right"></i>
-          </button>
-          <input type="text" class="collection-name" value="" maxlength="50" readonly>
-        </div>
-        <div class="collection-right-section">
-          <div class="collection-meta">
-            <span class="tab-count">0 tabs</span>
-            <span class="meta-dot">•</span>
-            <span class="updated-time">just now</span>
-          </div>
-          
-          <div class="collection-actions">
-            <button class="icon-btn pin-collection-btn" title="Pin Collection">
-              <i class="fas fa-thumbtack"></i>
-            </button>
-            <button class="icon-btn collection-menu-btn" title="Collection options">
-              <i class="fas fa-ellipsis-v"></i>
-            </button>
-            <div class="collection-dropdown-menu hidden">
-              <button class="dropdown-option open-all-tabs-btn" title="Open all tabs">
-                <i class="fas fa-external-link-square-alt"></i> Open all tabs
-              </button>
-              <button class="dropdown-option edit-collection-btn" title="Edit collection name">
-                <i class="fas fa-pen"></i> Edit collection name
-              </button>
-              <button class="dropdown-option add-tabs-btn" title="Add tabs to the collection">
-                <i class="fas fa-plus"></i> Add new tab 
-              </button>
-              <button class="dropdown-option share-collection-btn" title="Share collection">
-                <i class="fas fa-share-alt"></i> Share collection
-              </button>
-              <button class="dropdown-option delete-collection-btn" title="Delete collection">
-                <i class="fas fa-trash"></i> Remove collection
-              </button>
-            </div>
-          </div>
-
-        </div>
-      </div>
-      <div class="collection-tabs">
-        <div class="collection-tab-search">
-          <input type="text" class="collection-tab-search-input" placeholder="Search tabs…" autocomplete="off" spellcheck="false" />
-          <button class="icon-btn import-tabs-btn" title="Import tabs (JSON)">
-            <i class="fas fa-file-import"></i>
-          </button>
-          <button class="icon-btn export-tabs-btn" title="Export tabs (JSON)">
-            <i class="fas fa-file-export"></i>
-          </button>
-          <div class="sort-tabs-container">
-            <button class="icon-btn sort-tabs-btn" title="Sort Tabs">
-              <i class="fas fa-arrow-up-wide-short"></i>
-            </button>
-            <div class="sort-dropdown-menu hidden">
-              <div class="sort-option" data-value="custom"><i class="fas fa-grip-vertical"></i> Custom Order</div>
-              <div class="sort-option" data-value="dateAddedNewest"><i class="fas fa-calendar-alt"></i> Date Added (Newest)</div>
-              <div class="sort-option" data-value="dateAddedOldest"><i class="fas fa-calendar-day"></i> Date Added (Oldest)</div>
-              <div class="sort-option" data-value="titleAsc"><i class="fas fa-sort-alpha-down"></i> Title (A-Z)</div>
-              <div class="sort-option" data-value="titleDesc"><i class="fas fa-sort-alpha-up"></i> Title (Z-A)</div>
-            </div>
-          </div>
-        </div>
-        <div class="tabs-list">
-          <!-- Tabs will be inserted here -->
-        </div>
-      </div>
-    </div>
-  </template>
-
-  <template id="tabTemplate">
-    <div class="tab-item" data-id="" draggable="false">
-      <div class="tab-drag-handle drag-handle" title="Drag to reorder tab">
-        <i class="fas fa-grip-vertical"></i>
-      </div>
-      <span class="tab-number"></span>
-      <div class="tab-icon">
-        <img class="tab-favicon-img" src="icons/icon16.png" alt="" onerror="this.src='icons/icon16.png';">
-      </div>
-      <div class="tab-content">
-        <input type="text" class="tab-title" value="" placeholder="Untitled" readonly>
-        <div class="tab-url" title=""></div>
-      </div>
-      <div class="tab-menu-container">
-        <button class="icon-btn pin-tab-btn" title="Pin Tab">
-          <i class="fas fa-thumbtack"></i>
-        </button>
-        <button class="icon-btn tab-menu-btn" title="Tab options">
-          <i class="fas fa-ellipsis-v"></i>
-        </button>
-        <div class="tab-dropdown-menu hidden">
-          <button class="dropdown-option edit-tab-btn" title="Edit tab title">
-            <i class="fas fa-edit"></i> Edit tab title
-          </button>
-          <button class="dropdown-option open-tab-btn" title="Open tab in background">
-            <i class="fas fa-external-link-alt"></i> Open tab
-          </button>
-          <button class="dropdown-option remove-tab-btn" title="Remove tab">
-            <i class="fas fa-trash"></i> Remove tab
-          </button>
-        </div>
-      </div>
-    </div>
-  </template>
 
   <template id="openTabTemplate">
     <div class="open-tab-item">
