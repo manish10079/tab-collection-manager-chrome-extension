@@ -31,6 +31,11 @@ yarn.lock
 # The build is copied to dist/; load that folder unpacked
 dist/
 
+# Test artifacts
+# Playwright traces, screenshots, videos and the HTML report
+test-results/
+playwright-report/
+
 # Local issue files
 issue.txt
 

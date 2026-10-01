@@ -1,0 +1,327 @@
+// End-to-end walk of the built panel (react-migration-plan.md §9).
+//
+// These tests drive `dist/` loaded unpacked into Playwright's Chromium, which is what used to be a
+// manual smoke pass: they cover the parts jsdom cannot — the MV3 worker, the real `chrome.*` APIs,
+// the real stylesheet, storage surviving a reload, and the packaged extension loading at all.
+import { test, expect } from './fixtures.js';
+
+/**
+ * The values of a set of inputs, so an assertion never depends on DOM order.
+ *
+ * @param {import('@playwright/test').Locator} locator
+ * @returns {Promise<string[]>}
+ */
+async function values(locator) {
+  return locator.evaluateAll((inputs) => inputs.map((input) => input.value));
+}
+
+/**
+ * The card for a named collection.
+ *
+ * A collection's name lives in an input's *value*, which no Playwright selector can match, and the
+ * card carries only `data-id` — so the id is resolved from the DOM and a locator is pinned to it.
+ * Resolving it also waits for the card to appear, which is what makes creating one race-free.
+ *
+ * @param {import('@playwright/test').Page} panel
+ * @param {string} name
+ */
+async function cardFor(panel, name) {
+  // The poll reports the whole panel state rather than just the id, so a timeout says *why* the
+  // card is missing (no cards at all? a storage error on boot?) instead of only that it is.
+  let state = /** @type {{id?: string, names: string[], storageError: string|null}|null} */ (null);
+  await expect
+    .poll(
+      async () => {
+        state = await panel.evaluate((wanted) => {
+          const inputs = [
+            ...document.querySelectorAll('#collectionsContainer input.collection-name'),
+          ];
+          return {
+            id: inputs.find((input) => input.value === wanted)?.closest('.collection')?.dataset.id,
+            names: inputs.map((input) => input.value),
+            storageError: document.querySelector('#collectionsContainer .rs-error')?.textContent,
+          };
+        }, name);
+        return state;
+      },
+      { message: `waiting for the "${name}" collection card` }
+    )
+    .toMatchObject({ id: expect.any(String) });
+
+  return panel.locator(`#collectionsContainer > .collection[data-id="${state?.id}"]`);
+}
+
+/**
+ * The collection names `chrome.storage.local` currently holds. Storage is the source of truth
+ * (`skill.md` §2.2), so this is what "saved" means — not what the list happens to be rendering.
+ *
+ * @param {import('@playwright/test').Page} panel
+ * @returns {Promise<string[]>}
+ */
+async function storedNames(panel) {
+  return panel.evaluate(async () => {
+    const { collections = [] } = await chrome.storage.local.get('collections');
+    return collections.map((collection) => collection.name);
+  });
+}
+
+/**
+ * Create a collection the way a user does: open the slide from the controls bar and press Enter.
+ *
+ * @param {import('@playwright/test').Page} panel
+ * @param {string} name
+ */
+async function createCollection(panel, name) {
+  await panel.locator('#toggleCreateBtn').click();
+  const input = panel.getByPlaceholder('New collection name');
+  await expect(input).toBeFocused();
+  await input.fill(name);
+  await input.press('Enter');
+
+  await expect(await cardFor(panel, name)).toBeVisible();
+  // Success closes the slide, so the default actions row is back.
+  await expect(panel.locator('#actionsBarDefault')).not.toHaveClass(/hidden/);
+}
+
+/**
+ * Open a real page in another tab of the same window, and wait until Chrome knows its title.
+ *
+ * @param {import('@playwright/test').BrowserContext} context
+ * @param {string} url
+ * @param {string} title
+ */
+async function openPage(context, url, title) {
+  const page = await context.newPage();
+  await page.goto(url);
+  await expect(page).toHaveTitle(title);
+}
+
+test('loads dist/ unpacked and mounts the React panel', async ({
+  panel,
+  serviceWorker,
+  extensionId,
+}) => {
+  // The worker is the packaged extension's, loaded from the build under test.
+  expect(serviceWorker.url()).toBe(`chrome-extension://${extensionId}/background.js`);
+  expect(panel.url()).toBe(`chrome-extension://${extensionId}/sidepanel.html`);
+
+  await expect(panel.locator('#app-name')).toHaveText('Tab Collection Manager');
+  await expect(panel.locator('#version')).toHaveText(/^v\d+\.\d+\.\d+$/);
+  await expect(panel.locator('#settingsBtn')).toBeVisible();
+  await expect(panel.locator('#toggleCreateBtn')).toBeVisible();
+  await expect(panel.locator('#historyBtn')).toBeVisible();
+
+  // Either the first-run empty state or a collection the worker already auto-saved.
+  await expect(
+    panel.locator('#emptyState').or(panel.locator('#collectionsContainer > .collection').first())
+  ).toBeVisible();
+});
+
+test('creates a collection from the controls bar and keeps it across a reload', async ({
+  panel,
+}) => {
+  await createCollection(panel, 'E2E Reading');
+  await expect((await cardFor(panel, 'E2E Reading')).locator('.tab-count')).toHaveText('0 tabs');
+
+  // The card renders from the store's snapshot, so confirm the write actually reached storage
+  // before reloading — this test is about durability, not about the in-memory list.
+  await expect.poll(() => storedNames(panel)).toContain('E2E Reading');
+
+  await panel.reload();
+
+  // Hydration runs again from storage: the collection is still there, which is the store's write
+  // queue and `chrome.storage.local` round trip proven end to end.
+  await expect(panel.locator('html')).toHaveAttribute('data-theme', /^(light|dark)$/);
+  await expect(await cardFor(panel, 'E2E Reading')).toBeVisible();
+});
+
+test('adds tabs, then edits, pins and removes through the card menus', async ({ panel }) => {
+  await createCollection(panel, 'E2E Tabs');
+  const card = await cardFor(panel, 'E2E Tabs');
+
+  await card.locator('.expand-btn').click();
+  await expect(card.locator('.collection-tabs')).toHaveClass(/expanded/);
+
+  // Manual tab through the collection menu.
+  await card.locator('.collection-menu-btn').click();
+  await card.getByRole('button', { name: 'Add new tab' }).click();
+
+  const addTabs = panel.getByRole('dialog', { name: 'Add Tabs' });
+  await expect(addTabs).toBeVisible();
+  await addTabs.getByLabel('Title').fill('Example docs');
+  await addTabs.getByLabel('URL').fill('https://example.com/docs');
+  await addTabs.getByRole('button', { name: 'Add Tab' }).click();
+  await expect(addTabs).toBeHidden();
+
+  await expect(card.locator('.tab-item')).toHaveCount(1);
+  await expect(card.locator('.tab-title')).toHaveValue('Example docs');
+  await expect(card.locator('.tab-count')).toHaveText('1 tab');
+
+  // The same URL again is a duplicate: it asks first, then adds on confirmation.
+  await card.locator('.collection-menu-btn').click();
+  await card.getByRole('button', { name: 'Add new tab' }).click();
+  await addTabs.getByLabel('Title').fill('Example docs again');
+  await addTabs.getByLabel('URL').fill('https://example.com/docs');
+  await addTabs.getByRole('button', { name: 'Add Tab' }).click();
+
+  const duplicate = panel.getByRole('dialog', { name: 'Duplicate URL Found' });
+  await expect(duplicate).toBeVisible();
+  await duplicate.getByRole('button', { name: 'Add Anyway' }).click();
+  await expect(duplicate).toBeHidden();
+  await expect(addTabs).toBeHidden();
+  await expect(card.locator('.tab-item')).toHaveCount(2);
+
+  // Rename a tab through its own menu; clicking the title would open the tab instead.
+  await card.locator('.tab-menu-btn').first().click();
+  await card.getByRole('button', { name: 'Edit tab title' }).first().click();
+  await card.locator('.tab-title').first().fill('Renamed docs');
+  await card.locator('.tab-title').first().press('Enter');
+  await expect(card.locator('.tab-title').first()).toHaveValue('Renamed docs');
+
+  // Pin the tab, then remove it from the same menu.
+  await card.locator('.pin-tab-btn').first().click();
+  await expect(card.locator('.tab-item').first()).toHaveClass(/pinned/);
+
+  await card.locator('.tab-menu-btn').first().click();
+  await card.getByRole('button', { name: 'Remove tab' }).first().click();
+  await expect(card.locator('.tab-item')).toHaveCount(1);
+
+  // Pin the collection, then rename it.
+  await card.locator('.pin-collection-btn').click();
+  await expect(card).toHaveClass(/pinned/);
+
+  await card.locator('.collection-menu-btn').click();
+  await card.getByRole('button', { name: 'Edit collection name' }).click();
+  await card.locator('.collection-name').fill('E2E Renamed');
+  await card.locator('.collection-name').press('Enter');
+  await expect(await cardFor(panel, 'E2E Renamed')).toBeVisible();
+});
+
+test('imports the window’s open tabs through the multi-select picker', async ({
+  context,
+  panel,
+  tabServer,
+}) => {
+  await openPage(context, tabServer.url('alpha'), 'Alpha page');
+  await openPage(context, tabServer.url('beta'), 'Beta page');
+
+  await createCollection(panel, 'E2E Imported');
+  const card = await cardFor(panel, 'E2E Imported');
+
+  await card.locator('.collection-menu-btn').click();
+  await card.getByRole('button', { name: 'Add new tab' }).click();
+
+  const addTabs = panel.getByRole('dialog', { name: 'Add Tabs' });
+  // The second mode button is "Multi‑Select" (note the non-breaking hyphen, hence the index).
+  await addTabs.locator('.mode-btn').nth(1).click();
+
+  await expect(addTabs.getByLabel('Alpha page')).toBeVisible();
+  await addTabs.getByLabel('Alpha page').check();
+  await addTabs.getByLabel('Beta page').check();
+  await addTabs.getByRole('button', { name: 'Add Selected' }).click();
+  await expect(addTabs).toBeHidden();
+
+  await expect(card.locator('.tab-item')).toHaveCount(2);
+  await expect(card.locator('.tab-count')).toHaveText('2 tabs');
+  // Order-independent: the saved tabs carry the live pages' titles.
+  await expect
+    .poll(async () => (await values(card.locator('.tab-title'))).sort())
+    .toEqual(['Alpha page', 'Beta page']);
+});
+
+test('searches collections and tabs, and returns focus when the search closes', async ({
+  panel,
+}) => {
+  await createCollection(panel, 'Zeta Notes');
+
+  // Ctrl+F focuses the search field.
+  await panel.keyboard.press('Control+f');
+  const input = panel.getByPlaceholder('Search collections or tabs…');
+  await expect(input).toBeFocused();
+
+  await input.fill('zeta');
+  // The results replace the list rather than filtering it in place.
+  const result = panel.locator('.search-collection-result');
+  await expect(result).toHaveCount(1);
+  await expect(result).toContainText('Zeta Notes');
+  await expect(panel.locator('#collectionsContainer')).toHaveCount(0);
+
+  await input.press('Escape');
+  await expect(panel.locator('#collectionsContainer')).toBeVisible();
+
+  // Opened from the button, closing the slide hands focus back to that button.
+  await panel.locator('#toggleSearchBtn').click();
+  await expect(input).toBeFocused();
+  await input.press('Escape');
+  await expect(panel.locator('#toggleSearchBtn')).toBeFocused();
+});
+
+test('toggles layout and sort, exports the collections, and answers the keyboard', async ({
+  panel,
+}) => {
+  await createCollection(panel, 'Alpha One');
+  await createCollection(panel, 'Beta Two');
+
+  // Layout toggle.
+  await panel.locator('#toggleLayoutBtn').click();
+  await expect(panel.locator('#collectionsContainer')).toHaveClass(/grid-view/);
+  await panel.locator('#toggleLayoutBtn').click();
+  await expect(panel.locator('#collectionsContainer')).not.toHaveClass(/grid-view/);
+
+  // Collections sort menu: choosing an option closes it and marks the list as sorted.
+  await panel.locator('#collectionSortBtn').click();
+  await expect(panel.locator('#collectionSortBtn')).toHaveAttribute('aria-expanded', 'true');
+  await panel.getByRole('menuitem', { name: 'Name (A-Z)' }).click();
+  await expect(panel.locator('#collectionSortBtn')).toHaveAttribute('aria-expanded', 'false');
+  await expect(panel.locator('#collectionsContainer')).toHaveClass(/sort-active/);
+
+  // Export writes a JSON download and confirms with a toast.
+  const [download] = await Promise.all([
+    panel.waitForEvent('download'),
+    panel.locator('#globalExportBtn').click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/^tab_collections_backup_.*\.json$/);
+  await expect(panel.locator('.toast').filter({ hasText: 'exported successfully' })).toBeVisible();
+
+  // Ctrl+E expands every collection (focus is on the export button, so combos still apply).
+  await panel.keyboard.press('Control+e');
+  await expect((await cardFor(panel, 'Alpha One')).locator('.expand-btn')).toHaveClass(/rotated/);
+  await expect((await cardFor(panel, 'Beta Two')).locator('.expand-btn')).toHaveClass(/rotated/);
+
+  // `?` opens the shortcut help; Escape closes it and leaves focus on the export button.
+  await panel.keyboard.press('?');
+  const help = panel.getByRole('dialog', { name: 'Keyboard Shortcuts' });
+  await expect(help).toBeVisible();
+  await panel.keyboard.press('Escape');
+  await expect(help).toBeHidden();
+
+  // `x` asks the panel to close.
+  await panel.keyboard.press('x');
+  await expect(panel.locator('body')).toHaveClass(/panel-closing/);
+});
+
+test('opens the history and settings dialogs, and returns focus when each closes', async ({
+  panel,
+}) => {
+  await panel.locator('#historyBtn').click();
+  const history = panel.getByRole('dialog', { name: 'Session History' });
+  await expect(history).toBeVisible();
+  await expect(history.locator('.history-modal-body')).toBeVisible();
+
+  await panel.keyboard.press('Escape');
+  await expect(history).toBeHidden();
+  await expect(panel.locator('#historyBtn')).toBeFocused();
+
+  await panel.locator('#settingsBtn').click();
+  const settings = panel.getByRole('dialog', { name: 'Settings' });
+  await expect(settings).toBeVisible();
+
+  // The switch is a checkbox behind a zero-size input, so click its visible track.
+  await settings.locator('label.toggle-switch:has(#lightModeToggle) .toggle-track').click();
+  await expect(settings.locator('#lightModeToggle')).toBeChecked();
+  await expect(panel.locator('html')).toHaveAttribute('data-theme', 'light');
+
+  await panel.keyboard.press('Escape');
+  await expect(settings).toBeHidden();
+  await expect(panel.locator('#settingsBtn')).toBeFocused();
+});

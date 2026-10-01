@@ -58,4 +58,14 @@ export default [
     languageOptions: { globals: { ...globals.node } },
     rules: { 'no-console': 'off' },
   },
+  {
+    // Playwright specs and fixtures are not React. Its fixture callback is literally named `use`,
+    // which `react-hooks/rules-of-hooks` reads as a hook call, and `async ({}, use)` — the form
+    // Playwright's own docs use for a fixture with no dependencies — trips `no-empty-pattern`.
+    files: ['e2e/**/*.js'],
+    rules: {
+      'react-hooks/rules-of-hooks': 'off',
+      'no-empty-pattern': 'off',
+    },
+  },
 ];
