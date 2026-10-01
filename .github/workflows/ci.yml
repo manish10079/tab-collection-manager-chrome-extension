@@ -1,0 +1,58 @@
+# Continuous integration: the gates from skill.md §6, run on every push and pull request.
+#
+# The suite here is deliberately jsdom-only: `npm test` plus the build takes seconds, while the
+# Playwright walk in `e2e/` needs its own ~150 MB browser download and a rebuild, so it stays a
+# local command (`npm run e2e`) until CI minutes are worth spending on it.
+#
+# The bundle-size budget is enforced against the real build output, not a rebuild: `npm run build`
+# already strips source maps and trims the non-woff2 font fallbacks, so the check measures exactly
+# what would be uploaded to the store.
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+# A quick follow-up push only needs the newest run; cancel whatever it superseded.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Lint, test, build and size
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      # Node 22 is the LTS the lockfile was generated against (npm is the single package manager —
+      # skill.md §4.3), and the npm cache makes the install a few seconds.
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Lint and formatting first: they are the fastest gates, so a style slip fails in seconds.
+      - name: Lint
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Unit and component tests
+        run: npm test
+
+      - name: Build the extension
+        run: npm run build
+
+      - name: Enforce the bundle-size budget
+        run: npm run check:size
