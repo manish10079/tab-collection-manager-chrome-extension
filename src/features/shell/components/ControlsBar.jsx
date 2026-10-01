@@ -1,0 +1,126 @@
+import { CreateSlide } from './CreateSlide.jsx';
+import { SearchSlide } from './SearchSlide.jsx';
+import { SortMenu } from './SortMenu.jsx';
+
+/**
+ * @typedef {object} ControlsBarProps
+ * @property {import('../hooks/useShellController.js').ShellController} controller
+ * @property {string} collectionSortType
+ * @property {boolean} isGrid
+ * @property {import('../../../store/schema.js').SessionBackup|null} backup
+ * @property {() => void} onOpenHistory
+ */
+
+/**
+ * The controls bar: the default actions row, the search/create slides and the collections sort menu.
+ * Replaces the legacy markup plus the whole `setupEventListeners` section of popup.js
+ * (react-migration-plan.md §8, Phase 5.2).
+ *
+ * @param {ControlsBarProps} props
+ * @returns {import('react').ReactElement}
+ */
+export function ControlsBar({ controller, collectionSortType, isGrid, backup, onOpenHistory }) {
+  const { slide } = controller;
+  const hasBackup = Boolean(backup && Array.isArray(backup.tabs) && backup.tabs.length > 0);
+  const restoreTitle = hasBackup
+    ? `Restore Previous Session\n${backup.tabs.length} ${
+        backup.tabs.length === 1 ? 'tab' : 'tabs'
+      } — "${backup.name || 'Unknown'}"`
+    : 'Restore Previous Session';
+
+  return (
+    <div className="controls">
+      <div className="compact-controls-row">
+        {/* The default row stays mounted and is hidden while a slide is open, so the slide's
+            mount/unmount animation matches the legacy show/hide. */}
+        <div className={`actions-bar-default${slide ? ' hidden' : ''}`} id="actionsBarDefault">
+          <button
+            type="button"
+            className="icon-btn"
+            id="toggleSearchBtn"
+            title="Search Collections or Tabs (Ctrl+F)"
+            onClick={controller.toggleSearch}
+          >
+            <i className="fas fa-search" />
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            id="toggleCreateBtn"
+            title="Create New Collection (Ctrl+N)"
+            onClick={controller.toggleCreate}
+          >
+            <i className="fas fa-plus" />
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            id="globalImportBtn"
+            title="Import All Collections (JSON)"
+            onClick={controller.importAll}
+          >
+            <i className="fas fa-file-import" />
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            id="globalExportBtn"
+            title="Export All Collections (JSON)"
+            onClick={controller.exportAll}
+          >
+            <i className="fas fa-file-export" />
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            id="toggleLayoutBtn"
+            title={isGrid ? 'Switch to List View' : 'Switch to Grid View'}
+            onClick={controller.toggleLayout}
+          >
+            <i className={isGrid ? 'fas fa-list' : 'fas fa-th-large'} />
+          </button>
+
+          {/* Visible only when the worker has recorded a restorable backup. */}
+          <button
+            type="button"
+            className={`icon-btn btn-restore${hasBackup ? '' : ' hidden'}`}
+            id="restoreBackupBtn"
+            title={restoreTitle}
+            onClick={controller.restoreBackup}
+          >
+            <i className="fas fa-undo" />
+          </button>
+
+          <SortMenu active={collectionSortType} onSelect={controller.setCollectionSort} />
+
+          <button
+            type="button"
+            className="icon-btn"
+            id="historyBtn"
+            title="Session History"
+            onClick={onOpenHistory}
+          >
+            <i className="fas fa-history" />
+          </button>
+        </div>
+
+        {slide === 'search' ? (
+          <SearchSlide
+            query={controller.query}
+            onQueryChange={controller.setQuery}
+            onClose={controller.closeSearch}
+          />
+        ) : null}
+
+        {slide === 'create' ? (
+          <CreateSlide
+            name={controller.createName}
+            onNameChange={controller.setCreateName}
+            onSubmit={controller.submitCreate}
+            onCancel={controller.closeCreate}
+          />
+        ) : null}
+      </div>
+    </div>
+  );
+}

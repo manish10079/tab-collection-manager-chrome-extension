@@ -2,13 +2,13 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 /**
- * `popup.js` is a classic script: no test can import it, it is excluded from ESLint, and it is the
- * one file where a stray `chrome.storage.local.set` would quietly re-open the race ADR-0004 closed.
- * So the invariant is checked against its source instead.
+ * `popup.js` is the last classic script: no test can import it, it is excluded from ESLint, and it
+ * is the one file where a stray `chrome.storage.local.set` would quietly re-open the race ADR-0004
+ * closed. So the invariants are checked against its source instead.
  *
- * The rule: every write goes through the store's serialized queue. Phase 4 removed the last direct
- * write — the GDrive flags, which the React settings modal now owns through the store — so the
- * check has nothing left to carve out.
+ * Since Phase 5.2 the file is only the boot sequence — theme, worker auto-save and opened-state
+ * normalisation — so it should be small and free of both write paths and legacy seams. It is
+ * deleted in Phase 5.3.
  */
 // Relative to the project root, which is where Vitest runs from.
 const SOURCE = readFileSync('popup.js', 'utf8').replace(/\r\n/g, '\n');
@@ -21,7 +21,7 @@ describe('popup.js state contract', () => {
 
   it('reaches the store through the published bridge', () => {
     expect(SOURCE).toMatch(/globalThis\.__tcmStore/);
-    expect(SOURCE).toMatch(/async function updateState\(mutator\)/);
+    expect(SOURCE).toMatch(/mutateLegacy/);
   });
 
   it('never writes storage directly', () => {
@@ -29,11 +29,12 @@ describe('popup.js state contract', () => {
   });
 
   /**
-   * Phase 5.1 moved every `window.TCMLegacyUI` action into React (react-migration-plan.md §8), so
-   * the adapter that served it is deleted. Re-introducing the seam would silently send collection
-   * mutations back through this file.
+   * Phase 5.1 deleted the `window.TCMLegacyUI` action adapter and Phase 5.2 deleted the
+   * `window.__tcmReact` reverse seam with the legacy header, controls bar and global shortcuts.
+   * Re-introducing either would silently put panel Chrome back in this file.
    */
-  it('no longer exposes a React-facing action seam', () => {
+  it('no longer exposes a React-facing seam', () => {
     expect(SOURCE).not.toMatch(/window\.TCMLegacyUI\s*=/);
+    expect(SOURCE).not.toMatch(/__tcmReact/);
   });
 });

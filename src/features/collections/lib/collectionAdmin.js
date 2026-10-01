@@ -37,6 +37,33 @@ export function isNameUnique(collections, name, excludeId = null) {
 }
 
 /**
+ * Create a collection from the controls bar's create slide, returning why it was refused rather
+ * than alerting. The new collection is unpinned, empty and collapsed, matching the legacy action.
+ *
+ * @param {import('../../../store/schema.js').AppState} draft
+ * @param {string} name
+ * @param {string} id
+ * @returns {'created'|'empty'|'too-long'|'duplicate'}
+ */
+export function createCollection(draft, name, id) {
+  const trimmed = String(name ?? '').trim();
+  if (!trimmed) return 'empty';
+  if (trimmed.length > LIMITS.MAX_COLLECTION_NAME_LENGTH) return 'too-long';
+  if (!isNameUnique(draft.collections, trimmed)) return 'duplicate';
+
+  draft.collections.push({
+    id,
+    name: trimmed,
+    tabs: [],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    isExpanded: false,
+  });
+  draft.collections = partitionCollections(draft.collections);
+  return 'created';
+}
+
+/**
  * Remove a collection and re-partition the list. Auto-Save is pointed at Current Session (or off)
  * when its target disappears, exactly like the legacy action.
  *

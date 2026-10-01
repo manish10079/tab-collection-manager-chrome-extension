@@ -55,8 +55,8 @@ side of the UI and composes `dist/sidepanel.html` from `popup.html`:
 
 | You load | You get |
 | --- | --- |
-| `dist/` (after `npm run build`) | The whole side panel — React-rendered collections, tabs and every dialog (settings, add tabs, history, session details, duplicates, shortcuts help), plus the legacy controls bar and worker-backed features |
-| the repository root | Not supported: the sources are uncompiled, and `popup.js` reads state through the bundled store, which only `dist/` provides |
+| `dist/` (after `npm run build`) | The whole side panel — React-rendered header, controls bar, collections, tabs and every dialog (settings, add tabs, history, session details, duplicates, shortcuts help) |
+| the repository root | Not supported: the sources are uncompiled, and the boot script reads state through the bundled store, which only `dist/` provides |
 
 Since Phase 3 the store in `src/store/` owns the state layer: one serialized write queue over the
 `chrome.storage.local` contract, shared by both halves of the UI, so a legacy panel action and a
@@ -68,6 +68,12 @@ Every collection action — rename, delete, tab edit/remove, pin toggles, open a
 per-collection export — is React-owned too: React runs the pure rules and the store's write queue,
 while `background.js` keeps restore. See
 [`docs/decisions/ADR-0006-collection-actions-in-react.md`](./docs/decisions/ADR-0006-collection-actions-in-react.md).
+
+The shell is React-owned as of Phase 5.2 as well: `src/features/shell` renders the header, the
+controls bar and its slides, the collections sort menu, the global search results and the
+global keyboard shortcuts. `popup.js` is now only the boot sequence (theme, worker auto-save,
+opened-state normalisation), which Phase 5.3 retires. See
+[`docs/decisions/ADR-0007-shell-in-react.md`](./docs/decisions/ADR-0007-shell-in-react.md).
 
 ### Dev browser helper
 

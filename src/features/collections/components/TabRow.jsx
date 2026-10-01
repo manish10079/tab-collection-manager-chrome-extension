@@ -3,7 +3,7 @@ import { CURRENT_SESSION_ID } from '../../../shared/storage-keys.js';
 import { resolveFaviconUrl, toOpenableUrl, truncateUrl } from '../../../lib/url.js';
 import { resolveTabGroupBadge } from '../../../lib/tabGroups.js';
 import { useExtensionId } from '../hooks/useExtensionId.js';
-import { useDismissable } from '../hooks/useDismissable.js';
+import { useDismissable } from '../../../app/hooks/useDismissable.js';
 import { useDraggable } from '../hooks/useDraggable.js';
 import { useDropZone } from '../hooks/useDropZone.js';
 

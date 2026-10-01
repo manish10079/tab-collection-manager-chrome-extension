@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { CURRENT_SESSION_ID } from '../../../shared/storage-keys.js';
-import { useDismissable } from '../hooks/useDismissable.js';
+import { useDismissable } from '../../../app/hooks/useDismissable.js';
 import { TabList } from './TabList.jsx';
 
 /** Legacy icon per tab sort mode (`updateTabSortIcon` in popup.js). */

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  createCollection,
   deleteCollection,
   isNameUnique,
   normalizeName,
@@ -49,6 +50,29 @@ describe('normalizeName / isNameUnique', () => {
 
   it('excludes the collection being renamed', () => {
     expect(isNameUnique([{ id: 'a', name: 'Research' }], 'Research', 'a')).toBe(true);
+  });
+});
+
+describe('createCollection', () => {
+  it('appends an unpinned, collapsed collection behind Current Session', () => {
+    const draft = makeDraft([makeCollection('a')]);
+
+    expect(createCollection(draft, '  Fresh  ', 'new-id')).toBe('created');
+    expect(draft.collections.map((collection) => collection.id)).toEqual([
+      CURRENT_SESSION_ID,
+      'a',
+      'new-id',
+    ]);
+    expect(draft.collections[2]).toMatchObject({ name: 'Fresh', tabs: [], isExpanded: false });
+  });
+
+  it('reports each refusal instead of alerting', () => {
+    const draft = makeDraft([makeCollection('a', { name: 'Alpha' })]);
+
+    expect(createCollection(draft, '   ', 'x')).toBe('empty');
+    expect(createCollection(draft, 'x'.repeat(101), 'x')).toBe('too-long');
+    expect(createCollection(draft, '  alpha ', 'x')).toBe('duplicate');
+    expect(draft.collections).toHaveLength(2);
   });
 });
 

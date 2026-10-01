@@ -1,16 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { App } from '../App.jsx';
-import { publishLegacyHandle } from '../legacy-handle.js';
 import { hydrate, mutate } from '../../store/store.js';
 import { installChromeMock } from '../../../tests/mocks/chrome.js';
 import { CURRENT_SESSION_ID, STORAGE_KEYS } from '../../shared/storage-keys.js';
-
-/** A fresh mount point that mimics the legacy `#collectionsContainer`. */
-function mountPoint() {
-  document.body.innerHTML = '<div class="collections-container" id="collectionsContainer"></div>';
-  return document.getElementById('collectionsContainer');
-}
 
 const COLLECTIONS = [
   { id: 'c1', name: 'Research', tabs: [], updatedAt: Date.now() },
@@ -24,10 +17,12 @@ const COLLECTIONS = [
 async function renderApp(storage = {}, { ready = true } = {}) {
   installChromeMock(storage);
   if (ready) await hydrate();
-  const mount = mountPoint();
-  // `mount` stands in for the real `#collectionsContainer`; RTL renders the tree into its own
-  // element, so class assertions must target `mount`.
-  return { mount, ...render(<App mountPoint={mount} />) };
+  return render(<App />);
+}
+
+/** The container React renders the collection list into (and styles as list or grid). */
+function collectionsContainer() {
+  return document.getElementById('collectionsContainer');
 }
 
 describe('App', () => {
@@ -48,14 +43,14 @@ describe('App', () => {
   });
 
   it('applies the layout and sort classes the legacy stylesheet expects', async () => {
-    const { mount } = await renderApp({
+    await renderApp({
       [STORAGE_KEYS.collections]: COLLECTIONS,
       [STORAGE_KEYS.layoutViewMode]: 'grid',
       [STORAGE_KEYS.collectionSortType]: 'nameAsc',
     });
 
-    expect(mount.classList.contains('grid-view')).toBe(true);
-    expect(mount.classList.contains('sort-active')).toBe(true);
+    expect(collectionsContainer().classList.contains('grid-view')).toBe(true);
+    expect(collectionsContainer().classList.contains('sort-active')).toBe(true);
   });
 
   it('opens the grid-view modal for the expanded collection', async () => {
@@ -77,17 +72,46 @@ describe('App', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
   });
 
-  it('opens the settings modal when the legacy handle asks', async () => {
-    publishLegacyHandle();
+  it('opens the settings modal from the header button', async () => {
     await renderApp({});
     expect(screen.queryByRole('dialog')).toBeNull();
 
-    await act(async () => {
-      globalThis.__tcmReact.openSettings();
-    });
+    fireEvent.click(document.getElementById('settingsBtn'));
 
     expect(screen.getByRole('dialog')).toBeTruthy();
     expect(screen.getByText(/Settings/)).toBeTruthy();
+  });
+
+  it('renders the header and controls bar from the manifest and settings', async () => {
+    await renderApp({ [STORAGE_KEYS.collections]: COLLECTIONS });
+
+    expect(document.getElementById('app-name').textContent).toBe('Tab Collection Manager');
+    expect(document.getElementById('toggleSearchBtn')).toBeTruthy();
+    expect(document.getElementById('historyBtn')).toBeTruthy();
+    // No backup in storage, so the restore button stays hidden.
+    expect(document.getElementById('restoreBackupBtn').classList.contains('hidden')).toBe(true);
+  });
+
+  it('renders global search results and returns to the list when one is opened', async () => {
+    await renderApp({ [STORAGE_KEYS.collections]: COLLECTIONS });
+
+    fireEvent.click(document.getElementById('toggleSearchBtn'));
+    fireEvent.change(screen.getByPlaceholderText('Search collections or tabs…'), {
+      target: { value: 'research' },
+    });
+
+    const result = document.querySelector('.search-collection-result');
+    expect(result).toBeTruthy();
+    expect(result.textContent).toContain('Research');
+    // The list is replaced by the results while a query is active.
+    expect(collectionsContainer()).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(result);
+    });
+
+    // Opening a result clears the query, so the list is back.
+    expect(collectionsContainer()).toBeTruthy();
   });
 
   it('re-renders from the store after a mutation', async () => {

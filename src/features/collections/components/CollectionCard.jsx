@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { CURRENT_SESSION_ID } from '../../../shared/storage-keys.js';
 import { formatTabCount, formatTime } from '../../../lib/format.js';
-import { useDismissable } from '../hooks/useDismissable.js';
+import { useDismissable } from '../../../app/hooks/useDismissable.js';
 import { useDraggable } from '../hooks/useDraggable.js';
 import { useDropZone } from '../hooks/useDropZone.js';
 import { TabPanel } from './TabPanel.jsx';

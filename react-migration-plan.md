@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Document version | 1.8.0 |
-| Status | Phases 0-4 and Phase 5.1 complete; Phase 5.2-5.4 in progress (see §2.1 and the changelog) |
+| Document version | 1.9.0 |
+| Status | Phases 0-4 and Phase 5.1-5.2 complete; Phase 5.3-5.4 in progress (see §2.1 and the changelog) |
 | Scope | UI layer of the MV3 extension (`popup.html` / `popup.js` / `popup.css`) |
 | Out of scope | New features, `background.js` rewrite (deferred to Phase 6), Firefox support |
 
@@ -42,16 +42,16 @@ the live state see §2.1.
 | `background.js` | ~1,290 lines | Autosave + debounce + guards, session history, context menus, alarms, GDrive, restore + tab groups |
 | Build | none | Hand-written manifest, no bundler, no deps, no tests |
 
-### 2.1 State at plan v1.8.0
+### 2.1 State at plan v1.9.0
 
-Phases 0-4 and slice 5.1 are complete and Phase 5.2-5.4 are in progress (§8). What is left in the
-vanilla runtime is pure shell markup and wiring — no action seam, no CRUD, no search renderer seam:
+Phases 0-4 and slices 5.1-5.2 are complete and Phase 5.3-5.4 are in progress (§8). The vanilla
+runtime is down to a boot script — no panel markup, no actions, no seams:
 
 | Layer | Size | Notes |
 |---|---|---|
-| `popup.html` | 112 lines, 23 ids | Header, controls bar, search/create slides, sort menu, React mount — no modals, no `<template>` |
-| `popup.js` | 1,298 lines, 35 functions, 14 sections | Shell wiring, create-collection + global import, search renderer, `showToast` delegator — no `TCMLegacyUI` |
-| `src/` (React) | 7,120 lines | 19 test files / 134 tests; `Modal` + `ToastProvider` primitives over the store's write queue |
+| `popup.html` | 18 lines, 1 id | `.container` + `#appRoot` + the boot script tag — the whole panel is React |
+| `popup.js` | 99 lines, 1 function | Boot only: persisted theme before first paint, worker `forceAutoSave` + fresh read, opened-state normalisation, all through `window.__tcmStore` |
+| `src/` (React) | 9,065 lines | 23 test files / 177 tests; shell (header, controls bar, slides, sort menu, search results, shortcuts) on top of the `Modal`/`ToastProvider` primitives and the store's write queue |
 | `background.js` | unchanged | Untouched by the UI migration (Phase 6 scope) |
 
 Remaining legacy responsibilities, in the order Phase 5 retires them:
@@ -60,10 +60,10 @@ Remaining legacy responsibilities, in the order Phase 5 retires them:
 |---|---|---|
 | Toasts | ✅ moved to `src/app/providers` (1.6.0) | done |
 | Collection/tab CRUD, pin toggles, open/restore, per-collection export | ✅ moved to `useCollectionActions` + `lib/collectionAdmin.js`; `legacy-ui.js` deleted (1.8.0) | done |
-| Header, controls bar, slides, sort menu, layout toggle, global import/export, restore backup | shell markup + the event-listener section | 5.2 |
-| Global search results | `filterResults()` + 3 `innerHTML` writes into `#searchResultsContainer` | 5.2 |
-| Global keyboard shortcuts | the keydown section | 5.2 |
-| Shell composition itself | `popup.js` + `popup.html` composed into `dist/sidepanel.html` | 5.3 |
+| Header, controls bar, slides, sort menu, layout toggle, global import/export, restore backup | ✅ moved to `src/features/shell` (1.9.0) | done |
+| Global search results | ✅ moved to `GlobalSearchResults` + `useGlobalSearch` (1.9.0) | done |
+| Global keyboard shortcuts | ✅ moved to `useGlobalShortcuts` (1.9.0) | done |
+| Shell composition + boot sequence | `popup.js` (theme, worker auto-save, opened-state normalisation) + `popup.html` composed into `dist/sidepanel.html` | 5.3 |
 
 ### Pain points this migration fixes
 
@@ -351,12 +351,13 @@ the override seam used for add-tabs/import/toast.
 *Accepted:* `TCMLegacyUI` is gone from `popup.js`, `src/app/legacy-ui.js` is deleted, and the pin
 limits and duplicate-name rules are covered by `collectionAdmin.test.js` + `useCollectionActions.test.js`.
 
-**5.2 Shell chrome → React (2-3 days).** `AppHeader` (settings/history/close, name/version),
+**5.2 Shell chrome → React (2-3 days) — complete.** `AppHeader` (settings/close, name/version),
 `ControlsBar` (search + create slides, sort menu, layout toggle, global import/export, restore
-backup), `SearchResults` + `useSearch` replacing the `filterResults()` `innerHTML` renderer, and
-`useKeyboardShortcuts` for the global key handler. This is the bulk of the remaining markup and
-listeners (§2.1).
-*Acceptance:* no `getElementById` in the compiled tree; `window.__tcmReact` no longer needed.
+backup), `GlobalSearchResults` + `useGlobalSearch` replacing the `filterResults()` `innerHTML`
+renderer, and `useGlobalShortcuts` for the global key handler — all in `src/features/shell`, driven
+by `useShellController`.
+*Accepted:* React owns the whole panel and renders into a single `#appRoot`; `window.__tcmReact`
+and `src/app/legacy-handle.js` are deleted; `popup.js` is a 99-line boot script.
 
 **5.3 Retire the shell (0.5-1 day).** Make `src/sidepanel.html` the Vite entry so `popup.html` is
 no longer composed at build time, then delete `popup.html`, `popup.js` and `src/app/legacy-*.js`,
@@ -470,6 +471,7 @@ commit only —
 
 | Version | Date | Notes |
 |---|---|---|
+| 1.9.0 | 2026-10-01 | Phase 5.2 finished: the shell chrome moved into React. A new `src/features/shell` owns the header, the controls bar (search and create slides, collections sort menu, layout toggle, global import/export, restore-backup button, history button), the global search results and the global keyboard shortcuts. `useShellController` holds the slide/query/create state and every action (create collection, sort, layout, import, export, restore, expand all, Current Session only, jump, close panel); `useGlobalSearch` derives the matches and `GlobalSearchResults` renders them from data, replacing the `filterResults()` string builder and its three `innerHTML` writes; `useGlobalShortcuts` replaces the `keydown` section; and `useManifestInfo` fills the header from the manifest. Pure helpers landed alongside: `lib/globalSearch.js` (matching + highlight segments), `lib/globalBackup.js` (export payload + the legacy merge rules), `lib/readJsonFile.js`, `lib/isAnyModalOpen.js`, `lib/scrollIntoView.js` and `lib/download.js` (the export helper `useCollectionActions` had inline); `createCollection` joined `collectionAdmin.js`, and `useDismissable` moved to `app/hooks` now that two features need it. `App` renders the whole panel into a single `#appRoot`, so `useContainerClasses` and `legacy-handle.js` (`window.__tcmReact`) are deleted and the state-contract test asserts the seam cannot return. `popup.html` shrinks from 112 lines / 23 ids to 18 lines / 1 id, and `popup.js` from 1,298 lines to 99 — the boot sequence only (theme before first paint, worker `forceAutoSave` + fresh read, opened-state normalisation). No storage key, message protocol, manifest entry or `background.js` line changes. |
 | 1.8.0 | 2026-10-01 | Phase 5.1 finished: every `TCMLegacyUI` action moved into React. The nine methods became `useCollectionActions` calls over the store's write queue — collection rename/delete, tab rename/remove, the pin toggles (with the max-pin limits), open-a-tab, open-all/restore and per-collection export — and their pure rules live in the new `src/features/collections/lib/collectionAdmin.js` (`normalizeName`, `isNameUnique`, `deleteCollection`, `renameCollection`, `removeTab`, `renameTab`, `toggleCollectionPin`, `toggleTabPin`), so the pin limits and the case-insensitive duplicate-name rule are unit-testable. Refusals that used to be blocking `alert()`s now surface as toasts; restore is a single `chrome.runtime.sendMessage` to the unchanged worker instead of the duplicated open logic. `src/app/legacy-ui.js` is deleted, `popup.js` drops ~315 lines (1,613 → 1,298) and its whole `window.TCMLegacyUI` assignment, and `window.__tcmReact` keeps only the shell bridges (`setCollectionExpanded`, `openSettings`, `openHistory`, `openShortcuts`, `toast`). Also folded out of the legacy file: a shared `lib/tabs.js` `discardWhenLoaded` helper (used by `openTab` and the dialogs), a `formatFileTimestamp` in `lib/format.js`, and `LIMITS.MAX_COLLECTION_NAME_LENGTH` in `shared/constants.js`; the `Collection` typedef's stray `isPinned` was corrected to the `pinned` that `lib/sort.js` reads. The state-contract test now asserts the seam is absent. No storage key, message protocol or manifest change; `background.js` untouched. |
 | 1.7.0 | 2026-10-01 | Scope reconciled with reality (§2.1), and the header status line corrected from "Phases 0, 1 and 2 shipped" to Phases 0-4 complete / Phase 5 in progress. Phase 3 is recorded as partially complete — drag & drop, expand/collapse and per-collection tab sort shipped, while CRUD, pin toggles, sort menus, search slide + results, layout toggle, import/export and open/restore never left `popup.js`; the earlier changelog entries overstated them. Phase 5 is re-scoped into 5.1 legacy actions, 5.2 shell chrome, 5.3 shell retirement and 5.4 polish, with a measured inventory of what remains and the estimate corrected from 1.5-2 to 5-7.5 days (programme total 14-19 → 19-25). |
 | 1.6.0 | 2026-10-01 | Phase 5 started with the toast layer: `src/app/providers` owns a plain queue (`toastStore.js`), a `ToastProvider` that renders it through the shared body-level portal root, and a `useToast` hook. The queue is external to React on purpose, so `publishLegacyHandle()` can wire `__tcmReact.toast` to it and `popup.js`'s `showToast()` becomes a one-line delegator — its 14 call sites are untouched and a toast fired from a `DOMContentLoaded` handler cannot race React's mount. Features no longer reach into `window.TCMLegacyUI` to talk to the user: `useSettingsActions` takes `{ toast }`, `useCollectionActions` gained a `toast` override, and the provider is composed in `main.jsx`. The legacy `#toastContainer` markup and the DOM-building `showToast()` body are deleted, `scripts/build.mjs` asserts the container is gone, `TCMLegacyUI.toast` is removed from the seam, and the two helpers the Phase 4 modal port orphaned (`formatTime`, `validateUrl`) are removed. |

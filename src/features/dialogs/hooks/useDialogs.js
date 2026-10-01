@@ -27,9 +27,10 @@ import { useTabIntake } from './useTabIntake.js';
  */
 
 /**
- * `useDialogs` owns every React modal's visibility, so `App` stays a shell and the legacy runtime
- * only has to ask for one by name (`window.__tcmReact`). Nothing here renders: `DialogHost` reads
- * this object, which keeps the state and the markup independently testable.
+ * `useDialogs` owns every React modal's visibility, so `App` stays a shell and callers (the shell's
+ * header, controls bar and global shortcuts) only have to ask for one by name. Nothing here
+ * renders: `DialogHost` reads this object, which keeps the state and the markup independently
+ * testable.
  *
  * The duplicate-URL confirmation is a Promise the intake flow awaits, backed by a resolver held in
  * a ref rather than in state — React must never have to replay resolving a promise on a re-render.

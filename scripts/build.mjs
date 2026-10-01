@@ -48,10 +48,10 @@ async function copyLegacy() {
 }
 
 /**
- * Turn the legacy shell into the side-panel page: keep every legacy tag and its markup,
- * swap the asset tags and append the module script. Since Phase 2 the React mount point
- * (`#collectionsContainer`) lives in popup.html itself — there is no injected container, so
- * the legacy markup and the React tree cannot drift apart.
+ * Compose the side-panel page from the shell and the bundle: swap the asset tags and append the
+ * module script. Since Phase 5.2 `popup.html` is a minimal shell — the `.container` and the
+ * `#appRoot` React mount plus the boot script — so the checks below assert the legacy header,
+ * controls bar and containers are gone rather than preserved.
  *
  * @param {string} shell Raw popup.html
  * @param {{file: string, css?: string[]}} entry Vite entry record
@@ -73,7 +73,14 @@ function composeHtml(shell, entry) {
     );
 
   const checks = {
-    'React mount point present': html.includes('id="collectionsContainer"'),
+    'React mount point present': html.includes('id="appRoot"'),
+    'container shell preserved': html.includes('class="container" id="appRoot"'),
+    'legacy header removed': !html.includes('id="settingsBtn"'),
+    'legacy controls bar removed': !html.includes('id="actionsBarDefault"'),
+    'legacy search slide removed': !html.includes('id="searchSlideContainer"'),
+    'legacy create slide removed': !html.includes('id="createSlideContainer"'),
+    'legacy collections container removed': !html.includes('id="collectionsContainer"'),
+    'legacy search results container removed': !html.includes('id="searchResultsContainer"'),
     'legacy collection template removed': !html.includes('id="collectionTemplate"'),
     'legacy settings modal removed': !html.includes('id="settingsModal"'),
     'legacy add-tabs modal removed': !html.includes('id="addTabsModal"'),
@@ -83,7 +90,6 @@ function composeHtml(shell, entry) {
     'legacy shortcuts help modal removed': !html.includes('id="shortcutsHelpModal"'),
     'legacy open-tab template removed': !html.includes('id="openTabTemplate"'),
     'legacy toast container removed': !html.includes('id="toastContainer"'),
-    'legacy markup preserved': html.includes('<div class="scrollable-content">'),
     'React bundle injected': html.includes(entry.file),
     'legacy stylesheet re-linked': html.includes('href="./popup.css"'),
     'legacy script re-linked': html.includes('src="./popup.js"'),

@@ -1,7 +1,7 @@
-// The toast queue, outside React on purpose. `popup.js` still toasts from its DOMContentLoaded
-// handlers, which can run before React commits, so the queue is a plain module the legacy bridge
-// can call directly — `publishLegacyHandle()` wires `__tcmReact.toast` to `pushToast`, and the
-// `ToastProvider` merely renders whatever is queued (react-migration-plan.md §8, Phase 5).
+// The toast queue, outside React on purpose: a plain module the features push to directly, and
+// the `ToastProvider` merely renders whatever is queued. Keeping it out of React means a toast
+// pushed from an event handler is never lost to a commit timing race, and the tests can reset it
+// without unmounting a provider (react-migration-plan.md §8, Phase 5).
 //
 // Replaces the legacy `showToast()` DOM builder and its `#toastContainer`.
 

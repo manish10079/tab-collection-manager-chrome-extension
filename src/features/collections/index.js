@@ -2,3 +2,4 @@
 export { CollectionList } from './components/CollectionList.jsx';
 export { useCollectionActions } from './hooks/useCollectionActions.js';
 export { setCollectionExpanded } from './lib/collectionDraft.js';
+export { createCollection } from './lib/collectionAdmin.js';

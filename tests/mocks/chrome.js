@@ -17,7 +17,7 @@ export function installChromeMock(initial = {}) {
   const chrome = {
     runtime: {
       id: 'test-extension-id',
-      getManifest: () => ({ version: '2.0.0' }),
+      getManifest: () => ({ name: 'Tab Collection Manager', version: '2.0.0' }),
       sendMessage: async () => ({ success: true }),
     },
     storage: {
