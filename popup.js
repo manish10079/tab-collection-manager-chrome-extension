@@ -58,48 +58,6 @@ function discardWhenLoaded(tabId, timeoutMs = 10000) {
   });
 }
 
-/**
- * Rebuild the Chrome tab groups a collection was saved with.
- * Saved group ids are stale, so each saved group is recreated fresh and then
- * updated with its saved title/color/collapsed state.
- * @param {object} collection - Collection with tabs[].chromeGroupId + chromeGroups map.
- * @param {Array} createdTabs - Created tabs, index-aligned with collection.tabs.
- * @param {number} targetWindowId - Window the tabs were created in.
- */
-async function restoreTabGroups(collection, createdTabs, targetWindowId) {
-  if (!api.tabs.group || !api.tabGroups) return;
-  const savedGroups = collection.chromeGroups;
-  if (!savedGroups || typeof savedGroups !== 'object') return;
-
-  const groupedTabIds = new Map();
-  collection.tabs.forEach((tab, i) => {
-    const created = createdTabs[i];
-    if (!created || !created.id) return;
-    if (tab.pinned) return; // Chrome cannot group pinned tabs
-    const savedGroupId = tab.chromeGroupId;
-    if (savedGroupId === null || savedGroupId === undefined) return;
-    if (!savedGroups[savedGroupId]) return; // group metadata was lost
-    if (!groupedTabIds.has(savedGroupId)) groupedTabIds.set(savedGroupId, []);
-    groupedTabIds.get(savedGroupId).push(created.id);
-  });
-
-  for (const [savedGroupId, tabIds] of groupedTabIds) {
-    if (!tabIds.length) continue;
-    try {
-      const meta = savedGroups[savedGroupId] || {};
-      const createProperties = targetWindowId !== undefined ? { windowId: targetWindowId } : {};
-      const newGroupId = await api.tabs.group({ tabIds, createProperties });
-      await api.tabGroups.update(newGroupId, {
-        ...(meta.title ? { title: meta.title } : {}),
-        color: meta.color || 'grey',
-        collapsed: !!meta.collapsed
-      });
-    } catch (err) {
-      console.warn('Failed to restore tab group:', savedGroupId, err);
-    }
-  }
-}
-
 //=============== Render Version Info from Manifest file & Theme =================
 document.addEventListener('DOMContentLoaded', async () => {
     const appInfo = chrome.runtime.getManifest();
@@ -348,64 +306,6 @@ async function createCollection(name) {
   return true;
 }
 
-async function deleteCollection(collectionId) {
-  if (collectionId === CURRENT_SESSION_ID) {
-    alert('The Current Session collection cannot be deleted.');
-    return;
-  }
-  if (!confirm('Are you sure you want to remove this collection?')) return;
-
-  const newState = await updateState(state => {
-    state.collections = state.collections.filter(c => c.id !== collectionId);
-    state.collections = partitionCollections(state.collections);
-    if (state.autoSaveCollectionId === collectionId) {
-      state.autoSaveCollectionId = null;
-    }
-  });
-  syncLegacyChrome(newState);
-}
-
-async function renameCollection(collectionId, newName) {
-  // Prevent renaming of Current Session collection
-  if (collectionId === CURRENT_SESSION_ID) {
-    alert('The Current Session collection cannot be renamed.');
-    return false;
-  }
-
-  const trimmed = newName.trim();
-  if (!trimmed) return false;
-  
-  if (trimmed.length > MAX_COLLECTION_NAME_LENGTH) {
-    alert(`Collection name cannot exceed ${MAX_COLLECTION_NAME_LENGTH} characters.`);
-    return false;
-  }
-
-  const state = await getState();
-  const collection = state.collections.find(c => c.id === collectionId);
-  if (!collection) return false;
-
-  // If the new name is identical to current name (case‑insensitive, trimmed), treat as success
-  if (collection.name.trim().toLowerCase() === trimmed.toLowerCase()) {
-    return true; // No change needed
-  }
-
-  if (!isNameUnique(trimmed, state.collections, collectionId)) {
-    alert(`Collection name "${trimmed}" already exists.`);
-    return false;
-  }
-
-  const newState = await updateState(state => {
-    const collection = state.collections.find(c => c.id === collectionId);
-    if (collection) {
-      collection.name = trimmed;
-      collection.updatedAt = Date.now();
-    }
-    state.collections = partitionCollections(state.collections);
-  });
-  syncLegacyChrome(newState);
-  return true;
-}
-
 async function exportAllCollections() {
   const state = await getState();
   if (!state.collections || state.collections.length === 0) {
@@ -573,116 +473,6 @@ function importAllCollections() {
 }
 
 
-function exportCollection(collection) {
-  if (!collection || !collection.tabs || collection.tabs.length === 0) {
-    alert('No tabs to export in this collection.');
-    return;
-  }
-  
-  // Include metadata with export date and time
-  const exportData = {
-    collectionId: collection.id,
-    collectionName: collection.name,
-    exportedAt: new Date().toISOString(),
-    tabs: collection.tabs
-  };
-  
-  const dataStr = JSON.stringify(exportData, null, 2);
-  const blob = new Blob([dataStr], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const filename = `${collection.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_tabs_${getFormattedDateTime()}.json`;
-
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 100);
-  showToast('Collection exported successfully');
-}
-
-// ==================== TAB OPERATIONS ====================
-async function openAllTabsInCollection(collectionId) {
-  // Use the background script's restore functionality for better window/tab management
-  try {
-    const response = await api.runtime.sendMessage({
-      command: 'restoreSession',
-      collectionId
-    });
-    
-    showToast('All tabs opened in background');
-    
-    if (!response || !response.success) {
-      // Fallback to simple tab opening if restore fails
-      console.warn('Restore failed, falling back to simple tab opening');
-      await openAllTabsSimple(collectionId);
-    }
-  } catch (error) {
-    console.error('Error restoring session:', error);
-    // Fallback to simple tab opening
-    await openAllTabsSimple(collectionId);
-  }
-}
-
-async function openAllTabsSimple(collectionId) {
-  const state = await getState();
-  const collection = state.collections.find(c => c.id === collectionId);
-  if (!collection) return;
-
-  // Open each tab in the collection (simple fallback).
-  // createdTabs stays index-aligned with collection.tabs so tab groups can be rebuilt.
-  const createdTabs = [];
-  for (let i = 0; i < collection.tabs.length; i++) {
-    const tab = collection.tabs[i];
-    let url = tab.url;
-    if (!url) { createdTabs[i] = null; continue; }
-    // Ensure URL has protocol
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      url = 'https://' + url;
-    }
-    try {
-      const createdTab = await api.tabs.create({ url, active: false });
-      createdTabs[i] = createdTab;
-      // RAM Saver: wait for tab to finish loading before discarding to avoid infinite spinner
-      if (state.ramSaverEnabled && createdTab && createdTab.id) {
-        discardWhenLoaded(createdTab.id);
-      }
-    } catch (err) {
-      console.error('Failed to open tab:', url, err);
-      createdTabs[i] = null;
-    }
-  }
-
-  // Rebuild any Chrome tab groups this collection was saved with.
-  await restoreTabGroups(collection, createdTabs, undefined);
-}
-
-async function removeTab(collectionId, tabId) {
-  await updateState(state => {
-    const collection = state.collections.find(c => c.id === collectionId);
-    if (collection) {
-      collection.tabs = collection.tabs.filter(t => t.id !== tabId);
-      collection.tabs = partitionTabs(collection.tabs);
-      collection.updatedAt = Date.now();
-    }
-  });
-}
-
-async function updateTabTitle(collectionId, tabId, newTitle) {
-  const trimmed = newTitle.trim() || 'Untitled';
-  await updateState(state => {
-    const collection = state.collections.find(c => c.id === collectionId);
-    if (collection) {
-      const tab = collection.tabs.find(t => t.id === tabId);
-      if (tab) {
-        tab.title = trimmed;
-        collection.updatedAt = Date.now();
-      }
-    }
-  });
-}
-
 // ==================== AUTO‑SAVE CONFIG ====================
 function partitionCollections(collections) {
   const currentSession = collections.filter(c => c.id === CURRENT_SESSION_ID);
@@ -695,72 +485,6 @@ function partitionTabs(tabs) {
   const pinned = tabs.filter(t => t.pinned);
   const unpinned = tabs.filter(t => !t.pinned);
   return [...pinned, ...unpinned];
-}
-
-// ==================== PIN OPERATIONS ====================
-async function togglePinCollection(collectionId) {
-  if (collectionId === CURRENT_SESSION_ID) return;
-
-  let limitReached = false;
-  const newState = await updateState(state => {
-    if (!state.enforceMaxPinnedCollections) {
-      // Limit enforcement disabled — pin freely
-    }
-    const collection = state.collections.find(c => c.id === collectionId);
-    if (collection) {
-      const isPinned = !collection.pinned;
-      if (isPinned && state.enforceMaxPinnedCollections) {
-        const currentPinnedCount = state.collections.filter(c => c.pinned && c.id !== CURRENT_SESSION_ID).length;
-        if (currentPinnedCount >= state.maxPinnedCollections) {
-          limitReached = true;
-          return;
-        }
-      }
-      collection.pinned = isPinned;
-      collection.updatedAt = Date.now();
-      state.collections = partitionCollections(state.collections);
-    }
-  });
-
-  if (limitReached) {
-    const lim = await getState().then(s => s.maxPinnedCollections);
-    alert(`Maximum of ${lim} pinned collections reached. Raise the limit or disable it in Settings.`);
-    return;
-  }
-
-  syncLegacyChrome(newState);
-}
-
-async function togglePinTab(collectionId, tabId) {
-  if (collectionId === CURRENT_SESSION_ID) return;
-  let limitReached = false;
-  const newState = await updateState(state => {
-    const collection = state.collections.find(c => c.id === collectionId);
-    if (collection) {
-      const tab = collection.tabs.find(t => t.id === tabId);
-      if (tab) {
-        const isPinned = !tab.pinned;
-        if (isPinned && state.enforceMaxPinnedTabs) {
-          const currentPinnedCount = collection.tabs.filter(t => t.pinned).length;
-          if (currentPinnedCount >= state.maxPinnedTabs) {
-            limitReached = true;
-            return;
-          }
-        }
-        tab.pinned = isPinned;
-        collection.updatedAt = Date.now();
-        collection.tabs = partitionTabs(collection.tabs);
-      }
-    }
-  });
-
-  if (limitReached) {
-    const lim = await getState().then(s => s.maxPinnedTabs);
-    alert(`Maximum of ${lim} pinned tabs per collection reached. Raise the limit or disable it in Settings.`);
-    return;
-  }
-
-  syncLegacyChrome(newState);
 }
 
 // ==================== UI RENDERING ====================
@@ -1331,48 +1055,10 @@ function normalizeOpenedState(state) {
 // Start the extension
 document.addEventListener('DOMContentLoaded', init);
 
-// ==================== REACT UI ADAPTER ====================
-// The collection list is React-owned since Phase 2 (react-migration-plan.md §8). React reaches
-// the actions that still live here through `window.TCMLegacyUI`; src/app/legacy-ui.js is the
-// only caller. Delete this whole section together with the rest of popup.js in Phase 5.
-
-/**
- * Open a saved tab. `active: true` behaves like clicking the row (loads immediately); the
- * background variant honours RAM Saver, exactly like the old tab menu entry.
- */
-async function openSavedTab(url, options = {}) {
-  if (!url) return;
-  const active = options.active !== false;
-  const target = (url.startsWith('http://') || url.startsWith('https://')) ? url : 'https://' + url;
-
-  try {
-    const createdTab = await api.tabs.create({ url: target, active });
-    if (active) return;
-
-    const state = await getState();
-    if (state.ramSaverEnabled && createdTab && createdTab.id) {
-      discardWhenLoaded(createdTab.id);
-      showToast('Tab opened (RAM Saver — loads on click)');
-    } else {
-      showToast('Tab opened in background');
-    }
-  } catch (err) {
-    console.error('Failed to open tab:', target, err);
-  }
-}
-
-window.TCMLegacyUI = {
-  toggleCollectionPin: (collectionId) => togglePinCollection(collectionId),
-  toggleTabPin: (collectionId, tabId) => togglePinTab(collectionId, tabId),
-  renameCollection: (collectionId, name) => renameCollection(collectionId, name),
-  deleteCollection: (collectionId) => deleteCollection(collectionId),
-  removeTab: (collectionId, tabId) => removeTab(collectionId, tabId),
-  renameTab: (collectionId, tabId, title) => updateTabTitle(collectionId, tabId, title),
-  openSavedTab,
-  openAllTabs: (collectionId) => openAllTabsInCollection(collectionId),
-  exportCollection: (collection) => exportCollection(collection)
-};
-
+// ==================== PANEL CHROME ====================
+// The collection list and every collection/tab action are React-owned since Phase 5.1
+// (react-migration-plan.md §8): React writes through the store and calls `chrome.*` itself, so
+// there is no `window.TCMLegacyUI` seam left to serve.
 document.getElementById('closePanelBtn').addEventListener('click', () => {
   document.body.classList.add('panel-closing');
   setTimeout(() => {

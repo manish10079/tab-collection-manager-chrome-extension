@@ -2,6 +2,7 @@
 export const LIMITS = Object.freeze({
   MAX_TABS_PER_COLLECTION: 200,
   MAX_SESSION_HISTORY: 100,
+  MAX_COLLECTION_NAME_LENGTH: 100,
 });
 
 /** Default values applied when a persisted setting is missing. */

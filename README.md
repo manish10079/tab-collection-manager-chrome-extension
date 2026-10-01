@@ -64,6 +64,11 @@ React list action can no longer lose each other's write. See
 [`react-migration-plan.md`](./react-migration-plan.md) §8 and
 [`docs/decisions/ADR-0004-single-write-queue.md`](./docs/decisions/ADR-0004-single-write-queue.md).
 
+Every collection action — rename, delete, tab edit/remove, pin toggles, open and restore, and
+per-collection export — is React-owned too: React runs the pure rules and the store's write queue,
+while `background.js` keeps restore. See
+[`docs/decisions/ADR-0006-collection-actions-in-react.md`](./docs/decisions/ADR-0006-collection-actions-in-react.md).
+
 ### Dev browser helper
 
 `npm run dev` launches a Chromium browser (Chrome → Brave → Edge, whichever is installed) with

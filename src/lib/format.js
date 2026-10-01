@@ -35,6 +35,20 @@ export function formatTime(timestamp) {
 }
 
 /**
+ * `YYYY-MM-DD_HH-mm-ss`, the stamp the legacy export filenames used.
+ *
+ * @param {Date} [date]
+ * @returns {string}
+ */
+export function formatFileTimestamp(date = new Date()) {
+  const pad = (value) => String(value).padStart(2, '0');
+  return (
+    [date.getFullYear(), pad(date.getMonth() + 1), pad(date.getDate())].join('-') +
+    `_${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`
+  );
+}
+
+/**
  * "12 tabs" / "1 tab" — the label shown in a collection header.
  *
  * @param {number} count

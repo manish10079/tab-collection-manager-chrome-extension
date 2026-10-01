@@ -1,59 +1,7 @@
 // Re-opening a saved snapshot as background tabs. This is the legacy history modal's "Open All"
-// path, moved off `popup.js` (react-migration-plan.md §8, Phase 4).
-
-/**
- * Discard a tab only once it has finished loading. Calling `chrome.tabs.discard()` right after
- * `chrome.tabs.create()` leaves the tab stuck in a loading spinner, so this waits for
- * `status === 'complete'` — or gives up after `timeoutMs`, and never discards a tab the user has
- * activated in the meantime. Ported verbatim from popup.js; the two copies disappear with it in
- * Phase 5.
- *
- * @param {number} tabId
- * @param {number} [timeoutMs]
- * @returns {Promise<void>}
- */
-export function discardWhenLoaded(tabId, timeoutMs = 10000) {
-  return new Promise((resolve) => {
-    let settled = false;
-
-    const cleanup = () => {
-      if (settled) return;
-      settled = true;
-      chrome.tabs.onUpdated.removeListener(onUpdated);
-    };
-
-    const timer = setTimeout(async () => {
-      if (settled) return;
-      cleanup();
-      try {
-        const tab = await chrome.tabs.get(tabId);
-        if (tab && !tab.active) chrome.tabs.discard(tabId).catch(() => {});
-      } catch {
-        // Tab might have been closed
-      }
-      resolve();
-    }, timeoutMs);
-
-    function onUpdated(updatedTabId, changeInfo, tab) {
-      if (updatedTabId !== tabId) return;
-
-      if (tab && tab.active) {
-        cleanup();
-        clearTimeout(timer);
-        resolve();
-        return;
-      }
-      if (changeInfo.status !== 'complete') return;
-
-      cleanup();
-      clearTimeout(timer);
-      chrome.tabs.discard(tabId).catch(() => {});
-      resolve();
-    }
-
-    chrome.tabs.onUpdated.addListener(onUpdated);
-  });
-}
+// path, moved off `popup.js` (react-migration-plan.md §8, Phase 4). The RAM-Saver discard rule is
+// shared with the collections feature through `lib/tabs.js`.
+import { discardWhenLoaded } from '../../../lib/tabs.js';
 
 /**
  * Open a snapshot's tabs in the last-focused window, in the background. Returns how many were

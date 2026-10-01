@@ -30,7 +30,7 @@ import { DEFAULT_SETTINGS } from '../shared/constants.js';
  * @property {number} [createdAt]
  * @property {number} [updatedAt]
  * @property {boolean} [isExpanded]
- * @property {boolean} [isPinned]
+ * @property {boolean} [pinned]
  * @property {boolean} [isCurrentSession]
  * @property {string} [tabSortType]
  * @property {Record<string, ChromeGroupMeta>} [chromeGroups]

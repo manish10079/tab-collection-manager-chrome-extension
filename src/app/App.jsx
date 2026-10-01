@@ -4,7 +4,6 @@ import { CollectionList, useCollectionActions } from '../features/collections/in
 import { SettingsModal, useSettingsActions } from '../features/settings/index.js';
 import { DialogHost, useDialogs } from '../features/dialogs/index.js';
 import { useToast } from './providers/useToast.js';
-import { legacyUi } from './legacy-ui.js';
 import { registerDialogOpeners, registerSettingsOpener } from './legacy-handle.js';
 import { useContainerClasses } from './hooks/useContainerClasses.js';
 import { useThemeAttribute } from './hooks/useThemeAttribute.js';
@@ -35,7 +34,7 @@ export function App({ mountPoint = null }) {
   const toast = useToast();
   const settingsActions = useSettingsActions({ toast });
   const dialogs = useDialogs({ toast });
-  const actions = useCollectionActions(legacyUi, {
+  const actions = useCollectionActions({
     addTabs: dialogs.actions.addTabs,
     importTabs: dialogs.actions.importTabs,
     toast,

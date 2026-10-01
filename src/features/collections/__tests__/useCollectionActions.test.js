@@ -20,7 +20,13 @@ function makeTab(id) {
 function setup(initial) {
   const { store } = installChromeMock(initial);
   const legacy = { toast: vi.fn() };
-  const { result } = renderHook(() => useCollectionActions(legacy));
+  const { result } = renderHook(() =>
+    useCollectionActions({
+      toast: legacy.toast,
+      addTabs: vi.fn(),
+      importTabs: vi.fn(async () => {}),
+    })
+  );
   return { store, legacy, actions: result.current };
 }
 
@@ -92,5 +98,135 @@ describe('useCollectionActions drag actions', () => {
 
     expect(store.collections.map((collection) => collection.id)).toEqual(['b', 'a']);
     expect(store.collectionSortType).toBe('custom');
+  });
+});
+
+/**
+ * The Phase 5.1 actions: everything `window.TCMLegacyUI` used to do. They run against the real
+ * store and write queue, so a refusal is asserted by inspecting what actually persisted.
+ */
+describe('useCollectionActions administration actions', () => {
+  it('toasts the pinned-collection limit instead of alerting', async () => {
+    const { store, legacy, actions } = setup({
+      collections: [
+        { id: 'a', name: 'A', tabs: [], pinned: true },
+        { id: 'b', name: 'B', tabs: [] },
+      ],
+      enforceMaxPinnedCollections: true,
+      maxPinnedCollections: 1,
+    });
+    await hydrate();
+    const alertSpy = vi.spyOn(window, 'alert');
+
+    await actions.pinCollection('b');
+
+    expect(legacy.toast).toHaveBeenCalledTimes(1);
+    expect(legacy.toast.mock.calls[0][0]).toContain('Maximum of 1 pinned collections');
+    expect(alertSpy).not.toHaveBeenCalled();
+    expect(store.collections.find((collection) => collection.id === 'b').pinned).toBeFalsy();
+    alertSpy.mockRestore();
+  });
+
+  it('reports a duplicate collection name as a toast and keeps the old name', async () => {
+    const { store, legacy, actions } = setup({
+      collections: [
+        { id: 'a', name: 'Alpha', tabs: [] },
+        { id: 'b', name: 'Taken', tabs: [] },
+      ],
+    });
+    await hydrate();
+
+    const renamed = await actions.renameCollection('a', 'taken');
+
+    expect(renamed).toBe(false);
+    expect(legacy.toast.mock.calls[0][0]).toContain('already exists');
+    expect(store.collections.find((collection) => collection.id === 'a').name).toBe('Alpha');
+  });
+
+  it('clears Auto-Save when its target collection is deleted', async () => {
+    const { store, actions } = setup({
+      collections: [{ id: 'a', name: 'A', tabs: [] }],
+      autoSaveCollectionId: 'a',
+    });
+    await hydrate();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    await actions.deleteCollection('a');
+
+    expect(store.autoSaveCollectionId).toBeNull();
+    expect(store.collections).toEqual([]);
+    confirmSpy.mockRestore();
+  });
+
+  it('asks the worker to restore a collection', async () => {
+    const { legacy, actions } = setup({});
+    await hydrate();
+    const send = vi.fn(async () => ({ success: true }));
+    globalThis.chrome.runtime.sendMessage = send;
+
+    await actions.openAllTabs('a');
+
+    expect(send).toHaveBeenCalledWith({ command: 'restoreSession', collectionId: 'a' });
+    expect(legacy.toast).toHaveBeenCalledWith('All tabs opened in background');
+  });
+
+  it('opens a tab in the background and toasts, but stays quiet for an active open', async () => {
+    const { legacy, actions } = setup({});
+    await hydrate();
+    const create = vi.fn(async () => ({ id: 7 }));
+    globalThis.chrome.tabs.create = create;
+
+    await actions.openTab('https://example.test', { active: false });
+    expect(create).toHaveBeenCalledWith({ url: 'https://example.test', active: false });
+    expect(legacy.toast).toHaveBeenCalledWith('Tab opened in background');
+
+    legacy.toast.mockClear();
+    await actions.openTab('https://example.test');
+    expect(create).toHaveBeenLastCalledWith({ url: 'https://example.test', active: true });
+    expect(legacy.toast).not.toHaveBeenCalled();
+  });
+
+  it('exports a collection and refuses an empty one', async () => {
+    const { legacy, actions } = setup({});
+    await hydrate();
+    // happy-dom does not implement object URLs, so define them for the export path and restore after.
+    const createObjectURL = vi.fn(() => 'blob:test');
+    const revokeObjectURL = vi.fn();
+    URL.createObjectURL = createObjectURL;
+    URL.revokeObjectURL = revokeObjectURL;
+
+    actions.exportCollection({
+      id: 'a',
+      name: 'Alpha',
+      tabs: [{ id: 't1', title: 'T', url: 'https://a.test' }],
+    });
+    expect(legacy.toast).toHaveBeenCalledWith('Collection exported successfully');
+
+    legacy.toast.mockClear();
+    actions.exportCollection({ id: 'b', name: 'Empty', tabs: [] });
+    expect(legacy.toast).toHaveBeenCalledWith('No tabs to export in this collection.');
+
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    delete URL.createObjectURL;
+    delete URL.revokeObjectURL;
+  });
+
+  it('removes and renames tabs through the queue', async () => {
+    const { store, actions } = setup({
+      collections: [
+        {
+          id: 'a',
+          name: 'A',
+          tabs: [{ id: 't1', title: 'One', url: 'https://one.test', pinned: false }],
+        },
+      ],
+    });
+    await hydrate();
+
+    await actions.renameTab('a', 't1', 'Renamed');
+    expect(store.collections[0].tabs[0].title).toBe('Renamed');
+
+    await actions.removeTab('a', 't1');
+    expect(store.collections[0].tabs).toEqual([]);
   });
 });

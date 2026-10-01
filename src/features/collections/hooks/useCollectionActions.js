@@ -1,4 +1,16 @@
-import { mutate } from '../../../store/store.js';
+import { getSnapshot, mutate } from '../../../store/store.js';
+import { LIMITS } from '../../../shared/constants.js';
+import { toOpenableUrl } from '../../../lib/url.js';
+import { discardWhenLoaded } from '../../../lib/tabs.js';
+import { formatFileTimestamp } from '../../../lib/format.js';
+import {
+  deleteCollection,
+  removeTab,
+  renameCollection,
+  renameTab,
+  toggleCollectionPin,
+  toggleTabPin,
+} from '../lib/collectionAdmin.js';
 import {
   moveTabToCollection,
   moveTabToCollectionAtPosition,
@@ -16,9 +28,9 @@ import {
  * @property {(collectionId: string, tabId: string) => void} pinTab
  * @property {(id: string, name: string) => Promise<boolean>} renameCollection
  * @property {(id: string) => void} deleteCollection
- * @property {(id: string) => void} openAllTabs
+ * @property {(id: string) => Promise<void>} openAllTabs
  * @property {(id: string) => void} addTabs
- * @property {(id: string) => void} importTabs
+ * @property {(id: string) => Promise<void>} importTabs
  * @property {(collection: import('../../../store/schema.js').Collection) => void} exportCollection
  * @property {(collection: import('../../../store/schema.js').Collection) => Promise<void>} copyCollectionLinks
  * @property {(sourceId: string, targetId: string) => Promise<void>} moveCollection
@@ -27,32 +39,26 @@ import {
  * @property {(tabId: string, sourceCollectionId: string, targetCollectionId: string, targetTabId: string) => Promise<{moved: boolean}>} moveTabToPosition
  * @property {(collectionId: string, tabId: string) => void} removeTab
  * @property {(collectionId: string, tabId: string, title: string) => void} renameTab
- * @property {(url: string, options?: {active?: boolean}) => void} openTab
+ * @property {(url: string, options?: {active?: boolean}) => Promise<void>} openTab
  * @property {(url: string) => Promise<void>} copyTabUrl
  * @property {(message: string, duration?: number) => void} toast
  */
 
 /**
- * Actions available to the collections feature. State changes (expand, tab sort, drag-and-drop
- * reordering) go straight to the store's write queue; everything that still lives in the
- * legacy runtime is delegated to the injected adapter, which is the only seam between the two
- * UIs (docs/decisions/ADR-0002-collections-list-react.md).
+ * Actions available to the collections feature.
  *
- * @param {Record<string, (...args: any[]) => any>} legacy Adapter injected by the app layer
- * @param {{addTabs?: (id: string) => void, importTabs?: (id: string) => void, toast?: (message: string, duration?: number) => void}} [overrides]
- *   Actions the app layer has moved into React (Phase 4 owns the add/import dialogs and the toast
- *   provider), supplied here so callers still see one actions object
+ * Every action is React-owned since Phase 5.1: state changes go through the store's write queue,
+ * opening and restoring tabs is a `chrome.tabs` / `chrome.runtime` call here, and the two handlers
+ * the app layer owns (`addTabs`, `importTabs` — they are dialogs) plus `toast` arrive by injection.
+ * `src/app/legacy-ui.js` disappeared with this change.
+ *
+ * @param {object} deps Injected by the app layer
+ * @param {(message: string, duration?: number) => void} deps.toast
+ * @param {(id: string) => void} deps.addTabs
+ * @param {(id: string) => Promise<void>} deps.importTabs
  * @returns {CollectionActions}
  */
-export function useCollectionActions(legacy, overrides = {}) {
-  /** @param {string} name */
-  function unwired(name) {
-    console.warn(`[collections] "${name}" has no React handler and the legacy one is gone`);
-  }
-
-  /** Prefer the React toast provider; fall back to the legacy adapter for older callers. */
-  const toast = overrides.toast ?? ((message, duration) => legacy.toast(message, duration));
-
+export function useCollectionActions({ toast, addTabs, importTabs }) {
   /**
    * A cross-collection tab move can be refused (the 200-tab cap). The mutator's verdict comes
    * back through the write queue and surfaces as a toast instead of the legacy alert().
@@ -69,34 +75,144 @@ export function useCollectionActions(legacy, overrides = {}) {
     return result;
   }
 
+  /**
+   * Toggle a pin through the queue and report a refused limit. The mutator decides, so the rule
+   * lives with the state rather than with the click.
+   *
+   * @param {(draft: import('../../../store/schema.js').AppState) => {changed: boolean, limitReached: boolean, limit: number}} mutator
+   * @param {(limit: number) => string} limitMessage
+   */
+  async function runPinToggle(mutator, limitMessage) {
+    let result = { changed: false, limitReached: false, limit: 0 };
+    await mutate((draft) => {
+      result = mutator(draft);
+    });
+    if (result.limitReached) toast(limitMessage(result.limit));
+  }
+
   return {
     setExpanded: (id, expanded) => mutate((draft) => setCollectionExpanded(draft, id, expanded)),
 
     setTabSortType: (id, sortType) => mutate((draft) => setTabSortType(draft, id, sortType)),
 
-    pinCollection: (id) => legacy.toggleCollectionPin(id),
+    pinCollection: (id) =>
+      runPinToggle(
+        (draft) => toggleCollectionPin(draft, id),
+        (limit) =>
+          `Maximum of ${limit} pinned collections reached. Raise the limit or disable it in Settings.`
+      ),
 
-    pinTab: (collectionId, tabId) => legacy.toggleTabPin(collectionId, tabId),
+    pinTab: (collectionId, tabId) =>
+      runPinToggle(
+        (draft) => toggleTabPin(draft, collectionId, tabId),
+        (limit) =>
+          `Maximum of ${limit} pinned tabs per collection reached. Raise the limit or disable it in Settings.`
+      ),
 
-    renameCollection: (id, name) => legacy.renameCollection(id, name),
+    /** @returns {Promise<boolean>} Whether the rename stuck — the card keeps its draft otherwise. */
+    renameCollection: async (id, name) => {
+      /** @type {'renamed'|'unchanged'|'current-session'|'empty'|'too-long'|'duplicate'|'missing'} */
+      let outcome = 'missing';
+      await mutate((draft) => {
+        outcome = renameCollection(draft, id, name);
+      });
 
-    deleteCollection: (id) => legacy.deleteCollection(id),
+      if (outcome === 'current-session') {
+        toast('The Current Session collection cannot be renamed.');
+        return false;
+      }
+      if (outcome === 'too-long') {
+        toast(`Collection name cannot exceed ${LIMITS.MAX_COLLECTION_NAME_LENGTH} characters.`);
+        return false;
+      }
+      if (outcome === 'duplicate') {
+        toast(`Collection name "${String(name).trim()}" already exists.`);
+        return false;
+      }
+      // 'empty' is already filtered by the card; 'missing'/'unchanged' need no message.
+      return outcome === 'renamed' || outcome === 'unchanged';
+    },
 
-    openAllTabs: (id) => legacy.openAllTabs(id),
+    deleteCollection: async (id) => {
+      if (!window.confirm('Are you sure you want to remove this collection?')) return;
+      await mutate((draft) => {
+        deleteCollection(draft, id);
+      });
+    },
 
-    addTabs: (id) => (overrides.addTabs ? overrides.addTabs(id) : unwired('addTabs')),
+    openAllTabs: async (id) => {
+      // The service worker owns restore: it opens the tabs in a new window, rebuilds Chrome tab
+      // groups and applies RAM Saver. The legacy fallback that duplicated that logic is gone.
+      try {
+        const response = await chrome.runtime.sendMessage({
+          command: 'restoreSession',
+          collectionId: id,
+        });
+        if (response && response.success) toast('All tabs opened in background');
+        else toast('Could not restore that collection.');
+      } catch (error) {
+        console.error('[collections] failed to restore collection:', error);
+        toast('Could not restore that collection.');
+      }
+    },
 
-    importTabs: (id) => (overrides.importTabs ? overrides.importTabs(id) : unwired('importTabs')),
+    addTabs: (id) => addTabs(id),
 
-    exportCollection: (collection) => legacy.exportCollection(collection),
+    importTabs: (id) => importTabs(id),
 
-    removeTab: (collectionId, tabId) => legacy.removeTab(collectionId, tabId),
+    exportCollection: (collection) => {
+      const tabs = Array.isArray(collection.tabs) ? collection.tabs : [];
+      if (tabs.length === 0) {
+        toast('No tabs to export in this collection.');
+        return;
+      }
 
-    renameTab: (collectionId, tabId, title) => legacy.renameTab(collectionId, tabId, title),
+      const filename = `${String(collection.name)
+        .replace(/[^a-z0-9]/gi, '_')
+        .toLowerCase()}_tabs_${formatFileTimestamp()}.json`;
+      downloadJson(
+        {
+          collectionId: collection.id,
+          collectionName: collection.name,
+          exportedAt: new Date().toISOString(),
+          tabs,
+        },
+        filename
+      );
+      toast('Collection exported successfully');
+    },
 
-    openTab: (url, options) => legacy.openSavedTab(url, options),
+    removeTab: (collectionId, tabId) =>
+      mutate((draft) => {
+        removeTab(draft, collectionId, tabId);
+      }),
 
-    toast: (message, duration) => toast(message, duration),
+    renameTab: (collectionId, tabId, title) =>
+      mutate((draft) => {
+        renameTab(draft, collectionId, tabId, title);
+      }),
+
+    openTab: async (url, options = {}) => {
+      const target = toOpenableUrl(url);
+      if (!target) return;
+
+      // `active` defaults to true, so clicking a tab row loads it straight away.
+      const active = options.active !== false;
+      try {
+        const created = await chrome.tabs.create({ url: target, active });
+        if (active) return;
+
+        if (getSnapshot().settings.ramSaverEnabled && created && created.id) {
+          discardWhenLoaded(created.id);
+          toast('Tab opened (RAM Saver — loads on click)');
+        } else {
+          toast('Tab opened in background');
+        }
+      } catch (error) {
+        console.error('[collections] failed to open tab:', target, error);
+        toast('Could not open that tab.');
+      }
+    },
 
     moveCollection: (sourceId, targetId) =>
       mutate((draft) => reorderCollections(draft, sourceId, targetId)),
@@ -145,5 +261,26 @@ export function useCollectionActions(legacy, overrides = {}) {
         toast('Failed to copy link');
       }
     },
+
+    toast: (message, duration) => toast(message, duration),
   };
+}
+
+/**
+ * Save a JSON payload through a temporary object URL. The legacy code did this inline in two
+ * places (`exportCollection`, `exportAllCollections`); it lives here because it touches `document`.
+ *
+ * @param {unknown} payload
+ * @param {string} filename
+ */
+function downloadJson(payload, filename) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  setTimeout(() => URL.revokeObjectURL(url), 100);
 }

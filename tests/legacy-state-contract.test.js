@@ -27,4 +27,13 @@ describe('popup.js state contract', () => {
   it('never writes storage directly', () => {
     expect(SOURCE).not.toMatch(/storage\.local\.set/);
   });
+
+  /**
+   * Phase 5.1 moved every `window.TCMLegacyUI` action into React (react-migration-plan.md §8), so
+   * the adapter that served it is deleted. Re-introducing the seam would silently send collection
+   * mutations back through this file.
+   */
+  it('no longer exposes a React-facing action seam', () => {
+    expect(SOURCE).not.toMatch(/window\.TCMLegacyUI\s*=/);
+  });
 });
