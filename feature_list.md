@@ -36,6 +36,7 @@ A powerful browser extension for managing, organizing, backing up, and restoring
 * Open individual tabs
 * Restore entire collections
 * Restore complete browsing sessions
+* Rebuild Chrome tab groups with their saved name, color and collapsed state
 
 ### Preserved Tab Metadata
 
@@ -45,6 +46,7 @@ A powerful browser extension for managing, organizing, backing up, and restoring
 * Highlighted state
 * Discarded state
 * Window grouping information
+* Chrome tab group membership (group name, color, collapsed state)
 * Tab creation timestamp
 
 ---
@@ -213,6 +215,7 @@ Unlike popup-based tab managers:
 * Search animations
 * Toast notifications
 * Hover tooltips
+* Chrome tab group badge on saved tabs (group colour dot + group name)
 * Responsive layout
 * Custom checkbox controls
 * Font Awesome icon integration
@@ -263,18 +266,19 @@ Laptop A
 ↓
 Create collection
 ↓
-Automatically upload to cloud
+Automatically upload to Google Drive (appDataFolder)
 ↓
 Laptop B logs in
 ↓
-Collections appear automatically
+Restore from Google Drive
 ```
 
-Possible backend:
+Implemented backend:
 
-* Firebase
-* Supabase
-* Chrome Sync API
+* Google Drive API via Chrome Identity (drive.appdata scope)
+* Manual backup / restore buttons
+* Daily auto-backup via Chrome Alarms
+* Secure, isolated `appDataFolder` — other apps cannot access your data
 
 ---
 
@@ -459,3 +463,130 @@ Recommended implementation order:
 8. Folder Hierarchy
 9. Collection Sharing
 10. Cloud Sync
+
+---
+
+# Missing Features vs Ta Box (Tabox 4.2.2)
+
+Gap analysis against the Ta Box (Tabox) extension build
+(`ta box tab collection manager extension.zip`, Chrome Web Store build, v4.2.2).
+Everything already implemented in this extension is NOT listed here.
+
+Legend: 🔴 major · 🟡 medium · ⚪ minor · Status: ✅ implemented · 🔶 partial · ❌ not implemented
+
+---
+
+## 🔴 Major missing features
+
+### 1. Folder hierarchy for collections — ❌ Not implemented
+* **Ta Box:** real folders (`folders_index`, `parentId` on collections), folder colors,
+  collapse state, drag collections in/out of folders, per-folder tab counts.
+* **Us:** flat list only (roadmap item below, not implemented).
+* **To build:** `folders` array + `parentId` in state; nested rendering in
+  `renderCollections()`; drag targets on folder headers; folder create/rename/delete;
+  optional folder colors.
+
+### 2. Chrome Tab Groups capture & restore — ✅ Implemented
+* **Ta Box:** stores `chromeGroups` metadata (group name, color, collapsed, pinned) with
+  each collection and rebuilds actual Chrome tab groups on restore via `chrome.tabGroups`.
+* **Us:** implemented — `"tabGroups"` permission added to the manifest; autosave and the
+  "Add tabs" modal record each tab's `chromeGroupId` plus a collection-level
+  `chromeGroups` map (`title` / `color` / `collapsed`); `restoreSession()` (and the popup
+  fallback path) rebuild the groups via `chrome.tabs.group()` + `chrome.tabGroups.update()`.
+* **Notes:** pinned tabs are skipped when grouping (Chrome cannot group them); groups
+  whose metadata was lost are restored as ungrouped tabs.
+
+### 3. Sharing & collaboration (requires a backend) — ❌ Not implemented
+* **Ta Box (Pro, server-backed):** shared folders with members and roles
+  (owner / read / write), email invites with notification, public share links for single
+  collections and whole folders, join-by-link (sign-in-deferred), leave/unshare, member
+  role changes, activity feed (who changed what), and per-folder comments.
+* **Us:** roadmap idea only. Needs server infrastructure (Ta Box uses a Cloudflare
+  Worker API) — decide before investing.
+
+### 4. AI assistant (5 tools, server LLM) — ❌ Not implemented
+* **Ta Box (Pro):** server-side LLM (`/ai/complete`, JSON-schema-constrained):
+  1. **Smart organize** – cluster a window's ungrouped tabs into named + colored Chrome tab groups
+  2. **Auto-arrange** – file collections into folders (creates/suggests folders)
+  3. **Batch rename** – suggest names for up to 10 unnamed collections at once
+  4. **Split collection** – split one collection into 2–4 themed sub-collections, with undo
+  5. **Duplicate sweep** – duplicate URL groups across collections with recommended
+     keep-one / dedupe-within / extract-to-new-collection / discard-all actions,
+     plus undo history and empty-collection cleanup
+* **Us:** none. Even without an LLM, the **duplicate sweep + undo** workflow is worth
+  building deterministically (we only warn before insert today).
+
+### 5. True multi-device cloud sync (merge, not just backup) — ❌ Not implemented
+* **Ta Box:** incremental sync engine with snapshot **merge and conflict resolution**
+  (`lastUpdated`-wins per entity), **deletion tombstones** so deletes propagate,
+  pre-sync safety backups, version recovery, refresh tokens, sync lock,
+  storage/sync version migration.
+* **Us:** one-way Drive backup + manual restore; two machines overwrite each other.
+* **To build:** per-entity `lastUpdated` timestamps, tombstone list, merge function on
+  restore, keep multiple Drive file versions.
+
+### 6. Recently closed restore (`chrome.sessions`) — ❌ Not implemented
+* **Ta Box:** `sessions.getRecentlyClosed` / `sessions.restore` / `sessions.onChanged`
+  to restore recently closed tabs and windows.
+* **Us:** permission not declared; no UI.
+* **To build:** add `"sessions"` permission; a "Recently closed" section/slide in the
+  panel with one-click restore of tabs or windows.
+
+---
+
+## 🟡 Medium gaps
+
+### 7. Global keyboard commands (`chrome.commands`) — ❌ Not implemented
+* Ta Box binds **Ctrl+Shift+1..4** to open the 1st–4th collection from anywhere in the
+  browser via manifest `commands` + background handler.
+* Our shortcuts only work while the side panel has focus.
+
+### 8. Sleep/deferred tabs (placeholder page restore) — ❌ Not implemented
+* Ta Box's `deferedLoading.html`: restores tabs as tiny placeholder pages showing
+  favicon + "(click to load)", navigating to the real URL only on focus/click.
+* Complements (not replaces) our discard-based RAM Saver.
+
+### 9. Incognito support — ❌ Not implemented
+* Ta Box: `"incognito": "spanning"` in manifest + explicit incognito handling in the
+  background worker (tabs saved from incognito windows tracked separately).
+* Us: incognito windows are silently ignored/untracked.
+
+### 10. Multi-window / monitor-aware restore — 🔶 Partial
+* Ta Box requests `system.display` and stores window bounds metadata so collections
+  reopen into correctly positioned windows across monitors.
+* Us: tab `windowId` is saved and windows are grouped on restore, but window
+  position/size and monitor info are not.
+
+### 11. Push notifications for shared events — ❌ Not implemented
+* Ta Box: web-push subscription via VAPID + optional `notifications` permission —
+  live pings when shared collections change; invite notifications.
+
+### 12. Full-page manager view — ❌ Not implemented
+* Ta Box ships `fullpage.html` — the entire manager in a normal browser tab for when
+  the side panel is too cramped.
+
+---
+
+## ⚪ Minor gaps / quality-of-life
+
+13. **Per-collection colors** (color picker, used in UI accents) — ❌ Not implemented
+14. **Favorites with custom favorite order** (`isFavorite`, `favoriteOrder`) — 🔶 Partial (pinning covers the main use case; no separate favorites order)
+15. **`lastOpened` tracking per collection** — enables "recently opened" sort — ❌ Not implemented
+16. **`unlimitedStorage` permission** — ❌ Not implemented (we cap collections at 200 tabs; Ta Box doesn't cap)
+17. **Storage versioning + data validation & migration** (`storageVersion`, `syncVersion`) — 🔶 Partial (only a light one-off `addedAt` backfill migration; no version numbers or validation)
+18. **Cross-browser support reality check** — ❌ Chrome-only (Ta Box bundles `browser-polyfill.min.js`; we claim Firefox support but our MV3 manifest has no `sidebar_action` and uses Chrome-only APIs (sidePanel))
+
+---
+
+## Suggested priority (local-only features first, no backend needed)
+
+1. Chrome tab groups capture & restore — ✅ Done
+2. Folder hierarchy — long-planned, high user value
+3. Recently closed restore — small effort, uses one new permission
+4. Duplicate sweep + undo — builds on our existing duplicate detection
+5. Global keyboard commands (Ctrl+Shift+1..4) — small effort
+6. Sleep/deferred tab restore — medium effort, UX win for big restores
+7. Two-way Drive sync with merge & tombstones — large effort, no backend required
+8. Incognito + window-bounds metadata — polish
+
+Backend-dependent (decide first): sharing & collaboration, AI tools, push notifications.

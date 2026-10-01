@@ -1,17 +1,23 @@
 {
   "manifest_version": 3,
   "name": "Tab Collection Manager",
-  "version": "1.8.7",
+  "version": "1.9.0",
   "description": "Auto-save and manage tab collections with premium dark mode UI",
   "permissions": [
     "tabs",
+    "tabGroups",
     "storage",
     "contextMenus",
     "downloads",
     "favicon",
     "sidePanel",
-    "alarms"
+    "alarms",
+    "identity"
   ],
+  "oauth2": {
+    "client_id": "130868571588-ep7a8fmkqhg2s1qvshs2a7ir9fod72jj.apps.googleusercontent.com",
+    "scopes": ["https://www.googleapis.com/auth/drive.appdata"]
+  },
   "action": {
     "default_title": "Tab Collection Manager",
     "default_icon": {
@@ -21,9 +27,8 @@
     }
   },
   "side_panel": {
-  "default_path": "popup.html"
+    "default_path": "popup.html"
   },
-
 
   "background": {
     "service_worker": "background.js",

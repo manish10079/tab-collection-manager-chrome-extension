@@ -11,6 +11,8 @@ async function getState() {
     'ramSaverEnabled', 
     'enforceMaxPinnedTabs', 
     'maxPinnedTabs',
+    'enforceMaxPinnedCollections',
+    'maxPinnedCollections',
     'sessionHistory'
   ]);
   return {
@@ -20,6 +22,8 @@ async function getState() {
     ramSaverEnabled: !!result.ramSaverEnabled,
     enforceMaxPinnedTabs: result.enforceMaxPinnedTabs !== false,
     maxPinnedTabs: result.maxPinnedTabs ?? 3,
+    enforceMaxPinnedCollections: result.enforceMaxPinnedCollections !== false,
+    maxPinnedCollections: result.maxPinnedCollections ?? 3,
     sessionHistory: result.sessionHistory || []
   };
 }
@@ -51,6 +55,38 @@ const MAX_TABS_PER_COLLECTION = 200;
 const api = typeof browser !== 'undefined' ? browser : chrome;
 
 const CURRENT_SESSION_ID = 'current-session';
+
+// ── Chrome tab-group helpers ──
+// Chrome reports TAB_ID_NONE (-1) for tabs that are not part of any group.
+const TAB_GROUP_ID_NONE = (typeof chrome !== 'undefined' && chrome.tabGroups &&
+  typeof chrome.tabGroups.TAB_ID_NONE === 'number') ? chrome.tabGroups.TAB_ID_NONE : -1;
+
+function normalizeGroupId(groupId) {
+  return (typeof groupId === 'number' && groupId !== TAB_GROUP_ID_NONE && groupId >= 0) ? groupId : null;
+}
+
+/**
+ * Read the title/color/collapsed metadata for every live tab group referenced
+ * by the given tabs. Returns { [groupId]: { title, color, collapsed } }.
+ */
+async function captureGroupMeta(tabs) {
+  const meta = {};
+  if (!api.tabGroups || typeof api.tabGroups.get !== 'function') return meta;
+  const ids = [...new Set((tabs || []).map(t => normalizeGroupId(t.groupId)).filter(id => id !== null))];
+  for (const id of ids) {
+    try {
+      const group = await api.tabGroups.get(id);
+      meta[id] = {
+        title: group.title || '',
+        color: group.color || 'grey',
+        collapsed: !!group.collapsed
+      };
+    } catch (err) {
+      // The group disappeared between the query and this read — skip it.
+    }
+  }
+  return meta;
+}
 
 function validateUrl(url) {
   if (!url) return false;
@@ -115,7 +151,8 @@ async function saveSession() {
       windowId: tab.windowId || 0,
       active: tab.active || false,
       discarded: tab.discarded || false,
-      highlighted: tab.highlighted || false
+      highlighted: tab.highlighted || false,
+      chromeGroupId: normalizeGroupId(tab.groupId)
     }));
 
   // Don't overwrite saved session with empty tabs
@@ -139,6 +176,9 @@ async function saveSession() {
 
   const sortedTabObjects = Object.values(tabsByWindow).flat();
   const limitedTabObjects = sortedTabObjects.slice(0, MAX_TABS_PER_COLLECTION);
+
+  // Capture Chrome tab-group metadata so groups can be rebuilt on restore.
+  const chromeGroups = await captureGroupMeta(tabs);
   
   if (sortedTabObjects.length > MAX_TABS_PER_COLLECTION) {
     console.warn(`Auto‑save: Too many open tabs (${sortedTabObjects.length}), limiting to ${MAX_TABS_PER_COLLECTION}`);
@@ -216,6 +256,7 @@ async function saveSession() {
       collection.tabs = finalTabs;
       collection.updatedAt = Date.now();
       collection.windowGroups = tabsByWindow;
+      collection.chromeGroups = chromeGroups;
 
       // ─── SESSION HISTORY STORAGE ENGINE ───
       // Push the active set as a history snapshot
@@ -650,8 +691,103 @@ api.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Keep message channel open for async response
   }
 
+  // ── Google Drive Backup Commands ──
+  if (request.command === 'gdriveBackup') {
+    backupToGDrive()
+      .then(result => sendResponse(result))
+      .catch(err => sendResponse({ success: false, error: err.message }));
+    return true;
+  }
+
+  if (request.command === 'gdriveRestore') {
+    restoreFromGDrive()
+      .then(result => sendResponse(result))
+      .catch(err => sendResponse({ success: false, error: err.message }));
+    return true;
+  }
+
+  if (request.command === 'gdriveDeleteBackup') {
+    deleteGDriveBackup()
+      .then(result => sendResponse(result))
+      .catch(err => sendResponse({ success: false, error: err.message }));
+    return true;
+  }
+
+  if (request.command === 'gdriveSignOut') {
+    revokeAuthToken()
+      .then(() => sendResponse({ success: true }))
+      .catch(err => sendResponse({ success: false, error: err.message }));
+    return true;
+  }
+
+  if (request.command === 'gdriveEnableAutoBackup') {
+    scheduleGDriveAutoBackup(request.enabled)
+      .then(() => sendResponse({ success: true }))
+      .catch(err => sendResponse({ success: false, error: err.message }));
+    return true;
+  }
+
+  if (request.command === 'gdriveGetStatus') {
+    api.storage.local.get([
+      GDRIVE_BACKUP_KEY, GDRIVE_AUTO_BACKUP_KEY,
+      'lastGDriveBackupTime', 'lastGDriveBackupTimestamp'
+    ]).then(data => {
+      sendResponse({
+        success: true,
+        enabled: !!data[GDRIVE_BACKUP_KEY],
+        autoBackupEnabled: !!data[GDRIVE_AUTO_BACKUP_KEY],
+        lastBackupTime: data.lastGDriveBackupTime || null,
+        lastBackupTimestamp: data.lastGDriveBackupTimestamp || null
+      });
+    });
+    return true;
+  }
+
 
 });
+
+/**
+ * Rebuild the Chrome tab groups a collection was saved with.
+ * Saved group ids are stale, so each saved group is recreated fresh and then
+ * updated with its saved title/color/collapsed state.
+ * @param {object} collection - Collection with tabs[].chromeGroupId + chromeGroups map.
+ * @param {Array} createdTabs - Created tabs, index-aligned with collection.tabs.
+ * @param {number} targetWindowId - Window the tabs were created in.
+ */
+async function restoreTabGroups(collection, createdTabs, targetWindowId) {
+  if (!api.tabs.group || !api.tabGroups) return;
+  const savedGroups = collection.chromeGroups;
+  if (!savedGroups || typeof savedGroups !== 'object') return;
+
+  // saved groupId -> created chrome tab ids (in collection order)
+  const groupedTabIds = new Map();
+  collection.tabs.forEach((tab, i) => {
+    const created = createdTabs[i];
+    if (!created || !created.id) return;
+    if (tab.pinned) return; // Chrome cannot group pinned tabs
+    const savedGroupId = tab.chromeGroupId;
+    if (savedGroupId === null || savedGroupId === undefined) return;
+    if (!savedGroups[savedGroupId]) return; // group metadata was lost
+    if (!groupedTabIds.has(savedGroupId)) groupedTabIds.set(savedGroupId, []);
+    groupedTabIds.get(savedGroupId).push(created.id);
+  });
+
+  for (const [savedGroupId, tabIds] of groupedTabIds) {
+    if (!tabIds.length) continue;
+    try {
+      const meta = savedGroups[savedGroupId] || {};
+      const createProperties = targetWindowId !== undefined ? { windowId: targetWindowId } : {};
+      const newGroupId = await api.tabs.group({ tabIds, createProperties });
+      await api.tabGroups.update(newGroupId, {
+        ...(meta.title ? { title: meta.title } : {}),
+        color: meta.color || 'grey',
+        collapsed: !!meta.collapsed
+      });
+    } catch (err) {
+      console.warn('Failed to restore tab group:', savedGroupId, err);
+    }
+  }
+}
 
 async function restoreSession(collectionId, backupData = null) {
   const state = await getState();
@@ -711,7 +847,8 @@ async function restoreSession(collectionId, backupData = null) {
       }).catch(err => console.error(`Failed to create tab: ${url}`, err));
     });
 
-    await Promise.all(tabPromises);
+    const createdTabs = await Promise.all(tabPromises);
+    await restoreTabGroups(collection, createdTabs, targetWindowId);
     console.log('Session restored successfully into current window');
   } catch (err) {
     console.error('Error during restoration into current window:', err);
@@ -805,6 +942,353 @@ api.alarms.onAlarm.addListener((alarm) => {
         scheduleDailyLocalBackup(); // reschedule even on failure
       });
   }
+  if (alarm.name === 'gdrive_auto_backup') {
+    gdriveAutoBackup().catch(err => {
+      console.error('GDrive auto-backup alarm failed:', err);
+    });
+  }
 });
+
+// ==================== GOOGLE DRIVE CLOUD BACKUP ====================
+// Uses Chrome Identity API + Drive appDataFolder for secure, isolated backups.
+// Requires: identity permission, oauth2 client_id in manifest, drive.appdata scope.
+
+const GDRIVE_BACKUP_FILENAME = 'tab_collection_manager_backup.json';
+const GDRIVE_BACKUP_KEY = 'gdriveBackupEnabled';
+const GDRIVE_AUTO_BACKUP_KEY = 'gdriveAutoBackupEnabled';
+
+/**
+ * Get OAuth2 access token via Chrome Identity API.
+ * @param {boolean} interactive - If true, shows the auth prompt. If false, returns cached token silently.
+ * @returns {Promise<string>} The access token.
+ */
+function getAuthToken(interactive = true) {
+  return new Promise((resolve, reject) => {
+    chrome.identity.getAuthToken({ interactive }, (token) => {
+      if (chrome.runtime.lastError || !token) {
+        reject(new Error(chrome.runtime.lastError?.message || 'Failed to get auth token'));
+      } else {
+        resolve(token);
+      }
+    });
+  });
+}
+
+/**
+ * Remove a cached OAuth token so the next request forces a fresh one.
+ * @param {string} token
+ */
+function removeCachedToken(token) {
+  return new Promise((resolve) => {
+    chrome.identity.removeCachedAuthToken({ token }, () => resolve());
+  });
+}
+
+/**
+ * Revoke the current auth token (for sign-out / re-auth).
+ */
+async function revokeAuthToken() {
+  try {
+    const token = await getAuthToken(false);
+    if (token) await removeCachedToken(token);
+  } catch (e) {
+    // Ignore errors — best-effort cleanup
+  }
+}
+
+/**
+ * Run a Drive operation with a token, transparently recovering from an
+ * expired/invalid token (HTTP 401) by clearing the cached token and retrying once.
+ * @param {boolean} interactive - Whether the token fetch may prompt the user.
+ * @param {(token: string) => Promise<any>} fn
+ */
+async function withAuthRetry(interactive, fn) {
+  let token = await getAuthToken(interactive);
+  try {
+    return await fn(token);
+  } catch (err) {
+    if (err && err.status === 401) {
+      await removeCachedToken(token);
+      token = await getAuthToken(interactive);
+      return await fn(token);
+    }
+    throw err;
+  }
+}
+
+/**
+ * fetch() wrapper that tags 401 responses so withAuthRetry can refresh the token.
+ */
+async function driveFetch(url, options = {}) {
+  const res = await fetch(url, options);
+  if (res.status === 401) {
+    const err = new Error('Google Drive authentication expired.');
+    err.status = 401;
+    throw err;
+  }
+  return res;
+}
+
+/**
+ * Build the full backup payload from extension storage.
+ */
+async function buildBackupPayload() {
+  const state = await getState();
+  return {
+    backupType: 'gdrive',
+    exportedAt: new Date().toISOString(),
+    version: api.runtime.getManifest().version,
+    collections: state.collections,
+    sessionHistory: (state.sessionHistory || []).slice(0, 50),
+    settings: {
+      autoSaveCollectionId: state.autoSaveCollectionId,
+      ramSaverEnabled: state.ramSaverEnabled,
+      enforceMaxPinnedTabs: state.enforceMaxPinnedTabs,
+      maxPinnedTabs: state.maxPinnedTabs,
+      enforceMaxPinnedCollections: state.enforceMaxPinnedCollections,
+      maxPinnedCollections: state.maxPinnedCollections,
+      sessionHistoryLimit: 100
+    }
+  };
+}
+
+/**
+ * Search for an existing backup file in appDataFolder.
+ * @param {string} token - OAuth2 access token.
+ * @returns {Promise<object|null>} The file metadata if found, null otherwise.
+ */
+async function findExistingBackup(token) {
+  const searchUrl = `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${GDRIVE_BACKUP_FILENAME}'&fields=files(id,name,modifiedTime)`;
+  const res = await driveFetch(searchUrl, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error(`Drive search failed: ${res.status} ${res.statusText}`);
+  const data = await res.json();
+  return data.files && data.files.length > 0 ? data.files[0] : null;
+}
+
+/**
+ * Upload the backup payload to Drive.
+ * Creates a new file with a multipart/related body, or updates the existing
+ * one with a simple media upload.
+ * @param {string} token
+ * @param {string} fileContent
+ * @param {object|null} existingFile
+ */
+async function uploadBackupFile(token, fileContent, existingFile) {
+  let endpoint;
+  let method;
+  let headers = { Authorization: `Bearer ${token}` };
+  let body;
+
+  if (existingFile) {
+    endpoint = `https://www.googleapis.com/upload/drive/v3/files/${existingFile.id}?uploadType=media`;
+    method = 'PATCH';
+    headers['Content-Type'] = 'application/json';
+    body = fileContent;
+  } else {
+    endpoint = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+    method = 'POST';
+    const boundary = '-------tcm_drive_boundary';
+    const delimiter = `\r\n--${boundary}\r\n`;
+    const closeDelimiter = `\r\n--${boundary}--`;
+    const metadata = {
+      name: GDRIVE_BACKUP_FILENAME,
+      mimeType: 'application/json',
+      parents: ['appDataFolder']
+    };
+    headers['Content-Type'] = `multipart/related; boundary=${boundary}`;
+    body =
+      `--${boundary}\r\n` +
+      'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+      JSON.stringify(metadata) +
+      delimiter +
+      'Content-Type: application/json\r\n\r\n' +
+      fileContent +
+      closeDelimiter;
+  }
+
+  const response = await driveFetch(endpoint, { method, headers, body });
+  if (!response.ok) {
+    const errBody = await response.text();
+    throw new Error(`Drive upload failed: ${response.status} - ${errBody}`);
+  }
+  return response.json();
+}
+
+/**
+ * Backup all extension data to Google Drive appDataFolder.
+ * If a backup already exists, updates it (PATCH). Otherwise creates a new one (POST).
+ * @returns {Promise<{success: boolean, action: string, timestamp: string}>}
+ */
+async function backupToGDrive() {
+  const payload = await buildBackupPayload();
+  const fileContent = JSON.stringify(payload, null, 2);
+
+  const result = await withAuthRetry(true, async (token) => {
+    const existingFile = await findExistingBackup(token);
+    const uploaded = await uploadBackupFile(token, fileContent, existingFile);
+    return { uploaded, action: existingFile ? 'updated' : 'created' };
+  });
+
+  const timestamp = new Date().toISOString();
+  await api.storage.local.set({
+    lastGDriveBackupTime: Date.now(),
+    lastGDriveBackupTimestamp: timestamp
+  });
+
+  console.log(`GDrive backup ${result.action}: ${result.uploaded.id}`);
+  return {
+    success: true,
+    action: result.action,
+    timestamp,
+    fileId: result.uploaded.id
+  };
+}
+
+/**
+ * Restore extension data from Google Drive backup.
+ * Fetches the backup file and writes it into chrome.storage.local.
+ * @returns {Promise<{success: boolean, timestamp: string, collectionsCount: number}>}
+ */
+async function restoreFromGDrive() {
+  const restoredData = await withAuthRetry(true, async (token) => {
+    // Find the backup file
+    const existingFile = await findExistingBackup(token);
+    if (!existingFile) {
+      throw new Error('No backup file found on Google Drive.');
+    }
+
+    // Fetch file contents
+    const contentRes = await driveFetch(
+      `https://www.googleapis.com/drive/v3/files/${existingFile.id}?alt=media`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (!contentRes.ok) {
+      throw new Error(`Failed to fetch backup: ${contentRes.status} ${contentRes.statusText}`);
+    }
+
+    const data = await contentRes.json();
+    data.__modifiedTime = existingFile.modifiedTime;
+    return data;
+  });
+
+  // Validate the restored data
+  if (!restoredData.collections || !Array.isArray(restoredData.collections)) {
+    throw new Error('Invalid backup format: missing collections array.');
+  }
+
+  // Apply through the serialized update queue so a concurrent auto-save cannot
+  // overwrite the restored data, and so the live "Current Session" is preserved.
+  await updateState(state => {
+    // Restore settings (only the fields the backup actually contains)
+    const settings = restoredData.settings || {};
+    if (settings.autoSaveCollectionId !== undefined) state.autoSaveCollectionId = settings.autoSaveCollectionId;
+    if (settings.ramSaverEnabled !== undefined) state.ramSaverEnabled = !!settings.ramSaverEnabled;
+    if (settings.enforceMaxPinnedTabs !== undefined) state.enforceMaxPinnedTabs = !!settings.enforceMaxPinnedTabs;
+    if (settings.maxPinnedTabs !== undefined) state.maxPinnedTabs = settings.maxPinnedTabs;
+    if (settings.enforceMaxPinnedCollections !== undefined) state.enforceMaxPinnedCollections = !!settings.enforceMaxPinnedCollections;
+    if (settings.maxPinnedCollections !== undefined) state.maxPinnedCollections = settings.maxPinnedCollections;
+
+    if (Array.isArray(restoredData.sessionHistory)) state.sessionHistory = restoredData.sessionHistory;
+
+    // Keep the live Current Session; drop any Current Session from the backup
+    const liveSession = state.collections.find(c => c.id === CURRENT_SESSION_ID);
+    let newCollections = restoredData.collections.filter(c => c.id !== CURRENT_SESSION_ID);
+    if (liveSession) newCollections.unshift(liveSession);
+    state.collections = newCollections;
+
+    // The restored autoSaveCollectionId may point at a collection that does not
+    // exist on this device — fall back to the live Current Session instead.
+    const autoSaveExists = state.autoSaveCollectionId &&
+      state.collections.some(c => c.id === state.autoSaveCollectionId);
+    if (!autoSaveExists) {
+      state.autoSaveCollectionId = liveSession ? CURRENT_SESSION_ID : null;
+    }
+  });
+
+  await api.storage.local.set({ lastGDriveRestoreTime: Date.now() });
+
+  const timestamp = restoredData.exportedAt || restoredData.__modifiedTime;
+  console.log(`GDrive restore complete: ${restoredData.collections.length} collections from ${timestamp}`);
+  return {
+    success: true,
+    timestamp,
+    collectionsCount: restoredData.collections.length
+  };
+}
+
+/**
+ * Delete the backup file from Google Drive (for disconnect / cleanup).
+ */
+async function deleteGDriveBackup() {
+  await withAuthRetry(true, async (token) => {
+    const existingFile = await findExistingBackup(token);
+    if (!existingFile) return;
+
+    const res = await driveFetch(
+      `https://www.googleapis.com/drive/v3/files/${existingFile.id}`,
+      { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (!res.ok && res.status !== 404) {
+      throw new Error(`Failed to delete backup: ${res.status}`);
+    }
+  });
+
+  await api.storage.local.remove(['lastGDriveBackupTime', 'lastGDriveBackupTimestamp']);
+  console.log('GDrive backup deleted');
+  return { success: true };
+}
+
+/**
+ * Auto-backup handler — called by the alarm.
+ * Uses a silent (non-interactive) token to avoid popping up the auth dialog.
+ */
+async function gdriveAutoBackup() {
+  const state = await api.storage.local.get([GDRIVE_BACKUP_KEY, GDRIVE_AUTO_BACKUP_KEY]);
+  if (!state[GDRIVE_BACKUP_KEY] || !state[GDRIVE_AUTO_BACKUP_KEY]) {
+    console.log('GDrive auto-backup skipped: feature disabled');
+    return;
+  }
+
+  try {
+    const payload = await buildBackupPayload();
+    const fileContent = JSON.stringify(payload, null, 2);
+
+    await withAuthRetry(false, async (token) => {
+      const existingFile = await findExistingBackup(token);
+      await uploadBackupFile(token, fileContent, existingFile);
+    });
+
+    const timestamp = new Date().toISOString();
+    await api.storage.local.set({
+      lastGDriveBackupTime: Date.now(),
+      lastGDriveBackupTimestamp: timestamp
+    });
+    console.log('GDrive auto-backup completed successfully');
+  } catch (err) {
+    console.warn('GDrive auto-backup failed (will retry next cycle):', err.message);
+    // Don't rethrow — alarm will reschedule automatically
+  }
+}
+
+/**
+ * Schedule or cancel the auto-backup alarm.
+ * @param {boolean} enabled
+ */
+async function scheduleGDriveAutoBackup(enabled) {
+  if (enabled) {
+    // Backup once per day (1440 minutes)
+    await api.alarms.create('gdrive_auto_backup', { periodInMinutes: 1440 });
+    console.log('GDrive auto-backup alarm scheduled (daily)');
+    // Also do an immediate backup on enable
+    gdriveAutoBackup().catch(err => console.warn('Initial GDrive auto-backup failed:', err.message));
+  } else {
+    await api.alarms.clearAlarm('gdrive_auto_backup');
+    console.log('GDrive auto-backup alarm cleared');
+  }
+}
 
 
