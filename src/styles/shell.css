@@ -1,10 +1,10 @@
-/* React-owned styles. Class prefix `rs-` avoids collisions with the legacy stylesheet
-   (skill.md §5.3). Collection list styling still comes from popup.css, so the React markup
+/* React-owned styles. Class prefix `rs-` avoids collisions with the migrated panel stylesheet
+   (skill.md §5.3). Collection list styling still comes from panel.css, so the React markup
    deliberately reuses the legacy class names. */
 
 /* Wrapper the controls bar puts around the collections sort button so the dropdown can close on
    an outside click. It takes the row's equal-width stretch the button used to take itself, and
-   anchors the absolutely-positioned `.sort-dropdown-menu` (popup.css) exactly like the legacy
+   anchors the absolutely-positioned `.sort-dropdown-menu` (panel.css) exactly like the legacy
    markup did when the menu lived inside the button. */
 .sort-collections-container {
   position: relative;

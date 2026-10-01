@@ -8,7 +8,7 @@ import { hydrate, startStorageSync } from './store/store.js';
 //
 // Font Awesome is pinned to 6.4.0 — the version the CDN link used to serve. `all.min.css` is
 // imported rather than the per-style files because it also declares the legacy
-// `'Font Awesome 5 Free'` family that two `::before` icons in `popup.css` ask for.
+// `'Font Awesome 5 Free'` family that two `::before` icons in `src/styles/panel.css` ask for.
 import '@fortawesome/fontawesome-free/css/all.min.css';
 // Weights actually used by the stylesheet (300 was requested from the CDN but never used,
 // and 900 is left out on purpose: nothing loaded a 900 face before either).

@@ -24,8 +24,7 @@ const dist = path.join(root, 'dist');
 const WATCHED = [
   'manifest.json',
   'background.js',
-  'popup.css',
-  'src', // includes the Vite entry, src/sidepanel.html
+  'src', // the Vite entry, the stylesheets (src/styles/) and every React source
   'vite.config.js',
 ];
 const IGNORED = /(^|[\\/])(node_modules|dist|\.git|\.freebuff)([\\/]|$)/;

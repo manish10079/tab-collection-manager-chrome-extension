@@ -4,6 +4,11 @@
 - Date: 2026-10-01
 - Context: `react-migration-plan.md` §8, Phase 5.4 ("Polish")
 
+> **Amendment (2026-10-02, plan v1.12.0).** The stylesheet this ADR calls `popup.css` was renamed to
+> `src/styles/panel.css` once nothing else in the repository was called "popup". The decisions above
+> are unchanged — only the path in the Prettier exclusion and in the references to the stylesheet
+> moved. Historical ADRs and changelog rows keep the old name.
+
 ## Context
 
 Three loose ends survived Phase 5.3. They are unrelated in kind but share one cause — the panel was

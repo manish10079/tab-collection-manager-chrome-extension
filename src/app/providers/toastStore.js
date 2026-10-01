@@ -21,7 +21,8 @@ const listeners = new Set();
 /** @type {Map<number, ReturnType<typeof setTimeout>>} */
 const timers = new Map();
 
-// How long the hide animation runs before the entry is dropped (matches popup.css `.toast.hide`).
+// How long the hide animation runs before the entry is dropped (`src/styles/panel.css`
+// `.toast.hide`).
 const HIDE_MS = 400;
 
 function emit() {
