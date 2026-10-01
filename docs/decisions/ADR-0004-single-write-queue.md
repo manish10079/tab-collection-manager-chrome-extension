@@ -54,9 +54,10 @@ established pattern for the two directions of this migration (`window.TCMLegacyU
 - The race ADR-0002 accepted is gone: a legacy action and a React action in the same tick are
   serialized by the same chain, and `src/app/__tests__/legacy-store.test.js` asserts it by
   interleaving both.
-- `popup.js` no longer reads or writes the eleven keys itself — only the six GDrive flag writes
-  remain direct, and only because those keys are outside the store's contract (the worker owns
-  them, they are single-key with no read-modify-write, so they cannot clobber anything).
+- `popup.js` no longer reads or writes the keys itself — and since Phase 4 it writes nothing to
+  storage at all: the settings modal owns the last direct writes (the six settings toggles and the
+  two GDrive flags) and goes through the store, which closed the carve-out this ADR had to make.
+  See `docs/decisions/ADR-0005-modal-primitive-and-settings.md`.
 - `popup.js` now depends on the bundle to function at all. The repository root is no longer a
   loadable extension; `dist/` is, and the README says so.
 - A storage write failure inside the queue is logged by the store and resolves, where the legacy

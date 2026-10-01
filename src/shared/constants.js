@@ -15,4 +15,8 @@ export const DEFAULT_SETTINGS = Object.freeze({
   maxPinnedTabs: 3,
   enforceMaxPinnedCollections: true,
   maxPinnedCollections: 3,
+  // Cloud Backup (Google Drive). The worker reads these flags; the settings modal is their only
+  // writer since Phase 4, which is why they joined the store's contract (ADR-0005).
+  gdriveBackupEnabled: false,
+  gdriveAutoBackupEnabled: false,
 });

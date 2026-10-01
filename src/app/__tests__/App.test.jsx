@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import { App } from '../App.jsx';
+import { publishLegacyHandle } from '../legacy-handle.js';
 import { hydrate, mutate } from '../../store/store.js';
 import { installChromeMock } from '../../../tests/mocks/chrome.js';
 import { CURRENT_SESSION_ID, STORAGE_KEYS } from '../../shared/storage-keys.js';
@@ -68,6 +69,25 @@ describe('App', () => {
     expect(document.querySelector('.modal-overlay .view-collection-modal')).toBeTruthy();
     // In grid view the card itself renders no tab panel.
     expect(document.querySelector('.collection[data-id="c1"] .collection-tabs')).toBeNull();
+  });
+
+  it('applies the persisted theme to the document', async () => {
+    await renderApp({ [STORAGE_KEYS.theme]: 'light' });
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+  });
+
+  it('opens the settings modal when the legacy handle asks', async () => {
+    publishLegacyHandle();
+    await renderApp({});
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    await act(async () => {
+      globalThis.__tcmReact.openSettings();
+    });
+
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(screen.getByText(/Settings/)).toBeTruthy();
   });
 
   it('re-renders from the store after a mutation', async () => {

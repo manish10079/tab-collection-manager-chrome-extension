@@ -1,7 +1,11 @@
+import { useEffect, useState } from 'react';
 import { useAppState, useSettings } from '../store/hooks.js';
 import { CollectionList, useCollectionActions } from '../features/collections/index.js';
+import { SettingsModal, useSettingsActions } from '../features/settings/index.js';
 import { legacyUi } from './legacy-ui.js';
+import { registerSettingsOpener } from './legacy-handle.js';
 import { useContainerClasses } from './hooks/useContainerClasses.js';
+import { useThemeAttribute } from './hooks/useThemeAttribute.js';
 
 /**
  * @typedef {object} AppProps
@@ -10,9 +14,9 @@ import { useContainerClasses } from './hooks/useContainerClasses.js';
  */
 
 /**
- * Phase 2 shell: the collection list and its tab lists are rendered from the store. The
- * controls bar and the modals are still owned by the legacy runtime, which shares the same
- * `chrome.storage.local` contract.
+ * The app shell: the collection list and its tab lists, and — since Phase 4 — the settings modal.
+ * The controls bar, the remaining modals and the worker-backed features are still legacy, sharing
+ * the same store.
  *
  * @param {AppProps} props
  * @returns {import('react').ReactElement}
@@ -21,6 +25,14 @@ export function App({ mountPoint = null }) {
   const { ready, error } = useAppState();
   const settings = useSettings();
   const actions = useCollectionActions(legacyUi);
+  const settingsActions = useSettingsActions(legacyUi);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // The header's settings button is legacy markup, so it asks the app to open the modal.
+  useEffect(() => registerSettingsOpener(() => setSettingsOpen(true)), []);
+
+  // Hydrate first: applying the default theme before storage lands would flash the wrong palette.
+  useThemeAttribute(ready ? settings.theme : undefined);
 
   useContainerClasses(mountPoint, {
     isGrid: settings.layoutViewMode === 'grid',
@@ -35,6 +47,9 @@ export function App({ mountPoint = null }) {
         </p>
       ) : null}
       {ready ? <CollectionList actions={actions} /> : null}
+      {settingsOpen ? (
+        <SettingsModal actions={settingsActions} onClose={() => setSettingsOpen(false)} />
+      ) : null}
     </>
   );
 }

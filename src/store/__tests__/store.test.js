@@ -15,6 +15,8 @@ const WRITABLE_KEYS = [
   'maxPinnedTabs',
   'enforceMaxPinnedCollections',
   'maxPinnedCollections',
+  'gdriveBackupEnabled',
+  'gdriveAutoBackupEnabled',
 ];
 
 describe('store hydration', () => {

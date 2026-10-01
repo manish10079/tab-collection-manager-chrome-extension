@@ -659,7 +659,6 @@ const elements = {
   newCollectionName: document.getElementById('newCollectionName'),
   createCollection: document.getElementById('createCollection'),
   collectionsContainer: document.getElementById('collectionsContainer'),
-  autoSaveToggle: null, // now lives inside settingsModal, resolved at runtime
   autoSaveCollectionSelect: document.getElementById('autoSaveCollectionSelect'),
   addTabsModal: document.getElementById('addTabsModal'),
   closeModal: document.getElementById('closeModal'),
@@ -1273,16 +1272,6 @@ async function updateTabTitle(collectionId, tabId, newTitle) {
 }
 
 // ==================== AUTO‑SAVE CONFIG ====================
-async function updateAutoSaveConfig(enabled) {
-  await updateState(state => {
-    if (enabled) {
-      state.autoSaveCollectionId = CURRENT_SESSION_ID; // Always default to Current Session
-    } else {
-      state.autoSaveCollectionId = null;
-    }
-  });
-}
-
 function partitionCollections(collections) {
   const currentSession = collections.filter(c => c.id === CURRENT_SESSION_ID);
   const pinned = collections.filter(c => c.pinned && c.id !== CURRENT_SESSION_ID);
@@ -1365,7 +1354,7 @@ async function togglePinTab(collectionId, tabId) {
 // ==================== UI RENDERING ====================
 /**
  * Refresh the shell chrome that React does not own yet: the collections sort menu highlight,
- * the layout icon toggle, the auto-save toggle and the restore-backup button.
+ * the layout icon toggle and the restore-backup button.
  *
  * Every caller that used to repaint the collection list now just calls this, because the list
  * renders itself from the store — any write lands in chrome.storage.local and the React store
@@ -1374,7 +1363,7 @@ async function togglePinTab(collectionId, tabId) {
  * @param {object} state Result of getState()
  */
 function syncLegacyChrome(state) {
-  const { collections, autoSaveCollectionId, collectionSortType, layoutViewMode } = state;
+  const { collectionSortType, layoutViewMode } = state;
 
   updateLayoutIcon(layoutViewMode === 'grid');
 
@@ -1387,7 +1376,6 @@ function syncLegacyChrome(state) {
     });
   }
 
-  renderAutoSaveSelect(collections, autoSaveCollectionId);
   renderBackupButton(state.lastSessionBackup);
 }
 
@@ -1423,303 +1411,9 @@ function renderBackupButton(backup) {
   });
 }
 
-function renderAutoSaveSelect(collections, autoSaveCollectionId) {
-  const autoSaveToggle = document.getElementById('autoSaveToggle');
-  if (autoSaveToggle) autoSaveToggle.checked = !!autoSaveCollectionId;
-}
-
-// ==================== RAM SAVER TOGGLE ====================
-async function setupSettingsModal() {
-  const settingsBtn = document.getElementById('settingsBtn');
-  const settingsModal = document.getElementById('settingsModal');
-  const closeSettingsModal = document.getElementById('closeSettingsModal');
-  const autoSaveToggle = document.getElementById('autoSaveToggle');
-  const ramSaverToggle = document.getElementById('ramSaverToggle');
-  const lightModeToggle = document.getElementById('lightModeToggle');
-  const enforceMaxPinnedCollectionsToggle = document.getElementById('enforceMaxPinnedCollectionsToggle');
-  const enforceMaxPinnedTabsToggle = document.getElementById('enforceMaxPinnedTabsToggle');
-  const maxPinnedCollectionsInput = document.getElementById('maxPinnedCollectionsInput');
-  const maxPinnedTabsInput = document.getElementById('maxPinnedTabsInput');
-  const maxPinnedCollectionsGroup = document.getElementById('maxPinnedCollectionsGroup');
-  const maxPinnedTabsGroup = document.getElementById('maxPinnedTabsGroup');
-
-  // Load current state and initialise checkboxes & inputs
-  const state = await getState();
-  if (autoSaveToggle) autoSaveToggle.checked = !!state.autoSaveCollectionId;
-  if (ramSaverToggle) ramSaverToggle.checked = state.ramSaverEnabled;
-  if (lightModeToggle) lightModeToggle.checked = state.theme === 'light';
-  if (enforceMaxPinnedCollectionsToggle) enforceMaxPinnedCollectionsToggle.checked = state.enforceMaxPinnedCollections;
-  if (enforceMaxPinnedTabsToggle) enforceMaxPinnedTabsToggle.checked = state.enforceMaxPinnedTabs;
-  if (maxPinnedCollectionsInput) maxPinnedCollectionsInput.value = state.maxPinnedCollections;
-  if (maxPinnedTabsInput) maxPinnedTabsInput.value = state.maxPinnedTabs;
-
-  if (maxPinnedCollectionsGroup) {
-    maxPinnedCollectionsGroup.classList.toggle('disabled', !state.enforceMaxPinnedCollections);
-  }
-  if (maxPinnedTabsGroup) {
-    maxPinnedTabsGroup.classList.toggle('disabled', !state.enforceMaxPinnedTabs);
-  }
-
-  // Open / close the settings modal
-  if (settingsBtn && settingsModal) {
-    settingsBtn.addEventListener('click', () => {
-      settingsModal.style.display = 'flex';
-    });
-  }
-  if (closeSettingsModal && settingsModal) {
-    closeSettingsModal.addEventListener('click', () => {
-      settingsModal.style.display = 'none';
-    });
-  }
-  // Close on overlay click
-  if (settingsModal) {
-    settingsModal.addEventListener('click', (e) => {
-      if (e.target === settingsModal) settingsModal.style.display = 'none';
-    });
-  }
-
-  // Auto-save toggle
-  if (autoSaveToggle) {
-    autoSaveToggle.addEventListener('change', async (e) => {
-      const enabled = e.target.checked;
-      await updateAutoSaveConfig(enabled);
-      const newState = await getState();
-      syncLegacyChrome(newState);
-      showToast(enabled ? 'Auto-Save enabled' : 'Auto-Save disabled');
-    });
-  }
-
-  // RAM Saver toggle
-  if (ramSaverToggle) {
-    ramSaverToggle.addEventListener('change', async (e) => {
-      const enabled = e.target.checked;
-      await api.storage.local.set({ ramSaverEnabled: enabled });
-      if (enabled) {
-        showToast('💾 RAM Saver ON — tabs will lazy‑load on click');
-      } else {
-        showToast('RAM Saver OFF — tabs load normally');
-      }
-    });
-  }
-
-  // Light Mode toggle
-  if (lightModeToggle) {
-    lightModeToggle.addEventListener('change', async (e) => {
-      const enabled = e.target.checked;
-      const theme = enabled ? 'light' : 'dark';
-      await api.storage.local.set({ theme });
-      document.documentElement.setAttribute('data-theme', theme);
-      showToast(theme === 'light' ? 'Light Mode enabled' : 'Dark Mode enabled');
-    });
-  }
-
-  // Enforce max pinned collections toggle
-  if (enforceMaxPinnedCollectionsToggle) {
-    enforceMaxPinnedCollectionsToggle.addEventListener('change', async (e) => {
-      const enabled = e.target.checked;
-      await api.storage.local.set({ enforceMaxPinnedCollections: enabled });
-      if (maxPinnedCollectionsGroup) {
-        maxPinnedCollectionsGroup.classList.toggle('disabled', !enabled);
-      }
-      const currentLimit = maxPinnedCollectionsInput ? parseInt(maxPinnedCollectionsInput.value, 10) : 3;
-      showToast(enabled ? `Pinned collection limit enabled (max ${currentLimit})` : 'Pinned collection limit removed');
-    });
-  }
-
-  // Enforce max pinned tabs toggle
-  if (enforceMaxPinnedTabsToggle) {
-    enforceMaxPinnedTabsToggle.addEventListener('change', async (e) => {
-      const enabled = e.target.checked;
-      await api.storage.local.set({ enforceMaxPinnedTabs: enabled });
-      if (maxPinnedTabsGroup) {
-        maxPinnedTabsGroup.classList.toggle('disabled', !enabled);
-      }
-      const currentLimit = maxPinnedTabsInput ? parseInt(maxPinnedTabsInput.value, 10) : 3;
-      showToast(enabled ? `Pinned tab limit enabled (max ${currentLimit} per collection)` : 'Pinned tab limit removed');
-    });
-  }
-
-  // Max pinned collections input
-  if (maxPinnedCollectionsInput) {
-    maxPinnedCollectionsInput.addEventListener('change', async (e) => {
-      let val = parseInt(e.target.value, 10);
-      if (isNaN(val) || val < 1) val = 1;
-      if (val > 20) val = 20;
-      e.target.value = val;
-      await api.storage.local.set({ maxPinnedCollections: val });
-      showToast(`Pinned collections limit set to ${val}`);
-    });
-  }
-
-  // Max pinned tabs input
-  if (maxPinnedTabsInput) {
-    maxPinnedTabsInput.addEventListener('change', async (e) => {
-      let val = parseInt(e.target.value, 10);
-      if (isNaN(val) || val < 1) val = 1;
-      if (val > 50) val = 50;
-      e.target.value = val;
-      await api.storage.local.set({ maxPinnedTabs: val });
-      showToast(`Pinned tabs limit set to ${val} per collection`);
-    });
-  }
-
-  // ── Google Drive Cloud Backup ───────────────────────────────────────────
-  const gdriveBackupToggle = document.getElementById('gdriveBackupToggle');
-  const gdriveAutoBackupToggle = document.getElementById('gdriveAutoBackupToggle');
-  const gdriveAutoBackupRow = document.getElementById('gdriveAutoBackupRow');
-  const gdriveLastBackupRow = document.getElementById('gdriveLastBackupRow');
-  const gdriveLastBackupLabel = document.getElementById('gdriveLastBackupLabel');
-  const gdriveActionsRow = document.getElementById('gdriveActionsRow');
-  const gdriveManualBackupBtn = document.getElementById('gdriveManualBackupBtn');
-  const gdriveRestoreBtn = document.getElementById('gdriveRestoreBtn');
-  const gdriveDisconnectBtn = document.getElementById('gdriveDisconnectBtn');
-
-  async function loadGDriveStatus() {
-    try {
-      const status = await chrome.runtime.sendMessage({ command: 'gdriveGetStatus' });
-      if (!status || !status.success) return;
-
-      if (gdriveBackupToggle) gdriveBackupToggle.checked = status.enabled;
-      if (gdriveAutoBackupToggle) gdriveAutoBackupToggle.checked = status.autoBackupEnabled;
-
-      const showSubRows = status.enabled;
-      if (gdriveAutoBackupRow) gdriveAutoBackupRow.style.display = showSubRows ? '' : 'none';
-      if (gdriveLastBackupRow) gdriveLastBackupRow.style.display = showSubRows ? '' : 'none';
-      if (gdriveActionsRow) gdriveActionsRow.style.display = showSubRows ? '' : 'none';
-
-      if (gdriveLastBackupLabel) {
-        if (status.lastBackupTimestamp) {
-          const d = new Date(status.lastBackupTime);
-          gdriveLastBackupLabel.textContent = `Last backup: ${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
-        } else {
-          gdriveLastBackupLabel.textContent = 'Last backup: —';
-        }
-      }
-    } catch (err) {
-      console.warn('Failed to load GDrive status:', err);
-    }
-  }
-
-  // Load status when settings modal opens
-  if (settingsBtn && settingsModal) {
-    settingsBtn.addEventListener('click', () => {
-      settingsModal.style.display = 'flex';
-      loadGDriveStatus();
-    });
-  }
-
-  // Enable / disable cloud backup
-  if (gdriveBackupToggle) {
-    gdriveBackupToggle.addEventListener('change', async (e) => {
-      const enabled = e.target.checked;
-      await api.storage.local.set({ gdriveBackupEnabled: enabled });
-
-      if (enabled) {
-        // Trigger initial backup + schedule auto-backup alarm if auto-backup is on
-        showToast('☁️ Connecting to Google Drive...');
-        try {
-          const result = await chrome.runtime.sendMessage({ command: 'gdriveBackup' });
-          if (result && result.success) {
-            showToast('☁️ Cloud backup enabled! Data saved to Google Drive.');
-          } else {
-            // Revert toggle on failure
-            gdriveBackupToggle.checked = false;
-            await api.storage.local.set({ gdriveBackupEnabled: false });
-            showToast(`❌ Backup failed: ${result?.error || 'Unknown error'}`);
-          }
-        } catch (err) {
-          gdriveBackupToggle.checked = false;
-          await api.storage.local.set({ gdriveBackupEnabled: false });
-          showToast(`❌ Connection failed: ${err.message}`);
-        }
-      } else {
-        // Disable auto-backup too
-        await api.storage.local.set({ gdriveAutoBackupEnabled: false });
-        await chrome.runtime.sendMessage({ command: 'gdriveEnableAutoBackup', enabled: false });
-        showToast('Cloud backup disabled');
-      }
-      loadGDriveStatus();
-    });
-  }
-
-  // Toggle auto-backup
-  if (gdriveAutoBackupToggle) {
-    gdriveAutoBackupToggle.addEventListener('change', async (e) => {
-      const enabled = e.target.checked;
-      await api.storage.local.set({ gdriveAutoBackupEnabled: enabled });
-      await chrome.runtime.sendMessage({ command: 'gdriveEnableAutoBackup', enabled });
-      showToast(enabled ? '🔄 Daily auto-backup enabled' : 'Auto-backup disabled');
-    });
-  }
-
-  // Manual backup button
-  if (gdriveManualBackupBtn) {
-    gdriveManualBackupBtn.addEventListener('click', async () => {
-      gdriveManualBackupBtn.disabled = true;
-      gdriveManualBackupBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Backing up...';
-      try {
-        const result = await chrome.runtime.sendMessage({ command: 'gdriveBackup' });
-        if (result && result.success) {
-          showToast('☁️ Backup saved to Google Drive!');
-        } else {
-          showToast(`❌ Backup failed: ${result?.error || 'Unknown error'}`);
-        }
-      } catch (err) {
-        showToast(`❌ Backup failed: ${err.message}`);
-      } finally {
-        gdriveManualBackupBtn.disabled = false;
-        gdriveManualBackupBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Backup Now';
-        loadGDriveStatus();
-      }
-    });
-  }
-
-  // Restore from Drive button
-  if (gdriveRestoreBtn) {
-    gdriveRestoreBtn.addEventListener('click', async () => {
-      if (!confirm('This will overwrite your current collections with the Google Drive backup. Continue?')) return;
-      gdriveRestoreBtn.disabled = true;
-      gdriveRestoreBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Restoring...';
-      try {
-        const result = await chrome.runtime.sendMessage({ command: 'gdriveRestore' });
-        if (result && result.success) {
-          showToast(`✅ Restored ${result.collectionsCount} collections from Drive!`);
-          // Refresh the UI
-          const newState = await getState();
-          syncLegacyChrome(newState);
-        } else {
-          showToast(`❌ Restore failed: ${result?.error || 'Unknown error'}`);
-        }
-      } catch (err) {
-        showToast(`❌ Restore failed: ${err.message}`);
-      } finally {
-        gdriveRestoreBtn.disabled = false;
-        gdriveRestoreBtn.innerHTML = '<i class="fas fa-cloud-download-alt"></i> Restore from Drive';
-        loadGDriveStatus();
-      }
-    });
-  }
-
-  // Disconnect button
-  if (gdriveDisconnectBtn) {
-    gdriveDisconnectBtn.addEventListener('click', async () => {
-      if (!confirm('Disconnect Google Drive? This will remove the backup from Drive.')) return;
-      try {
-        await chrome.runtime.sendMessage({ command: 'gdriveDeleteBackup' });
-      } catch (e) { /* ignore */ }
-      await api.storage.local.set({ gdriveBackupEnabled: false, gdriveAutoBackupEnabled: false });
-      await chrome.runtime.sendMessage({ command: 'gdriveEnableAutoBackup', enabled: false });
-      try {
-        await chrome.runtime.sendMessage({ command: 'gdriveSignOut' });
-      } catch (e) { /* ignore */ }
-      showToast('Google Drive disconnected');
-      loadGDriveStatus();
-    });
-  }
-
-}
-
-
+// The settings modal is React-owned since Phase 4: src/features/settings renders it from the
+// store, the header button below asks React to open it, and this file's own setUpSettingsModal
+// (with its GDrive status loader, six settings writes and GDrive actions) went away with it.
 
 // ==================== SEARCH / FILTER ====================
 let searchDebounceTimer = null;
@@ -2146,7 +1840,14 @@ function setupEventListeners() {
     }
   });
 
-  // Auto‑save toggle is now handled in setupSettingsModal
+  // Settings modal (and its auto-save toggle) is React-owned since Phase 4 — ask React to open it.
+  const settingsBtn = document.getElementById('settingsBtn');
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', () => {
+      const handle = globalThis.__tcmReact;
+      if (handle && typeof handle.openSettings === 'function') handle.openSettings();
+    });
+  }
 
   // Modal
   elements.closeModal.addEventListener('click', closeAddTabsModal);
@@ -2225,7 +1926,6 @@ async function init() {
   console.log('--- POPUP INIT ---');
   setupEventListeners();
   setupShortcutsHelpModal();
-  await setupSettingsModal();
   
   // Force an auto-save to ensure the Current Session is completely up-to-date
   try {
@@ -2466,8 +2166,9 @@ async function expandCurrentSessionOnly() {
   showToast('Current Session expanded', 1200);
 }
 
-// Shared list of modal overlay IDs — used by closeTopModal() and isAnyModalOpen()
-const MODAL_IDS = ['shortcutsHelpModal', 'sessionDetailsModal', 'historyModal', 'duplicateUrlDialog', 'settingsModal', 'addTabsModal'];
+// Legacy modal overlay IDs, topmost first — used by closeTopModal(). The settings modal is
+// React-owned since Phase 4 and closes itself on Escape, so it is not listed here.
+const MODAL_IDS = ['shortcutsHelpModal', 'sessionDetailsModal', 'historyModal', 'duplicateUrlDialog', 'addTabsModal'];
 
 function openShortcutsHelp() {
   const modal = document.getElementById('shortcutsHelpModal');
@@ -2510,11 +2211,13 @@ function jumpToCollection(n) {
   }, 1200);
 }
 
+/**
+ * Whether any modal is on screen. Legacy modals toggle an inline display, React modals exist only
+ * while open (they portal into `#tcm-modal-root`), so ask the DOM rather than a list of ids.
+ */
 function isAnyModalOpen() {
-  return MODAL_IDS.some(id => {
-    const m = document.getElementById(id);
-    return m && m.style.display === 'flex';
-  });
+  return Array.from(document.querySelectorAll('.modal-overlay'))
+    .some(overlay => getComputedStyle(overlay).display !== 'none');
 }
 
 function closeTopModal() {

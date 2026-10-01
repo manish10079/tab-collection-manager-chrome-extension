@@ -75,6 +75,7 @@ function composeHtml(shell, entry) {
   const checks = {
     'React mount point present': html.includes('id="collectionsContainer"'),
     'legacy collection template removed': !html.includes('id="collectionTemplate"'),
+    'legacy settings modal removed': !html.includes('id="settingsModal"'),
     'legacy markup preserved': html.includes('<div class="scrollable-content">'),
     'React bundle injected': html.includes(entry.file),
     'legacy stylesheet re-linked': html.includes('href="./popup.css"'),
