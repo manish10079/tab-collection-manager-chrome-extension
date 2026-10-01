@@ -38,7 +38,7 @@
 
 ## 🧰 Development
 
-Requires **Node.js 18+**. The extension is written in **JavaScript** (no TypeScript) and follows
+Requires **Node.js 20+** (CI runs Node 22). The extension is written in **JavaScript** (no TypeScript) and follows
 [`skill.md`](./skill.md).
 
 ```bash
@@ -47,12 +47,16 @@ npm run build      # build dist/ — load THIS folder unpacked
 npm run dev        # dev browser: streams worker/panel errors, rebuilds + reloads on change
 npm run lint       # ESLint
 npm run format     # Prettier
-npm test           # unit tests (Vitest)
+npm test           # unit + component tests (Vitest, jsdom)
+npm run e2e        # end-to-end walk of the built panel (Playwright; builds dist/ first)
 ```
 
 **Build output:** `npm run build` writes `dist/`, the only loadable build. Vite bundles the whole
 panel from `src/sidepanel.html` and emits the page plus its hashed assets; the build then adds the
-worker, the icons and the manifest.
+worker, the icons and the manifest, deletes the non-woff2 font fallbacks, and asserts nothing it
+still references went missing. The panel is fully self-contained — Font Awesome and Inter are npm
+runtime deps imported by `src/main.jsx`, never CDN links — so `dist/` (about 1.15 MB) loads no asset
+from the network.
 
 | You load | You get |
 | --- | --- |
@@ -80,6 +84,16 @@ bridge. `src/sidepanel.html` is the Vite entry and the boot sequence (theme, wor
 opened-state normalisation) is React hooks. See
 [`docs/decisions/ADR-0008-retire-the-legacy-shell.md`](./docs/decisions/ADR-0008-retire-the-legacy-shell.md).
 
+The polish pass is done as of Phase 5.4: the two CDN `<link>`s are replaced by bundled Font Awesome
+and Inter, the rules in the panel stylesheet that no surviving mark-up reaches are removed, and every
+icon-only control carries an accessible name with focus returning to the trigger when the search or
+create input closes. See
+[`docs/decisions/ADR-0009-self-hosted-assets-and-panel-a11y.md`](./docs/decisions/ADR-0009-self-hosted-assets-and-panel-a11y.md).
+
+Styling lives in `src/styles/`: `panel.css` is the migrated pre-React stylesheet (still global, class
+names unchanged) and `shell.css` adds the rules the React shell owns. Both are bundled by Vite from
+the `src/sidepanel.html` entry, so the renamed file is not a separate build input.
+
 ### Dev browser helper
 
 `npm run dev` launches a Chromium browser (Chrome → Brave → Edge, whichever is installed) with
@@ -101,6 +115,46 @@ Notes: the browser runs on a separate profile (`%TEMP%/tcm-dev-profile`), so you
 browsing profile and its extensions are untouched. After a reload, refresh the side panel tab
 the helper opens (or reopen the side panel) to see UI changes — extension pages are not
 hot-reloaded.
+
+### End-to-end tests
+
+`npm run e2e` builds `dist/` and then drives the packaged extension in a real browser, so the
+unpacked load and the golden paths no longer depend on someone clicking through the panel by hand.
+The specs live in `e2e/` and use Playwright's bundled Chromium: Google Chrome and Microsoft Edge
+removed the `--load-extension` flag in 2025, so a system browser cannot side-load an unpacked
+extension any more.
+
+```bash
+npx playwright install chromium   # once per machine (and in CI) — npm install does NOT fetch it
+npm run e2e          # build, then run the whole walk headless
+npm run e2e:headed   # same, with a visible browser (useful when a spec fails)
+npx playwright show-trace test-results/<spec>/trace.zip   # inspect a failure
+```
+
+Each spec gets a fresh extension profile, so storage starts empty and every test begins from the
+same first-run panel. What is still worth doing by hand — RAM Saver on restore, a real GDrive
+round-trip, and anything touching the autosave or restore storage shape — is listed in
+[`react-migration-plan.md`](./react-migration-plan.md) §9.
+
+### Continuous integration
+
+Every push and pull request runs the gates from [`.github/workflows/ci.yml`](./.github/workflows/ci.yml)
+on Node 22: ESLint, a Prettier check, the Vitest suite, the build, and the bundle-size budget.
+The end-to-end suite is not part of it — it needs a browser download, so it stays a local command.
+
+`npm run check:size` measures the built output and fails when the panel outgrows its budget:
+
+| Metric | Budget | At plan 1.14.0 |
+| --- | --- | --- |
+| Panel JS, gzipped | 100 kB | 89.7 kB |
+| Panel CSS, gzipped | 36 kB | 31.1 kB |
+| Packaged `dist/`, raw | 1.25 MB | 1.15 MB |
+
+The bundles are the ones Vite emits into `dist/assets/`; the total covers everything in `dist/`,
+so an unexpected new asset (a stray font, a second chunk) shows up there. Raising a budget means
+editing `scripts/size-budget.mjs` and recording why in the plan's changelog.
+
+---
 
 See [`react-migration-plan.md`](./react-migration-plan.md) for the migration roadmap and
 [`skill.md`](./skill.md) for coding, folder, and versioning standards.

@@ -123,19 +123,21 @@ requires a compatibility shim for one release.
 
 ### 3.1 Current state (React, post-migration)
 
-The React migration is complete through Phase 5.3, so the layout below is no longer the vanilla
-one. The UI is React + JSDoc in `src/`, bundled by Vite; `background.js` is the last vanilla file
-(Phase 6 scope) and `popup.css` is the last legacy stylesheet (Phase 5.4).
+The React migration is complete through Phase 5.4, so the layout below is no longer the vanilla
+one. The UI is React + JSDoc in `src/`, bundled by Vite, and the stylesheets live in `src/styles/`
+(`panel.css`, the migrated pre-React stylesheet, plus `shell.css` for the rules React owns);
+`background.js` is the last vanilla file (Phase 6 scope).
 
 ```text
-manifest.json   background.js   popup.css   icons/
-src/sidepanel.html   src/main.jsx   src/app/   src/features/   src/store/   src/lib/   src/shared/
+manifest.json   background.js   icons/
+src/sidepanel.html   src/main.jsx   src/app/   src/features/   src/store/   src/lib/   src/shared/   src/styles/
 scripts/build.mjs   scripts/dev.mjs   tests/
 feature_list.md   missing_features.md   README.md   react-migration-plan.md   docs/decisions/
 ```
 
 There is no `popup.html`, no `popup.js` and no `window.__tcmStore` bridge; `npm run build` emits
-`dist/sidepanel.html` with hashed assets and `npm test` runs the Vitest suite.
+`dist/sidepanel.html` with hashed assets, `npm test` runs the Vitest suite (jsdom) and `npm run e2e`
+runs the Playwright walk against `dist/` loaded unpacked.
 
 ### 3.2 Target structure
 
@@ -163,7 +165,7 @@ There is no `popup.html`, no `popup.js` and no `window.__tcmStore` bridge; `npm 
 │  ├─ store/                     # schema.js, store.js, hooks.js, migrations/
 │  ├─ lib/                       # pure utils: sort.js, pinning.js, backup.js, url.js, format.js
 │  ├─ shared/                    # types/, storage-keys.js, messages.js, constants.js
-│  └─ styles/                    # tokens.css, global.css, migrated popup.css
+│  └─ styles/                    # panel.css (migrated stylesheet), shell.css
 ├─ background/
 │  ├─ index.js                   # service worker entry
 │  ├─ autosave.js  restore.js  contextMenu.js  alarms.js  gdrive.js
@@ -367,11 +369,14 @@ Allowed types: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `build`, `ci`,
 | Format | Prettier | Every PR (CI gate) |
 | Unit | Vitest | Pure logic: sorting, pinning, URL validation, backup, migrations, group mapping |
 | Component | RTL + jsdom | Any component with logic (lists, modals, settings) |
-| E2E | Playwright (`--load-extension=dist`) | Golden paths: create collection, add tabs, reorder, search, settings, export/import, restore |
+| E2E | Playwright, `channel: 'chromium'` | Golden paths against `dist/` loaded unpacked: create collection, add tabs, reorder, search, settings, export/import, restore. Use Playwright's bundled Chromium — branded Chrome and Edge dropped `--load-extension` / `--disable-extensions-except` in 2025 — and one persistent profile per test so storage starts empty |
+| Bundle size | `npm run check:size` (CI gate) | Any change that adds a dependency, an asset or a chunk |
 | Manual matrix | Checklist in the PR | Anything touching autosave, restore, or storage shape |
 
-**Minimum bar for a PR to be mergeable:** `npm run build` succeeds, `eslint .` and `npm test`
-pass, new logic has tests, and the manual matrix has been run for any storage/restore change.
+**Minimum bar for a PR to be mergeable:** `npm run build` succeeds, `eslint .`, `prettier --check .`
+and `npm test` pass, `npm run check:size` stays inside its budget, new logic has tests, and the
+manual matrix has been run for any storage/restore change. All of it runs in
+`.github/workflows/ci.yml` on every push, so the local commands are for the inner loop.
 
 Chrome APIs are mocked centrally in `tests/mocks/chrome.js` (see `react-migration-plan.md` §9
 for a reference implementation). Do not hand-roll mocks per test file.

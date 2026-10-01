@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Document version | 1.10.0 |
-| Status | Phases 0-4 and Phase 5.1-5.3 complete; Phase 5.4 (polish) pending (see §2.1 and the changelog) |
-| Scope | UI layer of the MV3 extension (`src/sidepanel.html`, `src/`, `popup.css`) |
+| Document version | 1.14.0 |
+| Status | Phases 0-4 and Phase 5 complete (5.1-5.4); the vanilla UI is gone, the bundle is self-contained and `dist/` loads nothing remotely (see §2.1 and the changelog) |
+| Scope | UI layer of the MV3 extension (`src/sidepanel.html`, `src/`, `src/styles/`) |
 | Out of scope | New features, `background.js` rewrite (deferred to Phase 6), Firefox support |
 
 ---
@@ -42,16 +42,22 @@ the live state see §2.1.
 | `background.js` | ~1,290 lines | Autosave + debounce + guards, session history, context menus, alarms, GDrive, restore + tab groups |
 | Build | none | Hand-written manifest, no bundler, no deps, no tests |
 
-### 2.1 State at plan v1.10.0
+### 2.1 State at plan v1.14.0
 
-Phases 0-4 and slices 5.1-5.3 are complete and only Phase 5.4 polish remains (§8). The vanilla UI
-is gone: no `popup.html`, no `popup.js`, no seam, no classic script.
+Phases 0-4 and Phase 5 complete. The vanilla UI is gone — no `popup.html`, no `popup.js`, no seam,
+no classic script, and no file still named after the old popup: the stylesheet is `src/styles/panel.css`
+as of 1.12.0. Its last trace in the bundle is gone too: the two CDN `<link>`s and the dead half of
+the stylesheet.
 
 | Layer | Size | Notes |
 |---|---|---|
-| `src/sidepanel.html` | 22 lines | The Vite HTML entry: `#root` + the module script. Vite owns the page and its hashed assets |
-| `src/` (React) | 9,281 lines, 108 files | 25 test files / 194 tests; the whole panel — shell, collections, dialogs, settings — plus the store and its boot sequence |
-| `popup.css` | 2,903 lines | The last piece of the old shell still named after it: bundled by Vite, dead-code swept in Phase 5.4 |
+| `src/sidepanel.html` | 20 lines | The Vite HTML entry: `#root` + the module script. Vite owns the page and its hashed assets |
+| `src/` (React) | 9,428 lines, 111 files | 25 test files / 196 unit tests; the whole panel — shell, collections, dialogs, settings — plus the store and its boot sequence |
+| `e2e/` | 4 files, 7 specs | Playwright walk of the packaged extension in Playwright's Chromium; `npm run e2e` builds `dist/` first (1.13.0) |
+| `src/styles/panel.css` | 2,803 lines | The migrated pre-React stylesheet, renamed from `popup.css` in 1.12.0; bundled by Vite via the HTML entry, with the rules no surviving mark-up reaches swept in 1.11.0. `src/styles/shell.css` layers the React-owned rules on top |
+| Vendor assets | 2 deps | `@fortawesome/fontawesome-free@6.4.0` + `@fontsource/inter`; self-hosted, woff2-only in `dist/` (1.11.0) |
+| `dist/` | 1.15 MB | Was 2.5 MB before the build started dropping non-woff2 font fallbacks (1.11.0) |
+| CI | `.github/workflows/ci.yml` | Lint, format check, tests, build and the bundle-size budget on every push and pull request; the E2E walk stays local (1.14.0) |
 | `background.js` | unchanged | Untouched by the UI migration (Phase 6 scope) |
 
 What the old shell owned, and where each piece went:
@@ -66,6 +72,10 @@ What the old shell owned, and where each piece went:
 | Shell markup + composition | ✅ `src/sidepanel.html` is the Vite entry; Vite emits the page (1.10.0) | done |
 | Boot sequence (theme, worker auto-save, opened-state normalisation) | ✅ `useThemeAttribute` + `useBootSequence` + `store/openedState.js` (1.10.0) | done |
 | State bridge for the classic script (`window.__tcmStore`) | ✅ deleted with its only caller (1.10.0) | done |
+| Self-hosted Font Awesome + Inter (two CDN `<link>`s) | ✅ runtime deps, bundled by Vite; `dist/` ships woff2 only (1.11.0) | done |
+| Dead rules in the panel stylesheet | ✅ swept: 102 lines no React mark-up reaches (1.11.0) | done |
+| The last `popup*` filename | ✅ `popup.css` → `src/styles/panel.css`, linked from the Vite entry (1.12.0) | done |
+| Accessible names, slide focus return, Escape routing | ✅ `aria-label`s, `aria-hidden` icons, `useRestoreFocus` (1.11.0) | done |
 
 ### Pain points this migration fixes
 
@@ -377,9 +387,15 @@ break `tests/**` discovery. `build.mjs` relocates the page to `dist/sidepanel.ht
 asset URLs are origin-absolute (`/assets/...`), so the move is safe and the packaged layout,
 `manifest.json`'s `default_path`, and the page-relative `icons/...` references are unchanged.
 
-**5.4 Polish (1-1.5 days).** Self-host Font Awesome + Inter (two CDN `<link>`s remain), dead-CSS
-sweep, a11y labels, focus/Escape review, bundle-size check. Toasts already landed in 1.6.0.
-*Acceptance:* no remote assets; `dist/` loaded unpacked once more; visual diff clean.
+**5.4 Polish (1-1.5 days).** ✅ *Done (1.11.0).* Font Awesome and Inter are runtime deps bundled
+by Vite (the two CDN `<link>`s are deleted); the build drops non-woff2 font fallbacks and asserts
+nothing still referenced went missing, so `dist/` ships one `.woff2` per face and loads nothing
+remotely; the panel stylesheet lost the 102 lines no surviving mark-up reaches; and the shell gained
+accessible names on every icon-only control plus focus return from the slides, with Escape routing
+re-confirmed. Toasts landed back in 1.6.0.
+*Acceptance:* met — no remote asset loads (`dist/` was verified to contain only a licence comment and
+the worker's Drive endpoints), `npm test` is green at 196, and no colour, size, spacing or weight
+rule changed, so the visual diff is intentionally empty.
 
 **Phase 6 — Background modernization (optional, 2-3 days)**
 Port `background.js` to TS modules; extract shared types into `shared/`; add tests for autosave
@@ -388,7 +404,7 @@ guards and tab-group restore.
 
 **Phase 7 — Store readiness (1 day)**
 Optional `default_popup`, permission audit (`tabGroups` now used; `downloads` only for the
-disabled local backup), remove CDN links, docs update, tag a release.
+disabled local backup), docs update, tag a release. (The CDN links were already removed in 5.4.)
 
 **Total: ~19-25 developer-days** (~4-5 weeks part-time), once Phase 5's real scope is counted —
 the original 14-19 assumed Phase 3 had finished the interactions. Phases 0-4 are done; Phase 5
@@ -402,14 +418,20 @@ remains, and Phases 6-7 stay optional.
   group capture/restore mapping, store reducers.
 - **Component (RTL + jsdom):** `CollectionCard`, `TabRow`, `SettingsModal`, `OpenTabsPicker`
   with a chrome API mock.
-- **E2E (Playwright, persistent context with `--load-extension=dist`):** side panel opens;
-  create collection; add tabs; reorder; search; toggle settings; export/import round-trip;
-  tab-group restore.
-- **Manual matrix (loaded unpacked):** `popup.js` is deleted, so the old and new builds can no
-  longer be compared side by side; the pre-5.4 check is one pass through a scripted scenario list
-  against a profile with existing data — create/search/add tabs/reorder, every dialog, export and
-  import, layout and sort toggles, the keyboard shortcuts, RAM Saver on restore, and a GDrive
-  round-trip — with a storage snapshot before and after.
+- **E2E (Playwright, `e2e/`, `npm run e2e`) — done (1.13.0).** `dist/` loaded unpacked into
+  Playwright's bundled Chromium (branded Chrome and Edge dropped `--load-extension` in 2025), with
+  one fresh extension profile per test so storage starts empty. Seven specs cover the unpacked load
+  and then the walk that used to be manual: create a collection and keep it across a reload (checked
+  against `chrome.storage.local`, not against the rendered list), add a tab manually and confirm a
+  duplicate, edit/rename/pin/remove through the card menus, import the window's open tabs through
+  the multi-select picker, search collections and tabs with focus returning to its trigger, toggle
+  layout and sort, export a JSON download, expand all with Ctrl+E, open the shortcut help with `?`,
+  and open the history and settings dialogs.
+- **Manual matrix (loaded unpacked):** now only what a test cannot judge. The unpacked load and the
+  golden paths are automated (`npm run e2e`), so the manual pass is what is left: a profile with
+  existing data, RAM Saver on restore, a GDrive round-trip against a real account, and anything
+  touching the autosave/restore storage shape — with a storage snapshot before and after. Tab-group
+  restore is still only manual (it needs a reorder or restore that a spec cannot fake).
 
 ```ts
 // tests/mocks/chrome.ts (reference implementation)
@@ -486,6 +508,10 @@ commit only —
 
 | Version | Date | Notes |
 |---|---|---|
+| 1.14.0 | 2026-10-02 | Continuous integration, with a size budget. `.github/workflows/ci.yml` runs on every push, pull request and manual dispatch on Node 22 with the npm cache: ESLint, `prettier --check`, `npm test`, `npm run build` and the new `npm run check:size`, in that order so the fast gates fail first and a superseded run is cancelled instead of queueing. The end-to-end suite is deliberately left out — it needs `npx playwright install chromium` and its own X server, so it stays a local command until CI minutes are worth spending on it; `README.md` says so explicitly. `scripts/size-budget.mjs` is the budget: it measures the bundles Vite emits into `dist/assets/` gzipped (JS 100 kB, CSS 36 kB) plus the whole packaged `dist/` raw (1.25 MB), prints all three against their ceilings with the headroom, and exits non-zero with the overage when one is breached. Measuring the bundles from `dist/assets/` rather than all of `dist/` matters: the copied `background.js` would otherwise be counted as panel JS. The check is a separate script rather than a step inside `scripts/build.mjs` because `npm run dev` rebuilds on every source change, where a budget failure would be noise while iterating; skill.md §6 gained the budget as a CI gate and `README.md` documents the numbers and how to raise one. Vite reports the same files in decimal kB and the budget prints binary multiples, a ~2.5% difference that is noted in the script so nobody re-tunes a budget over it. |
+| 1.13.0 | 2026-10-02 | The unpacked load is automated: a Playwright end-to-end suite drives the built `dist/` in the Chromium Playwright bundles, so the manual smoke pass is no longer the only way to prove the packaged extension works. New `playwright.config.js`, `e2e/fixtures.js` (a persistent context with `--load-extension=dist`, the extension id read from the service worker, and the panel page asserted hydrated before any test body runs), `e2e/support/tabServer.js` (a loopback static server so the multi-select picker sees real http tabs) and `e2e/panel.spec.js` with seven specs: the unpacked load and mount; create a collection and keep it across a reload; manual tab add plus the duplicate confirmation, tab/collection rename, pin and remove; multi-select import of the window's open tabs; global search with focus returning to its trigger; layout and sort toggles, a JSON export download, Ctrl+E, `?` and `x`; and the history and settings dialogs with focus restored on Escape. Vitest keeps owning `src/**` and `tests/**`, so the specs live in `e2e/` and neither runner has to exclude the other's files; `npm run e2e` builds `dist/` first and is deliberately not part of `npm test`, which stays jsdom-only and dependency-free. `test-results/` and `playwright-report/` are ignored, and `e2e/**` gets an ESLint override because a Playwright fixture callback is literally named `use` — the React hooks rule reads that as a hook call. Playwright's bundled Chromium is required rather than the machine's Chrome: branded Chrome and Edge dropped `--load-extension` and `--disable-extensions-except` in 2025, so `channel: 'chromium'` (which also allows extensions headless) is the supported path. |
+| 1.12.0 | 2026-10-02 | `popup.css` renamed to `src/styles/panel.css`. Phase 5.3 deleted `popup.html` and `popup.js`, but the last file still named after the old popup was the stylesheet itself — 2,800 lines of pre-React panel styling that nothing referred to by name any more. It moves under `src/styles/` beside `shell.css`, which is exactly the `styles/` the §3 target tree called for, and the Vite entry (`src/sidepanel.html`) links `./styles/panel.css` instead of `../popup.css`, so the rename rides the existing bundle: the emitted `assets/sidepanel-<hash>.css` is byte-identical before and after. `scripts/build.mjs` and its `assertPage()` checks needed no change because they read the emitted HTML and its hashed asset URL rather than the source path. `.prettierignore` points at the new path, and `scripts/dev.mjs` drops its now-redundant `popup.css` watch entry since the parent `src` is already watched. Code and doc comments naming the stylesheet are updated; the historical ADRs and this changelog's earlier rows stay as written, with an amendment added to ADR-0009. No storage, message-protocol, manifest or build-output change; `background.js` untouched. |
+| 1.11.0 | 2026-10-01 | Phase 5.4 finished, closing Phase 5: the panel has no remote assets and no dead shell CSS. Font Awesome (`6.4.0`, the version the CDN served, so the 59 `fa-*` glyph names are unchanged) and Inter (static 400/500/600/700, the only weights `popup.css` and `shell.css` use) became runtime deps imported by `src/main.jsx`, and the two CDN `<link>`s are gone from `src/sidepanel.html`; `all.min.css` is imported rather than the per-style files because it is the only one that also declares the legacy `'Font Awesome 5 Free'` family two `popup.css` `::before` icons still use. `scripts/build.mjs` now deletes every non-woff2 font file after bundling (`dist/` 2.5 MB → 1.15 MB, byte-identical rendering) and proves the deletion safe with a new `assertReferencedAssetsExist()`: it parses `url(...)`/`src=`/`href=` out of the emitted HTML and CSS and fails on a dangling reference, allowing a trimmed legacy format only when a `.woff2` of the same logical font survived. The dead-CSS sweep removed 102 lines of `popup.css` (`.select`, `.btn-primary`, `.auto-save-section`, `.settings-action-btn`, the `.restore-tooltip*` trio and the `search-hidden`/`search-fade-in`/`search-highlight` filter rules — each checked against every `.js`/`.jsx`/`.html` class string, including those built by template literals; the shared `searchFadeIn` keyframe stays for its three remaining callers). Every icon-only control in the shell, the sort menu, the search results and the modal header gained an `aria-label` with a decorative `aria-hidden` icon, the search/create inputs gained labels, and a new `useRestoreFocus` hook returns focus to the button that opened a slide, matching the Modal primitive. Escape routing was re-confirmed (visible dialog > self-closing slide > dismissable menu). Tests are 196 in 25 files, including focus-into/focus-back and accessible-name coverage for the controls bar. Decision recorded in ADR-0009. No storage, message-protocol or manifest change; `background.js` untouched. |
 | 1.10.0 | 2026-10-01 | Phase 5.3 finished: the legacy shell is deleted. `src/sidepanel.html` is now the Vite HTML entry, so Vite owns the page and emits `dist/sidepanel.html` with hashed script and stylesheet assets; the composition step is gone and so are `popup.html`, `popup.js` and the `window.__tcmStore` bridge (`src/app/legacy-store.js`), which lost its only caller. The boot sequence moved into React: `useThemeAttribute` owns the theme (at the same moment the deleted script applied it), `useBootSequence` sends the worker `forceAutoSave`, re-reads, and normalises the opened state through the new `store/openedState.js` (collapse all, backfill `addedAt`, drop a stale Auto-Save id) via the store's own queue. `scripts/build.mjs` no longer composes HTML — it bundles, relocates Vite's emitted page from `dist/src/` to the extension root, copies the worker/icons/manifest, strips source maps, and asserts the page has the React root plus bundled assets and none of the legacy ids or classic script. The ESLint and Prettier exclusions for the deleted files are removed (`background.js` and `popup.css` stay excluded: Phase 6 and Phase 5.4). The `popup.js` source-contract test is replaced by `tests/legacy-shell-removed.test.js`, which asserts the files are gone, that no source exposes `__tcmStore` / `__tcmReact` / `TCMLegacyUI`, that only `store/store.js` writes storage, and that nothing assigns `innerHTML`. `manifest.json`'s `side_panel.default_path` changes from `popup.html` to `sidepanel.html` — the only manifest change, and it accompanies the file it points at. No storage key or message-protocol change; `background.js` untouched. |
 | 1.9.0 | 2026-10-01 | Phase 5.2 finished: the shell chrome moved into React. A new `src/features/shell` owns the header, the controls bar (search and create slides, collections sort menu, layout toggle, global import/export, restore-backup button, history button), the global search results and the global keyboard shortcuts. `useShellController` holds the slide/query/create state and every action (create collection, sort, layout, import, export, restore, expand all, Current Session only, jump, close panel); `useGlobalSearch` derives the matches and `GlobalSearchResults` renders them from data, replacing the `filterResults()` string builder and its three `innerHTML` writes; `useGlobalShortcuts` replaces the `keydown` section; and `useManifestInfo` fills the header from the manifest. Pure helpers landed alongside: `lib/globalSearch.js` (matching + highlight segments), `lib/globalBackup.js` (export payload + the legacy merge rules), `lib/readJsonFile.js`, `lib/isAnyModalOpen.js`, `lib/scrollIntoView.js` and `lib/download.js` (the export helper `useCollectionActions` had inline); `createCollection` joined `collectionAdmin.js`, and `useDismissable` moved to `app/hooks` now that two features need it. `App` renders the whole panel into a single `#appRoot`, so `useContainerClasses` and `legacy-handle.js` (`window.__tcmReact`) are deleted and the state-contract test asserts the seam cannot return. `popup.html` shrinks from 112 lines / 23 ids to 18 lines / 1 id, and `popup.js` from 1,298 lines to 99 — the boot sequence only (theme before first paint, worker `forceAutoSave` + fresh read, opened-state normalisation). No storage key, message protocol, manifest entry or `background.js` line changes. |
 | 1.8.0 | 2026-10-01 | Phase 5.1 finished: every `TCMLegacyUI` action moved into React. The nine methods became `useCollectionActions` calls over the store's write queue — collection rename/delete, tab rename/remove, the pin toggles (with the max-pin limits), open-a-tab, open-all/restore and per-collection export — and their pure rules live in the new `src/features/collections/lib/collectionAdmin.js` (`normalizeName`, `isNameUnique`, `deleteCollection`, `renameCollection`, `removeTab`, `renameTab`, `toggleCollectionPin`, `toggleTabPin`), so the pin limits and the case-insensitive duplicate-name rule are unit-testable. Refusals that used to be blocking `alert()`s now surface as toasts; restore is a single `chrome.runtime.sendMessage` to the unchanged worker instead of the duplicated open logic. `src/app/legacy-ui.js` is deleted, `popup.js` drops ~315 lines (1,613 → 1,298) and its whole `window.TCMLegacyUI` assignment, and `window.__tcmReact` keeps only the shell bridges (`setCollectionExpanded`, `openSettings`, `openHistory`, `openShortcuts`, `toast`). Also folded out of the legacy file: a shared `lib/tabs.js` `discardWhenLoaded` helper (used by `openTab` and the dialogs), a `formatFileTimestamp` in `lib/format.js`, and `LIMITS.MAX_COLLECTION_NAME_LENGTH` in `shared/constants.js`; the `Collection` typedef's stray `isPinned` was corrected to the `pinned` that `lib/sort.js` reads. The state-contract test now asserts the seam is absent. No storage key, message protocol or manifest change; `background.js` untouched. |
