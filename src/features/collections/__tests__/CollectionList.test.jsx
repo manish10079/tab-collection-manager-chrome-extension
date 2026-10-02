@@ -77,11 +77,15 @@ describe('CollectionList folders', () => {
     // The nested card is not also a direct child of the list.
     expect(container.querySelector(':scope > .collection[data-id="nested1"]')).toBeNull();
 
-    // Two stacked sections: Folders first, then Collections.
+    // Two stacked sections: Folders first, then Collections, each with a live count.
     const foldersHeading = container.querySelector('.folders-heading');
     const collectionsHeading = container.querySelector('.collections-heading');
-    expect(foldersHeading.textContent).toBe('Folders');
-    expect(collectionsHeading.textContent).toBe('Collections');
+    expect(foldersHeading.querySelector('.section-heading-label').textContent).toBe('Folders');
+    expect(collectionsHeading.querySelector('.section-heading-label').textContent).toBe(
+      'Collections'
+    );
+    expect(foldersHeading.querySelector('.section-count').textContent).toBe('1');
+    expect(collectionsHeading.querySelector('.section-count').textContent).toBe('1');
     expect(
       foldersHeading.compareDocumentPosition(collectionsHeading) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
@@ -89,6 +93,44 @@ describe('CollectionList folders', () => {
     expect(
       collectionsHeading.compareDocumentPosition(rootCards[0]) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
+  });
+
+  it('folds a whole section away from its heading and back', async () => {
+    const { container } = await renderList(NESTED_STORAGE);
+
+    const toggle = container.querySelector('.folders-heading .section-toggle');
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(container.querySelector('.folder')).toBeTruthy();
+
+    fireEvent.click(toggle);
+
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(container.querySelector('.folder')).toBeNull();
+    // The heading and its live count stay in place…
+    expect(container.querySelector('.folders-heading .section-count').textContent).toBe('1');
+    // …and the other section is untouched.
+    expect(container.querySelector(':scope > .collection')).toBeTruthy();
+
+    fireEvent.click(toggle);
+    expect(container.querySelector('.folder')).toBeTruthy();
+  });
+
+  it('counts the folders and the root collections in each heading', async () => {
+    const { container } = await renderList({
+      collections: [
+        { id: 'root1', name: 'Root', tabs: [] },
+        { id: 'nested1', name: 'Nested', tabs: [], folderId: 'f1' },
+        { id: 'nested2', name: 'Nested 2', tabs: [], folderId: 'f2' },
+      ],
+      folders: [
+        { id: 'f1', name: 'One', isExpanded: true },
+        { id: 'f2', name: 'Two', isExpanded: true },
+      ],
+    });
+
+    expect(container.querySelector('.folders-heading .section-count').textContent).toBe('2');
+    // Only the root-level collection counts; the two nested ones do not.
+    expect(container.querySelector('.collections-heading .section-count').textContent).toBe('1');
   });
 
   it('shows no section headings until there is a folder', async () => {

@@ -360,6 +360,28 @@ test('creates a folder and keeps its options menu on top of the empty card', asy
   await expect(panel.locator('#collectionsContainer > .folder')).toHaveCount(0);
 });
 
+test('folds a whole section away from its heading', async ({ panel }) => {
+  await createCollection(panel, 'E2E Keep');
+  await panel.locator('#createFolderBtn').click();
+  await expect(panel.locator('#collectionsContainer > .folder')).toHaveCount(1);
+
+  const toggle = panel.locator('#collectionsContainer .folders-heading .section-toggle');
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(panel.locator('#collectionsContainer > .folder')).toHaveCount(0);
+  // The heading stays, with its live count, and the other section is untouched.
+  await expect(panel.locator('#collectionsContainer .folders-heading .section-count')).toHaveText(
+    '1'
+  );
+  await expect(panel.locator('#collectionsContainer .collections-heading')).toBeVisible();
+  await expect(panel.locator('#collectionsContainer > .collection').first()).toBeVisible();
+
+  await toggle.click();
+  await expect(panel.locator('#collectionsContainer > .folder')).toHaveCount(1);
+});
+
 test('keeps a folder’s collections in list layout in grid view', async ({ panel }) => {
   await createCollection(panel, 'E2E Root');
   await createCollection(panel, 'E2E Foldered');
@@ -370,16 +392,22 @@ test('keeps a folder’s collections in list layout in grid view', async ({ pane
   const card = await cardFor(panel, 'E2E Foldered');
   await card.locator('.collection-menu-btn').click();
   await card.locator('.move-to-folder-btn').first().click();
-  await expect(folder.locator('.folder-body .collection-name')).toHaveValue('E2E Foldered');
-
-  // Two stacked sections, folders first, each marked by its heading.
-  await expect(panel.locator('#collectionsContainer .folders-heading')).toHaveText('Folders');
-  await expect(panel.locator('#collectionsContainer .collections-heading')).toHaveText(
-    'Collections'
+  await expect(folder.locator('.folder-body .collection-name')).toHaveValue('E2E Foldered'); // Two stacked sections, folders first, each with its own live count badge.
+  const foldersHeading = panel.locator('#collectionsContainer .folders-heading');
+  const collectionsHeading = panel.locator('#collectionsContainer .collections-heading');
+  await expect(foldersHeading.locator('.section-heading-label')).toHaveText('Folders');
+  await expect(collectionsHeading.locator('.section-heading-label')).toHaveText('Collections');
+  // Each badge counts what its section actually holds. The worker's Current Session is a root
+  // collection too, so assert against the rendered counts rather than a hard-coded number.
+  await expect(foldersHeading.locator('.section-count')).toHaveText(
+    String(await panel.locator('#collectionsContainer > .folder').count())
+  );
+  await expect(collectionsHeading.locator('.section-count')).toHaveText(
+    String(await panel.locator('#collectionsContainer > .collection').count())
   );
   const sectionOrder = await panel.evaluate(() =>
-    [...document.querySelectorAll('#collectionsContainer .section-heading')].map(
-      (heading) => heading.textContent
+    [...document.querySelectorAll('#collectionsContainer .section-heading-label')].map(
+      (label) => label.textContent
     )
   );
   expect(sectionOrder).toEqual(['Folders', 'Collections']);
