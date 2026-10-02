@@ -39,8 +39,8 @@ export function SessionDetailsModal({ session, label, onClose }) {
         </>
       }
       icon="fa-list"
-      className="session-details-modal"
-      bodyClassName="history-modal-body"
+      className="dl-session-details-modal"
+      bodyClassName="dl-history-modal-body"
       zIndex={2000}
       onClose={onClose}
     >

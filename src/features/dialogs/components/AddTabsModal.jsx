@@ -26,14 +26,14 @@ export function AddTabsModal({ collection, intake, onClose }) {
       <div className="tab-mode-selector">
         <button
           type="button"
-          className={`mode-btn ${mode === 'manual' ? 'ut-active' : ''}`.trim()}
+          className={`dl-mode-btn ${mode === 'manual' ? 'ut-active' : ''}`.trim()}
           onClick={() => setMode('manual')}
         >
           Manual
         </button>
         <button
           type="button"
-          className={`mode-btn ${mode === 'multi' ? 'ut-active' : ''}`.trim()}
+          className={`dl-mode-btn ${mode === 'multi' ? 'ut-active' : ''}`.trim()}
           onClick={() => setMode('multi')}
         >
           Multi‑Select

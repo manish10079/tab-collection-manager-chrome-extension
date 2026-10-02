@@ -57,13 +57,13 @@ export function OpenTabsPicker({ collectionId, intake, onClose }) {
 
   return (
     <div className="tab-form multi-form">
-      <div className="select-all-row">
+      <div className="dl-select-all-row">
         <label className="checkbox-label" htmlFor="selectAllTabs">
           <input id="selectAllTabs" type="checkbox" checked={allSelected} onChange={toggleAll} />
           <span>Select All Tabs</span>
         </label>
       </div>
-      <div className="open-tabs-list">
+      <div className="dl-open-tabs-list">
         {loading ? <p className="open-tabs-empty">Loading open tabs…</p> : null}
         {!loading && tabs.length === 0 ? (
           <p className="open-tabs-empty">No other tabs are open in this window.</p>
@@ -71,7 +71,7 @@ export function OpenTabsPicker({ collectionId, intake, onClose }) {
         {tabs.map((tab) => {
           const displayTitle = String(tab.title ?? '').trim() || 'Untitled';
           return (
-            <div className="open-tab-item" key={tab.id}>
+            <div className="dl-open-tab-item" key={tab.id}>
               <label className="checkbox-label" htmlFor={`open-tab-${tab.id}`}>
                 <input
                   id={`open-tab-${tab.id}`}
@@ -81,14 +81,14 @@ export function OpenTabsPicker({ collectionId, intake, onClose }) {
                   checked={selectedIds.has(tab.id)}
                   onChange={() => toggleTab(tab.id)}
                 />
-                <div className="open-tab-favicon-container">
+                <div className="dl-open-tab-favicon-container">
                   <img
-                    className="open-tab-favicon"
+                    className="dl-open-tab-favicon"
                     src={resolveFaviconUrl(tab.url, EXTENSION_ID)}
                     alt=""
                   />
                 </div>
-                <div className="open-tab-details">
+                <div className="dl-open-tab-details">
                   <span className="tab-title">{displayTitle}</span>
                   <span className="tab-url" title={tab.url}>
                     {truncateUrl(tab.url)}

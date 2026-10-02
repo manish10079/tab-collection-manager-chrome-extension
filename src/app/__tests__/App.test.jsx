@@ -61,7 +61,7 @@ describe('App', () => {
       [STORAGE_KEYS.layoutViewMode]: 'grid',
     });
 
-    expect(document.querySelector('.modal-overlay .view-collection-modal')).toBeTruthy();
+    expect(document.querySelector('.dl-modal-overlay .dl-view-collection-modal')).toBeTruthy();
     // In grid view the card itself renders no tab panel.
     expect(document.querySelector('.collection[data-id="c1"] .collection-tabs')).toBeNull();
   });

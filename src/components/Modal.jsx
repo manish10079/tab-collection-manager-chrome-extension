@@ -121,25 +121,25 @@ export function Modal({
     // Click-to-dismiss convenience — Escape and the header's close button are the keyboard paths.
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div
-      className="modal-overlay"
+      className="dl-modal-overlay"
       style={zIndex === undefined ? undefined : { zIndex }}
       onClick={handleOverlayClick}
     >
       <div
         ref={dialogRef}
-        className={`modal ${className}`.trim()}
+        className={`dl-modal ${className}`.trim()}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
       >
-        <div className="modal-header">
+        <div className="dl-modal-header">
           <h3 id={titleId}>
             {icon ? <i className={`fas ${icon}`} /> : null} {title}
           </h3>
           <button
             type="button"
-            className="close-modal"
+            className="dl-close-modal"
             title="Close"
             aria-label="Close dialog"
             onClick={onClose}
@@ -147,8 +147,10 @@ export function Modal({
             &times;
           </button>
         </div>
-        <div className={`modal-body ${bodyClassName}`.trim()}>{children}</div>
-        {footer ? <div className={`modal-footer ${footerClassName}`.trim()}>{footer}</div> : null}
+        <div className={`dl-modal-body ${bodyClassName}`.trim()}>{children}</div>
+        {footer ? (
+          <div className={`dl-modal-footer ${footerClassName}`.trim()}>{footer}</div>
+        ) : null}
       </div>
     </div>,
     getPortalRoot()

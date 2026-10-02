@@ -243,9 +243,9 @@ async function walkPanel(page, coverage) {
     await card.locator('.collection-menu-btn').click();
     await card.locator('.add-tabs-btn').click();
     const addTabs = dialog('Add Tabs');
-    await addTabs.locator('.mode-btn').nth(1).click();
-    await addTabs.locator('.open-tab-item').first().waitFor({ state: 'visible', timeout: 5000 });
-    await addTabs.locator('.open-tab-item .tab-checkbox').first().check();
+    await addTabs.locator('.dl-mode-btn').nth(1).click();
+    await addTabs.locator('.dl-open-tab-item').first().waitFor({ state: 'visible', timeout: 5000 });
+    await addTabs.locator('.dl-open-tab-item .tab-checkbox').first().check();
     await record(page, coverage);
     await hoverSweep(page, coverage, { quiet: true });
     await addTabs.getByRole('button', { name: 'Cancel' }).click();
@@ -418,7 +418,7 @@ async function walkPanel(page, coverage) {
     await page.keyboard.press('Escape');
     await card.locator('.expand-btn').click();
     await page
-      .locator('.modal-overlay .view-collection-modal')
+      .locator('.dl-modal-overlay .dl-view-collection-modal')
       .waitFor({ state: 'visible', timeout: 5000 });
     await record(page, coverage);
     await hoverSweep(page, coverage, { quiet: true });
@@ -492,7 +492,7 @@ async function walkPanel(page, coverage) {
   await record(page, coverage);
 
   await step('session details', async () => {
-    await page.locator('.history-modal .card-click-area').first().click({ timeout: 2500 });
+    await page.locator('.dl-history-modal .card-click-area').first().click({ timeout: 2500 });
   });
   await record(page, coverage);
 

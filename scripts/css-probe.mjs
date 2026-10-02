@@ -122,16 +122,16 @@ const PROBES = [
   '.search-results-container',
   '.search-section',
   '.ut-empty-state',
-  '.modal-overlay',
-  '.modal',
-  '.modal-header',
+  '.dl-modal-overlay',
+  '.dl-modal',
+  '.dl-modal-header',
   '.settings-modal',
   '.settings-card',
   '.settings-row',
   '.toggle-input',
   '.toggle-track',
   '.toggle-thumb',
-  '.history-modal',
+  '.dl-history-modal',
   '.ts-toast',
   '.footer-btn-container',
 ];
@@ -144,8 +144,8 @@ const PROBES = [
  */
 const IGNORE_PROPERTIES = {
   'history-open': {
-    '.modal': ['width', 'height'],
-    '.history-modal': ['width', 'height'],
+    '.dl-modal': ['width', 'height'],
+    '.dl-history-modal': ['width', 'height'],
   },
 };
 

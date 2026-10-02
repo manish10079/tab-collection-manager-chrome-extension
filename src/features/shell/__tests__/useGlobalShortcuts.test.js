@@ -52,7 +52,7 @@ function press(init) {
 /** A visible dialog overlay, as the Modal primitive portals it. */
 function mountOverlay({ hidden = false } = {}) {
   const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
+  overlay.className = 'dl-modal-overlay';
   if (hidden) overlay.style.display = 'none';
   document.body.appendChild(overlay);
   return overlay;

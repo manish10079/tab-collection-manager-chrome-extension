@@ -61,7 +61,7 @@ describe('Modal', () => {
     fireEvent.click(screen.getByRole('dialog'));
     expect(onClose).not.toHaveBeenCalled();
 
-    fireEvent.click(document.querySelector('.modal-overlay'));
+    fireEvent.click(document.querySelector('.dl-modal-overlay'));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
@@ -74,7 +74,7 @@ describe('Modal', () => {
       </Modal>
     );
 
-    fireEvent.click(document.querySelector('.modal-overlay'));
+    fireEvent.click(document.querySelector('.dl-modal-overlay'));
 
     expect(onOverlayClick).toHaveBeenCalledTimes(1);
     expect(onClose).not.toHaveBeenCalled();

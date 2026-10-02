@@ -23,9 +23,9 @@ export function DuplicateUrlDialog({ request, onSettle }) {
     <Modal
       title="Duplicate URL Found"
       icon="fa-exclamation-triangle"
-      className="duplicate-dialog"
-      bodyClassName="duplicate-dialog-body"
-      footerClassName="duplicate-dialog-footer"
+      className="dl-duplicate-dialog"
+      bodyClassName="dl-duplicate-dialog-body"
+      footerClassName="dl-duplicate-dialog-footer"
       onClose={() => onSettle(false)}
       footer={
         <>
@@ -38,19 +38,19 @@ export function DuplicateUrlDialog({ request, onSettle }) {
         </>
       }
     >
-      <div className="duplicate-message">
+      <div className="dl-duplicate-message">
         This URL already exists in{' '}
         {duplicates.length === 1 ? 'another collection' : 'other collections'}:<br />
         <strong>{displayUrl}</strong>
       </div>
-      <div className="duplicate-collection-list">
+      <div className="dl-duplicate-collection-list">
         {duplicates.map((duplicate) => (
           <div
-            className="duplicate-collection-item"
+            className="dl-duplicate-collection-item"
             key={`${duplicate.collectionId}-${duplicate.collectionName}`}
           >
             <i className="fas fa-folder" />
-            <span className="dup-collection-name" title={duplicate.collectionName}>
+            <span className="dl-dup-collection-name" title={duplicate.collectionName}>
               {duplicate.collectionName}
             </span>
           </div>

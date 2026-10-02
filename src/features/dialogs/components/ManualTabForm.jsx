@@ -39,7 +39,7 @@ export function ManualTabForm({ collectionId, intake, onDone }) {
 
   return (
     <form className="tab-form manual-form" onSubmit={handleSubmit}>
-      <div className="form-group">
+      <div className="dl-form-group">
         <label htmlFor="tabTitle">Title</label>
         <input
           id="tabTitle"
@@ -49,7 +49,7 @@ export function ManualTabForm({ collectionId, intake, onDone }) {
           onChange={(event) => setTitle(event.target.value)}
         />
       </div>
-      <div className="form-group">
+      <div className="dl-form-group">
         <label htmlFor="tabUrl">URL</label>
         <input
           id="tabUrl"

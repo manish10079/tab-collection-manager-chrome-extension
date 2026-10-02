@@ -125,8 +125,8 @@ export function HistoryModal({ onClose, onOpenDetails, onOpenAll }) {
     <Modal
       title="Session History"
       icon="fa-history"
-      className="history-modal"
-      bodyClassName="history-modal-body"
+      className="dl-history-modal"
+      bodyClassName="dl-history-modal-body"
       onClose={onClose}
     >
       <div className="tabs-list">

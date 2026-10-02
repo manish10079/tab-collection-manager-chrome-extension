@@ -8,7 +8,7 @@
  * @returns {boolean}
  */
 export function isAnyModalOpen() {
-  return Array.from(document.querySelectorAll('.modal-overlay')).some(
+  return Array.from(document.querySelectorAll('.dl-modal-overlay')).some(
     (overlay) => getComputedStyle(overlay).display !== 'none'
   );
 }

@@ -24,7 +24,7 @@ export function GridCollectionModal({ collection, actions }) {
     <Modal
       title={collection.name}
       icon="fa-folder-open"
-      className="view-collection-modal"
+      className="dl-view-collection-modal"
       onClose={close}
     >
       <TabPanel collection={collection} actions={actions} forceExpanded />

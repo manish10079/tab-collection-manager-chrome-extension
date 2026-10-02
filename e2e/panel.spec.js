@@ -213,7 +213,7 @@ test('imports the window’s open tabs through the multi-select picker', async (
 
   const addTabs = panel.getByRole('dialog', { name: 'Add Tabs' });
   // The second mode button is "Multi‑Select" (note the non-breaking hyphen, hence the index).
-  await addTabs.locator('.mode-btn').nth(1).click();
+  await addTabs.locator('.dl-mode-btn').nth(1).click();
 
   await expect(addTabs.getByLabel('Alpha page')).toBeVisible();
   await addTabs.getByLabel('Alpha page').check();
@@ -310,7 +310,7 @@ test('opens the history and settings dialogs, and returns focus when each closes
   await panel.locator('#historyBtn').click();
   const history = panel.getByRole('dialog', { name: 'Session History' });
   await expect(history).toBeVisible();
-  await expect(history.locator('.history-modal-body')).toBeVisible();
+  await expect(history.locator('.dl-history-modal-body')).toBeVisible();
 
   await panel.keyboard.press('Escape');
   await expect(history).toBeHidden();
