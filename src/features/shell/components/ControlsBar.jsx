@@ -50,7 +50,7 @@ export function ControlsBar({
         {/* The default row stays mounted and is hidden while a slide is open, so the slide's
             mount/unmount animation matches the legacy show/hide. */}
         <div
-          className={`actions-bar-default${slide || selectionMode ? ' hidden' : ''}`}
+          className={`actions-bar-default${slide || selectionMode ? ' ut-hidden' : ''}`}
           id="actionsBarDefault"
         >
           <button
@@ -134,7 +134,7 @@ export function ControlsBar({
           {/* Visible only when the worker has recorded a restorable backup. */}
           <button
             type="button"
-            className={`icon-btn btn-restore${hasBackup ? '' : ' hidden'}`}
+            className={`icon-btn btn-restore${hasBackup ? '' : ' ut-hidden'}`}
             id="restoreBackupBtn"
             title={restoreTitle}
             aria-label="Restore previous session"

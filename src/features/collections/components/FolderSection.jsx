@@ -100,8 +100,8 @@ export function FolderSection({
   };
 
   const classNames = ['folder'];
-  if (isDragOver) classNames.push('drag-over');
-  if (isSelected) classNames.push('selected');
+  if (isDragOver) classNames.push('ut-drag-over');
+  if (isSelected) classNames.push('ut-selected');
 
   return (
     <div className={classNames.join(' ')} data-folder-id={folder.id} {...dropProps}>
@@ -120,7 +120,7 @@ export function FolderSection({
           ) : null}
           <button
             type="button"
-            className={`expand-btn${folder.isExpanded ? ' rotated' : ''}`}
+            className={`expand-btn${folder.isExpanded ? ' ut-rotated' : ''}`}
             aria-expanded={!!folder.isExpanded}
             aria-label={folder.isExpanded ? 'Collapse folder' : 'Expand folder'}
             onClick={(event) => {
@@ -162,7 +162,7 @@ export function FolderSection({
               <i className="fas fa-ellipsis-v" />
             </button>
 
-            <div className={`collection-dropdown-menu${menuOpen ? '' : ' hidden'}`}>
+            <div className={`collection-dropdown-menu${menuOpen ? '' : ' ut-hidden'}`}>
               <button
                 type="button"
                 className="dropdown-option edit-folder-btn"

@@ -81,7 +81,7 @@ describe('CollectionCard', () => {
 
     const expanded = renderCard(makeCollection({ isExpanded: true }));
     expect(expanded.container.querySelector('.collection-tabs')?.className).toBe(
-      'collection-tabs expanded'
+      'collection-tabs ut-expanded'
     );
   });
 

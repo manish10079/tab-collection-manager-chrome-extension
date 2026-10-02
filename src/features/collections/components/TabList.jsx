@@ -23,7 +23,7 @@ export function TabList({ collection, query, actions }) {
 
   return (
     <>
-      <div className={`tabs-list${sorted ? ' sort-active' : ''}`}>
+      <div className={`tabs-list${sorted ? ' ut-sort-active' : ''}`}>
         {tabs.length === 0 ? (
           <div className="empty-tabs-message">
             <i className="fas fa-info-circle" /> No tabs in this collection

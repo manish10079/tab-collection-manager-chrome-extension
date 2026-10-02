@@ -20,8 +20,8 @@ function Toast({ toast }) {
   const [phase, setPhase] = useState('');
 
   useEffect(() => {
-    const showTimer = setTimeout(() => setPhase('show'), 10);
-    const hideTimer = setTimeout(() => setPhase('hide'), toast.duration);
+    const showTimer = setTimeout(() => setPhase('ut-show'), 10);
+    const hideTimer = setTimeout(() => setPhase('ut-hide'), toast.duration);
     return () => {
       clearTimeout(showTimer);
       clearTimeout(hideTimer);

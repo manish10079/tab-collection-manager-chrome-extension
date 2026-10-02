@@ -133,7 +133,7 @@ async function copyStatic() {
 function assertPage(html, manifest) {
   const checks = {
     'React root present': html.includes('id="root"'),
-    'container shell present': html.includes('class="container" id="root"'),
+    'container shell present': html.includes('class="ut-container" id="root"'),
     'bundled module script injected': /<script type="module"[^>]+src="\/assets\/[^"]+\.js"/.test(
       html
     ),

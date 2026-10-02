@@ -62,7 +62,7 @@ export function SortMenu({ active, onSelect }) {
       </button>
 
       <div
-        className={`sort-dropdown-menu${open ? '' : ' hidden'}`}
+        className={`sort-dropdown-menu${open ? '' : ' ut-hidden'}`}
         id="collectionsSortMenu"
         role="menu"
         aria-labelledby="collectionSortBtn"
@@ -70,7 +70,7 @@ export function SortMenu({ active, onSelect }) {
         {SORT_OPTIONS.map((option) => (
           <div
             key={option.value}
-            className={`sort-option${option.value === active ? ' active' : ''}`}
+            className={`sort-option${option.value === active ? ' ut-active' : ''}`}
             data-value={option.value}
             role="menuitem"
             tabIndex={0}

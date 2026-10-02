@@ -21,7 +21,7 @@
 }
 
 /* Expanded state */
-.collection-tabs.expanded {
+.collection-tabs.ut-expanded {
   padding: 0 20px 20px;
   max-height: none;
   overflow: visible;

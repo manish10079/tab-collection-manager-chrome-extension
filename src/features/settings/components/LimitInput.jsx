@@ -36,7 +36,7 @@ export function LimitInput({ id, label, value, min, max, disabled, onCommit }) {
   }
 
   return (
-    <div className={`limit-input-group${disabled ? ' disabled' : ''}`}>
+    <div className={`limit-input-group${disabled ? ' ut-disabled' : ''}`}>
       <input
         type="number"
         id={id}

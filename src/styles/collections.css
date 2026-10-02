@@ -29,7 +29,7 @@
 }
 
 /* Grid View Layout Styles */
-.collections-container.grid-view {
+.collections-container.ut-grid-view {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
@@ -47,24 +47,24 @@
   }
 }
 
-.collections-container.grid-view .collection,
-.collections-container:not(.grid-view) .collection {
+.collections-container.ut-grid-view .collection,
+.collections-container:not(.ut-grid-view) .collection {
   animation: cardLayoutChange 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-.collections-container.grid-view .collection-header {
+.collections-container.ut-grid-view .collection-header {
   flex-direction: column;
   align-items: stretch;
   padding: 12px;
   gap: 8px;
 }
 
-.collections-container.grid-view .collection-left-section {
+.collections-container.ut-grid-view .collection-left-section {
   width: 100%;
   gap: 8px;
 }
 
-.collections-container.grid-view .collection-right-section {
+.collections-container.ut-grid-view .collection-right-section {
   width: 100%;
   justify-content: space-between;
   border-top: 1px solid var(--bg-translucent-normal);
@@ -72,18 +72,18 @@
   gap: 8px;
 }
 
-.collections-container.grid-view .collection-name {
+.collections-container.ut-grid-view .collection-name {
   font-size: 14.5px;
   max-width: none;
   flex: 1;
 }
 
-.collections-container.grid-view .collection-drag-handle {
+.collections-container.ut-grid-view .collection-drag-handle {
   font-size: 13px;
   width: 12px;
 }
 
-.collections-container.grid-view .expand-btn {
+.collections-container.ut-grid-view .expand-btn {
   width: 28px;
   height: 28px;
   font-size: 12px;
@@ -91,40 +91,40 @@
 
 /* Phase 4 removed sixteen never-matched rules here: grid view has no inline tab panel, because
    expanding a card opens `GridCollectionModal`, which the modal portals into `#tcm-modal-root` —
-   outside `.collections-container`. So `.collections-container.grid-view .collection-tabs`,
+   outside `.collections-container`. So `.collections-container.ut-grid-view .collection-tabs`,
    `.collection-tab-search` and their `.tab-item` descendants could not match any element the panel
    renders; the coverage walk listed every one of them as never-matched. The rest of the grid rules
    above stay — they target the card itself, which is reachable (css-migration-plan.md, Phase 4). */
 
-.collections-container.grid-view .collection:nth-child(odd) .collection-dropdown-menu {
+.collections-container.ut-grid-view .collection:nth-child(odd) .collection-dropdown-menu {
   left: 0;
   right: auto;
 }
 
-.collections-container.grid-view .collection:nth-child(odd) .tab-dropdown-menu {
+.collections-container.ut-grid-view .collection:nth-child(odd) .tab-dropdown-menu {
   left: auto;
   right: 0;
 }
 
-.empty-state {
+.ut-empty-state {
   text-align: center;
   padding: 60px 20px;
   color: var(--text-secondary);
 }
 
-.empty-state i {
+.ut-empty-state i {
   font-size: 48px;
   margin-bottom: 20px;
   opacity: 0.5;
 }
 
-.empty-state h3 {
+.ut-empty-state h3 {
   font-size: 20px;
   margin-bottom: 10px;
   color: var(--text-primary);
 }
 
-.empty-state p {
+.ut-empty-state p {
   font-size: 15px;
 }
 
@@ -258,7 +258,7 @@
   color: var(--text-primary);
 }
 
-.expand-btn.rotated {
+.expand-btn.ut-rotated {
   transform: rotate(90deg);
 }
 
@@ -382,8 +382,8 @@
   -webkit-backdrop-filter: none;
 }
 
-.collection-dropdown-menu.hidden,
-.tab-dropdown-menu.hidden {
+.collection-dropdown-menu.ut-hidden,
+.tab-dropdown-menu.ut-hidden {
   display: none;
 }
 
@@ -499,19 +499,19 @@
   cursor: grabbing;
 }
 
-.collection.dragging,
-.tab-item.dragging {
+.collection.ut-dragging,
+.tab-item.ut-dragging {
   opacity: 0.4;
   border: 1px dashed var(--accent);
 }
 
-.collection.drag-over {
+.collection.ut-drag-over {
   border: 2px dashed var(--accent);
   transform: scale(1.01);
   box-shadow: 0 4px 20px rgba(108, 99, 255, 0.2);
 }
 
-.tab-item.drag-over {
+.tab-item.ut-drag-over {
   border: 2px dashed var(--accent);
   transform: scale(1.01);
   box-shadow: 0 4px 12px rgba(108, 99, 255, 0.15);
@@ -535,20 +535,20 @@
   color: var(--text-primary);
 }
 
-.collection-actions .pin-collection-btn.pinned {
+.collection-actions .pin-collection-btn.ut-pinned {
   color: var(--danger); /* Premium Amber */
   background: color-mix(in srgb, var(--warning) 15%, transparent);
   border-color: color-mix(in srgb, var(--warning) 35%, transparent);
   opacity: 1;
 }
 
-.collection-actions .pin-collection-btn.pinned:hover {
+.collection-actions .pin-collection-btn.ut-pinned:hover {
   color: var(--danger);
   background: color-mix(in srgb, var(--warning) 25%, transparent);
   border-color: color-mix(in srgb, var(--warning) 50%, transparent);
 }
 
-.collection.pinned {
+.collection.ut-pinned {
   border-color: color-mix(in srgb, var(--warning) 25%, transparent);
   background: linear-gradient(
     to right,
@@ -586,19 +586,19 @@
   border-color: var(--border-card);
 }
 
-.tab-item .icon-btn.pin-tab-btn.pinned {
+.tab-item .icon-btn.pin-tab-btn.ut-pinned {
   color: var(--warning); /* Premium Amber */
   opacity: 1;
   background: color-mix(in srgb, var(--warning) 15%, transparent);
   border-color: color-mix(in srgb, var(--warning) 30%, transparent);
 }
 
-.tab-item .icon-btn.pin-tab-btn.pinned:hover {
+.tab-item .icon-btn.pin-tab-btn.ut-pinned:hover {
   color: var(--warning-accent);
   background: color-mix(in srgb, var(--warning) 25%, transparent);
 }
 
-.tab-item.pinned {
+.tab-item.ut-pinned {
   border-color: color-mix(in srgb, var(--warning) 20%, transparent);
   background: color-mix(in srgb, var(--warning) 2%, transparent);
 }

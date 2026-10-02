@@ -6,7 +6,7 @@
  */
 export function EmptyState() {
   return (
-    <div className="empty-state" id="emptyState">
+    <div className="ut-empty-state" id="emptyState">
       <i className="fas fa-inbox" />
       <h3>No collections yet</h3>
       <p>Create your first collection to start organizing tabs</p>

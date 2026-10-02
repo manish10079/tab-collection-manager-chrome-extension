@@ -84,8 +84,8 @@ export function TabRow({ tab, number, collection, actions }) {
 
   return (
     <div
-      className={`tab-item${tab.pinned ? ' pinned' : ''}${isDragging ? ' dragging' : ''}${
-        isDragOver ? ' drag-over' : ''
+      className={`tab-item${tab.pinned ? ' ut-pinned' : ''}${isDragging ? ' ut-dragging' : ''}${
+        isDragOver ? ' ut-drag-over' : ''
       }`}
       data-id={tab.id}
       {...dragProps}
@@ -110,9 +110,9 @@ export function TabRow({ tab, number, collection, actions }) {
         />
       </div>
 
-      <div className={`tab-group-badge${badge.visible ? '' : ' hidden'}`} title={badge.title}>
+      <div className={`tab-group-badge${badge.visible ? '' : ' ut-hidden'}`} title={badge.title}>
         <span className="tab-group-dot" style={{ background: badge.color }} />
-        <span className={`tab-group-name${badge.label ? '' : ' hidden'}`}>{badge.label}</span>
+        <span className={`tab-group-name${badge.label ? '' : ' ut-hidden'}`}>{badge.label}</span>
       </div>
 
       <div className="tab-content">
@@ -139,7 +139,7 @@ export function TabRow({ tab, number, collection, actions }) {
         {isCurrentSession ? null : (
           <button
             type="button"
-            className={`icon-btn pin-tab-btn${tab.pinned ? ' pinned' : ''}`}
+            className={`icon-btn pin-tab-btn${tab.pinned ? ' ut-pinned' : ''}`}
             title={tab.pinned ? 'Unpin Tab' : 'Pin Tab'}
             aria-pressed={!!tab.pinned}
             onClick={() => actions.pinTab(collection.id, tab.id)}
@@ -159,7 +159,7 @@ export function TabRow({ tab, number, collection, actions }) {
           <i className="fas fa-ellipsis-v" />
         </button>
 
-        <div className={`tab-dropdown-menu${menuOpen ? '' : ' hidden'}`}>
+        <div className={`tab-dropdown-menu${menuOpen ? '' : ' ut-hidden'}`}>
           <button
             type="button"
             className="dropdown-option edit-tab-btn"

@@ -45,7 +45,7 @@ export function TabPanel({ collection, actions, forceExpanded = false }) {
   const expanded = forceExpanded || !!collection.isExpanded;
 
   return (
-    <div className={`collection-tabs${expanded ? ' expanded' : ''}`}>
+    <div className={`collection-tabs${expanded ? ' ut-expanded' : ''}`}>
       <div className="collection-tab-search">
         <input
           type="text"
@@ -91,11 +91,11 @@ export function TabPanel({ collection, actions, forceExpanded = false }) {
           >
             <i className={`fa-solid ${TAB_SORT_ICONS[activeSort] || 'fa-arrow-up-wide-short'}`} />
           </button>
-          <div className={`sort-dropdown-menu${sortOpen ? '' : ' hidden'}`}>
+          <div className={`sort-dropdown-menu${sortOpen ? '' : ' ut-hidden'}`}>
             {TAB_SORT_OPTIONS.map((option) => (
               <div
                 key={option.value}
-                className={`sort-option${option.value === activeSort ? ' active' : ''}`}
+                className={`sort-option${option.value === activeSort ? ' ut-active' : ''}`}
                 data-value={option.value}
                 role="menuitem"
                 tabIndex={0}

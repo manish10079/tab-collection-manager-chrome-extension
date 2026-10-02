@@ -71,11 +71,11 @@ export function CollectionCard({
 
   const classNames = ['collection'];
   if (isCurrentSession) classNames.push('current-session-collection');
-  if (collection.pinned && !isCurrentSession) classNames.push('pinned');
+  if (collection.pinned && !isCurrentSession) classNames.push('ut-pinned');
   if (isAutoSaveTarget) classNames.push('auto-save-target');
-  if (isDragging) classNames.push('dragging');
-  if (isDragOver) classNames.push('drag-over');
-  if (isSelected) classNames.push('selected');
+  if (isDragging) classNames.push('ut-dragging');
+  if (isDragOver) classNames.push('ut-drag-over');
+  if (isSelected) classNames.push('ut-selected');
 
   function toggleExpanded() {
     actions.setExpanded(collection.id, !collection.isExpanded);
@@ -137,7 +137,7 @@ export function CollectionCard({
           </div>
           <button
             type="button"
-            className={`expand-btn${collection.isExpanded ? ' rotated' : ''}`}
+            className={`expand-btn${collection.isExpanded ? ' ut-rotated' : ''}`}
             aria-expanded={!!collection.isExpanded}
             aria-label={collection.isExpanded ? 'Collapse collection' : 'Expand collection'}
             onClick={(event) => {
@@ -176,7 +176,7 @@ export function CollectionCard({
             {isCurrentSession ? null : (
               <button
                 type="button"
-                className={`icon-btn pin-collection-btn${collection.pinned ? ' pinned' : ''}`}
+                className={`icon-btn pin-collection-btn${collection.pinned ? ' ut-pinned' : ''}`}
                 title={collection.pinned ? 'Unpin Collection' : 'Pin Collection'}
                 aria-pressed={!!collection.pinned}
                 onClick={() => actions.pinCollection(collection.id)}
@@ -196,7 +196,7 @@ export function CollectionCard({
               <i className="fas fa-ellipsis-v" />
             </button>
 
-            <div className={`collection-dropdown-menu${menuOpen ? '' : ' hidden'}`}>
+            <div className={`collection-dropdown-menu${menuOpen ? '' : ' ut-hidden'}`}>
               <button
                 type="button"
                 className="dropdown-option open-all-tabs-btn"

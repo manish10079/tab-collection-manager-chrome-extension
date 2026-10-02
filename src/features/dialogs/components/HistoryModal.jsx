@@ -131,7 +131,7 @@ export function HistoryModal({ onClose, onOpenDetails, onOpenAll }) {
     >
       <div className="tabs-list">
         {!loading && history.length === 0 ? (
-          <div className="empty-state">
+          <div className="ut-empty-state">
             <i className="fas fa-clock" />
             <h3>No sessions saved yet</h3>
             <p>Once you modify your open tabs, past snapshots will show up here.</p>

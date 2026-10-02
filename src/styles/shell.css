@@ -75,7 +75,7 @@
   cursor: pointer;
   box-sizing: border-box;
   /* No `display` here: `.icon-btn` already sets `flex`/`center`, and repeating it at this
-     specificity would out-rank the `.hidden` utility (which is only a doubled class) whenever the
+     specificity would out-rank the `.ut-hidden` utility (which is only a doubled class) whenever the
      restore button is hidden (css-migration-plan.md, Phase 5). */
 }
 
@@ -704,7 +704,7 @@ mark.search-hl {
 }
 
 /* Animations for dropdown */
-.sort-dropdown-menu.hidden {
+.sort-dropdown-menu.ut-hidden {
   display: none;
 }
 
@@ -725,7 +725,7 @@ mark.search-hl {
   color: var(--text-primary);
 }
 
-.sort-option.active {
+.sort-option.ut-active {
   background: rgba(108, 99, 255, 0.15);
   color: var(--accent);
   font-weight: 600;
@@ -738,11 +738,11 @@ mark.search-hl {
 }
 
 /* Hide drag handles when sorting is active */
-.collections-container.sort-active .collection-drag-handle {
+.collections-container.ut-sort-active .collection-drag-handle {
   display: none;
 }
 
-.tabs-list.sort-active .tab-drag-handle {
+.tabs-list.ut-sort-active .tab-drag-handle {
   display: none;
 }
 
@@ -826,8 +826,8 @@ mark.search-hl {
   z-index: 100;
 }
 
-.folder.drag-over,
-.folder-root-dropzone.drag-over {
+.folder.ut-drag-over,
+.folder-root-dropzone.ut-drag-over {
   border-color: var(--accent);
   box-shadow:
     0 0 0 1px var(--accent),
@@ -909,51 +909,51 @@ mark.search-hl {
   text-align: center;
 }
 
-/* Grid view with folders. collections.css styles the grid cards with `.collections-container.grid-view
+/* Grid view with folders. collections.css styles the grid cards with `.collections-container.ut-grid-view
    .collection`, a descendant selector that also matches collections nested inside a folder, so
    they would inherit the stacked grid-card header. A folder spans the whole grid as a section and
    the collections inside it keep the normal list appearance; these rules out-specify the grid
    ones (four classes to three), so they win regardless of stylesheet order. */
-.collections-container.grid-view .folder {
+.collections-container.ut-grid-view .folder {
   grid-column: 1 / -1;
 }
 
-.collections-container.grid-view .folder-body .collection-header {
+.collections-container.ut-grid-view .folder-body .collection-header {
   flex-direction: row;
   align-items: center;
   padding: 8px 14px;
   gap: 12px;
 }
 
-.collections-container.grid-view .folder-body .collection-left-section {
+.collections-container.ut-grid-view .folder-body .collection-left-section {
   width: auto;
   gap: 10px;
 }
 
-.collections-container.grid-view .folder-body .collection-right-section {
+.collections-container.ut-grid-view .folder-body .collection-right-section {
   width: auto;
   border-top: none;
   padding-top: 0;
   gap: 14px;
 }
 
-.collections-container.grid-view .folder-body .collection-name {
+.collections-container.ut-grid-view .folder-body .collection-name {
   font-size: 17.5px;
   max-width: 320px;
 }
 
-.collections-container.grid-view .folder-body .collection-drag-handle {
+.collections-container.ut-grid-view .folder-body .collection-drag-handle {
   width: 18px;
 }
 
-.collections-container.grid-view .folder-body .expand-btn {
+.collections-container.ut-grid-view .folder-body .expand-btn {
   font-size: 14px;
 }
 
 /* The grid's odd/even dropdown flip counts the folder among its siblings, which would misalign a
    nested card's menu; keep it right-aligned like every other list row. */
-.collections-container.grid-view .folder-body .collection-dropdown-menu,
-.collections-container.grid-view .folder-body .tab-dropdown-menu {
+.collections-container.ut-grid-view .folder-body .collection-dropdown-menu,
+.collections-container.ut-grid-view .folder-body .tab-dropdown-menu {
   left: auto;
   right: 0;
 }
@@ -1019,12 +1019,12 @@ mark.search-hl {
   letter-spacing: 0;
 }
 
-.collections-container.grid-view .section-heading {
+.collections-container.ut-grid-view .section-heading {
   grid-column: 1 / -1;
 }
 
 /* Bulk selection (delete several folders/collections). The checkbox appears on each folder and
-   collection once the controls-bar Select toggle is on; `.selected` mirrors the drag-over accent. */
+   collection once the controls-bar Select toggle is on; `.ut-selected` mirrors the drag-over accent. */
 .select-checkbox {
   display: inline-flex;
   align-items: center;
@@ -1039,8 +1039,8 @@ mark.search-hl {
   accent-color: var(--accent);
 }
 
-.collection.selected,
-.folder.selected {
+.collection.ut-selected,
+.folder.ut-selected {
   border-color: var(--accent);
   box-shadow:
     0 0 0 1px var(--accent),

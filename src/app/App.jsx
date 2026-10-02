@@ -91,12 +91,12 @@ export function App() {
   const isGrid = settings.layoutViewMode === 'grid';
   const isSorted = (settings.collectionSortType || 'custom') !== 'custom';
   const containerClasses = ['collections-container'];
-  if (isGrid) containerClasses.push('grid-view');
-  if (isSorted) containerClasses.push('sort-active');
+  if (isGrid) containerClasses.push('ut-grid-view');
+  if (isSorted) containerClasses.push('ut-sort-active');
 
   return (
     <>
-      <span className="creator">By Mkn Labs</span>
+      <span className="ut-creator">By Mkn Labs</span>
 
       <AppHeader
         manifest={manifest}
@@ -104,7 +104,7 @@ export function App() {
         onClose={controller.closePanel}
       />
 
-      <div className="scrollable-content">
+      <div className="ut-scrollable-content">
         <ControlsBar
           controller={controller}
           collectionSortType={settings.collectionSortType || 'custom'}

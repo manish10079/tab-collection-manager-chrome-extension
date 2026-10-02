@@ -214,8 +214,8 @@ describe('CollectionList bulk selection', () => {
     const rootCard = container.querySelector('.collection[data-id="root1"]');
     expect(folder.querySelector('.select-checkbox input')).toBeTruthy();
     expect(rootCard.querySelector('.select-checkbox input')).toBeTruthy();
-    expect(folder.classList.contains('selected')).toBe(true);
-    expect(rootCard.classList.contains('selected')).toBe(false);
+    expect(folder.classList.contains('ut-selected')).toBe(true);
+    expect(rootCard.classList.contains('ut-selected')).toBe(false);
 
     fireEvent.click(rootCard.querySelector('.select-checkbox input'));
     expect(onToggleSelect).toHaveBeenCalledWith('collection', 'root1');

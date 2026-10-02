@@ -389,13 +389,15 @@ async function walkPanel(page, coverage) {
   await step('prepare grid view', async () => {
     await page.locator('#collectionsContainer > .folder .expand-btn').first().click();
     await card.locator('.expand-btn').click();
-    await card.locator('.collection-tabs.expanded').waitFor({ state: 'detached', timeout: 3000 });
+    await card
+      .locator('.collection-tabs.ut-expanded')
+      .waitFor({ state: 'detached', timeout: 3000 });
   });
   await record(page, coverage);
 
   await step('grid view', async () => {
     await page.locator('#toggleLayoutBtn').click();
-    await page.locator('#collectionsContainer.grid-view').waitFor({ state: 'attached' });
+    await page.locator('#collectionsContainer.ut-grid-view').waitFor({ state: 'attached' });
   });
   await record(page, coverage);
 
@@ -426,7 +428,7 @@ async function walkPanel(page, coverage) {
   await step('back to list view', async () => {
     await page.keyboard.press('Escape');
     await page.locator('#toggleLayoutBtn').click();
-    await page.locator('#collectionsContainer.grid-view').waitFor({ state: 'detached' });
+    await page.locator('#collectionsContainer.ut-grid-view').waitFor({ state: 'detached' });
   });
   await record(page, coverage);
 
@@ -470,7 +472,9 @@ async function walkPanel(page, coverage) {
     await enforce.click();
     // The group gets its `disabled` class once the store write round-trips, so wait for it rather
     // than sampling the frame before the re-render.
-    await page.locator('.limit-input-group.disabled').waitFor({ state: 'attached', timeout: 3000 });
+    await page
+      .locator('.limit-input-group.ut-disabled')
+      .waitFor({ state: 'attached', timeout: 3000 });
     await record(page, coverage);
     await enforce.click(); // Back to the default so the rest of the walk is undisturbed.
   });
@@ -517,7 +521,7 @@ async function walkPanel(page, coverage) {
   await step('panel closing', async () => {
     await page.locator('#collectionsContainer').click({ position: { x: 2, y: 2 } });
     await page.keyboard.press('x');
-    await page.locator('body.panel-closing').waitFor({ state: 'attached', timeout: 3000 });
+    await page.locator('body.ut-panel-closing').waitFor({ state: 'attached', timeout: 3000 });
     await record(page, coverage);
   });
 

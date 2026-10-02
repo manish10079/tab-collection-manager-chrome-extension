@@ -52,7 +52,9 @@ describe('ControlsBar', () => {
   it('shows the default actions row when no slide is open', () => {
     renderBar();
 
-    expect(document.getElementById('actionsBarDefault').classList.contains('hidden')).toBe(false);
+    expect(document.getElementById('actionsBarDefault').classList.contains('ut-hidden')).toBe(
+      false
+    );
     expect(document.getElementById('toggleSearchBtn')).toBeTruthy();
     expect(document.getElementById('historyBtn')).toBeTruthy();
   });
@@ -102,7 +104,7 @@ describe('ControlsBar', () => {
     const setQuery = vi.fn();
     renderBar({ controller: makeController({ slide: 'search', query: 'doc', setQuery }) });
 
-    expect(document.getElementById('actionsBarDefault').classList.contains('hidden')).toBe(true);
+    expect(document.getElementById('actionsBarDefault').classList.contains('ut-hidden')).toBe(true);
     const input = screen.getByPlaceholderText('Search collections or tabs…');
     expect(input.value).toBe('doc');
 
@@ -144,14 +146,14 @@ describe('ControlsBar', () => {
 
   it('hides the restore button until a backup exists', () => {
     const { unmount } = renderBar({ backup: null });
-    expect(document.getElementById('restoreBackupBtn').classList.contains('hidden')).toBe(true);
+    expect(document.getElementById('restoreBackupBtn').classList.contains('ut-hidden')).toBe(true);
     unmount();
 
     const restoreBackup = vi.fn();
     renderBar({ backup: BACKUP, controller: makeController({ restoreBackup }) });
     const button = document.getElementById('restoreBackupBtn');
 
-    expect(button.classList.contains('hidden')).toBe(false);
+    expect(button.classList.contains('ut-hidden')).toBe(false);
     expect(button.title).toContain('2 tabs');
     fireEvent.click(button);
     expect(restoreBackup).toHaveBeenCalledTimes(1);

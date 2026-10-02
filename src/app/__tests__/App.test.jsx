@@ -49,8 +49,8 @@ describe('App', () => {
       [STORAGE_KEYS.collectionSortType]: 'nameAsc',
     });
 
-    expect(collectionsContainer().classList.contains('grid-view')).toBe(true);
-    expect(collectionsContainer().classList.contains('sort-active')).toBe(true);
+    expect(collectionsContainer().classList.contains('ut-grid-view')).toBe(true);
+    expect(collectionsContainer().classList.contains('ut-sort-active')).toBe(true);
   });
 
   it('opens the grid-view modal for the expanded collection', async () => {
@@ -89,7 +89,7 @@ describe('App', () => {
     expect(document.getElementById('toggleSearchBtn')).toBeTruthy();
     expect(document.getElementById('historyBtn')).toBeTruthy();
     // No backup in storage, so the restore button stays hidden.
-    expect(document.getElementById('restoreBackupBtn').classList.contains('hidden')).toBe(true);
+    expect(document.getElementById('restoreBackupBtn').classList.contains('ut-hidden')).toBe(true);
   });
 
   it('renders global search results and returns to the list when one is opened', async () => {

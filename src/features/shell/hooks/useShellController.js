@@ -284,7 +284,7 @@ export function useShellController({ toast }) {
   }, [slide]);
 
   const closePanel = useCallback(() => {
-    document.body.classList.add('panel-closing');
+    document.body.classList.add('ut-panel-closing');
     setTimeout(() => window.close(), 220);
   }, []);
 

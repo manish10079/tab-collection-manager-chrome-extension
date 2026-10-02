@@ -135,7 +135,7 @@
   transition: var(--transition);
 }
 
-.mode-btn.active {
+.mode-btn.ut-active {
   background: var(--accent);
   color: white;
 }
@@ -391,7 +391,7 @@
   border-top: none;
 }
 
-.view-collection-modal .collection-tabs.expanded {
+.view-collection-modal .collection-tabs.ut-expanded {
   padding: 0;
   max-height: none;
   opacity: 1;

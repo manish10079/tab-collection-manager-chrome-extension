@@ -358,7 +358,7 @@
     transform 0.2s ease;
 }
 
-.limit-input-group.disabled {
+.limit-input-group.ut-disabled {
   opacity: 0.3;
   pointer-events: none;
 }

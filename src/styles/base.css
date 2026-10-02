@@ -24,7 +24,7 @@ body {
   opacity: 0;
 }
 
-body.panel-closing {
+body.ut-panel-closing {
   animation: panelClose 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -50,7 +50,7 @@ body.panel-closing {
   }
 }
 
-.container {
+.ut-container {
   padding: 24px;
   background: var(--bg-primary);
   flex: 1;
@@ -58,7 +58,7 @@ body.panel-closing {
   flex-direction: column;
   overflow: hidden;
 }
-.creator {
+.ut-creator {
   font-size: 0.5rem;
   font-weight: 700;
   letter-spacing: 1px;
@@ -82,7 +82,7 @@ body.panel-closing {
 }
 
 /* Scrollable content area */
-.scrollable-content {
+.ut-scrollable-content {
   flex: 1;
   overflow-y: auto;
   padding-right: 8px;
@@ -93,9 +93,9 @@ body.panel-closing {
 /* Utility. Doubled class, not `!important`: the utility has to beat a component's own
    `display` (a dropdown is `display: flex`), and it is imported before every family sheet, so
    equal specificity would lose on order. The doubled class is the specificity floor — it still
-   loses to a component rule that names the same state, which is why the `.x.hidden` rules in the
+   loses to a component rule that names the same state, which is why the `.x.ut-hidden` rules in the
    family sheets keep working (css-migration-plan.md, Phase 5). */
-.hidden.hidden {
+.ut-hidden.ut-hidden {
   display: none;
 }
 

@@ -87,7 +87,7 @@ const PROPERTIES = [
 const PROBES = [
   'html',
   'body',
-  '.container',
+  '.ut-container',
   '.header',
   '#app-name',
   '.controls',
@@ -121,7 +121,7 @@ const PROBES = [
   '.selection-count',
   '.search-results-container',
   '.search-section',
-  '.empty-state',
+  '.ut-empty-state',
   '.modal-overlay',
   '.modal',
   '.modal-header',
@@ -493,7 +493,7 @@ async function walkPanel(page, capture) {
   // the panel, which would intercept every later click (the same trap `css-coverage.mjs` documents).
   await step('collapse the collection before grid', async () => {
     await page.keyboard.press('Escape');
-    const expanded = card().locator('.collection-tabs.expanded');
+    const expanded = card().locator('.collection-tabs.ut-expanded');
     if ((await expanded.count()) > 0) {
       await card().locator('.expand-btn').click();
       await expanded.first().waitFor({ state: 'detached', timeout: 3000 });
@@ -502,7 +502,7 @@ async function walkPanel(page, capture) {
 
   await step('grid view', async () => {
     await page.locator('#toggleLayoutBtn').click();
-    await page.locator('#collectionsContainer.grid-view').waitFor({ state: 'attached' });
+    await page.locator('#collectionsContainer.ut-grid-view').waitFor({ state: 'attached' });
   });
   await capture('grid-dark');
 
@@ -515,7 +515,7 @@ async function walkPanel(page, capture) {
 
   await step('back to the list layout', async () => {
     await page.locator('#toggleLayoutBtn').click();
-    await page.locator('#collectionsContainer.grid-view').waitFor({ state: 'detached' });
+    await page.locator('#collectionsContainer.ut-grid-view').waitFor({ state: 'detached' });
   });
   await capture('list-dark');
 
@@ -539,7 +539,7 @@ async function walkPanel(page, capture) {
 
   await step('light grid', async () => {
     await page.locator('#toggleLayoutBtn').click();
-    await page.locator('#collectionsContainer.grid-view').waitFor({ state: 'attached' });
+    await page.locator('#collectionsContainer.ut-grid-view').waitFor({ state: 'attached' });
   });
   await capture('light-grid');
 }

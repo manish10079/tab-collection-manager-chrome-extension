@@ -136,7 +136,7 @@ describe('collection drag and drop', () => {
     dragOnto(rowOf('T1'), card);
 
     expect(actions.moveTab).not.toHaveBeenCalled();
-    expect(card.className).not.toContain('drag-over');
+    expect(card.className).not.toContain('ut-drag-over');
   });
 
   it('marks the dragged card and the hovered target', () => {
@@ -151,8 +151,8 @@ describe('collection drag and drop', () => {
     fireEvent.dragStart(source);
     fireEvent.dragOver(target);
 
-    expect(source.className).toContain('dragging');
-    expect(target.className).toContain('drag-over');
+    expect(source.className).toContain('ut-dragging');
+    expect(target.className).toContain('ut-drag-over');
   });
 });
 

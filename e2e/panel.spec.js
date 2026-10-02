@@ -80,7 +80,7 @@ async function createCollection(panel, name) {
 
   await expect(await cardFor(panel, name)).toBeVisible();
   // Success closes the slide, so the default actions row is back.
-  await expect(panel.locator('#actionsBarDefault')).not.toHaveClass(/hidden/);
+  await expect(panel.locator('#actionsBarDefault')).not.toHaveClass(/ut-hidden/);
 }
 
 /**
@@ -140,7 +140,7 @@ test('adds tabs, then edits, pins and removes through the card menus', async ({ 
   const card = await cardFor(panel, 'E2E Tabs');
 
   await card.locator('.expand-btn').click();
-  await expect(card.locator('.collection-tabs')).toHaveClass(/expanded/);
+  await expect(card.locator('.collection-tabs')).toHaveClass(/ut-expanded/);
 
   // Manual tab through the collection menu.
   await card.locator('.collection-menu-btn').click();
@@ -180,7 +180,7 @@ test('adds tabs, then edits, pins and removes through the card menus', async ({ 
 
   // Pin the tab, then remove it from the same menu.
   await card.locator('.pin-tab-btn').first().click();
-  await expect(card.locator('.tab-item').first()).toHaveClass(/pinned/);
+  await expect(card.locator('.tab-item').first()).toHaveClass(/ut-pinned/);
 
   await card.locator('.tab-menu-btn').first().click();
   await card.getByRole('button', { name: 'Remove tab' }).first().click();
@@ -188,7 +188,7 @@ test('adds tabs, then edits, pins and removes through the card menus', async ({ 
 
   // Pin the collection, then rename it.
   await card.locator('.pin-collection-btn').click();
-  await expect(card).toHaveClass(/pinned/);
+  await expect(card).toHaveClass(/ut-pinned/);
 
   await card.locator('.collection-menu-btn').click();
   await card.getByRole('button', { name: 'Edit collection name' }).click();
@@ -264,16 +264,16 @@ test('toggles layout and sort, exports the collections, and answers the keyboard
 
   // Layout toggle.
   await panel.locator('#toggleLayoutBtn').click();
-  await expect(panel.locator('#collectionsContainer')).toHaveClass(/grid-view/);
+  await expect(panel.locator('#collectionsContainer')).toHaveClass(/ut-grid-view/);
   await panel.locator('#toggleLayoutBtn').click();
-  await expect(panel.locator('#collectionsContainer')).not.toHaveClass(/grid-view/);
+  await expect(panel.locator('#collectionsContainer')).not.toHaveClass(/ut-grid-view/);
 
   // Collections sort menu: choosing an option closes it and marks the list as sorted.
   await panel.locator('#collectionSortBtn').click();
   await expect(panel.locator('#collectionSortBtn')).toHaveAttribute('aria-expanded', 'true');
   await panel.getByRole('menuitem', { name: 'Name (A-Z)' }).click();
   await expect(panel.locator('#collectionSortBtn')).toHaveAttribute('aria-expanded', 'false');
-  await expect(panel.locator('#collectionsContainer')).toHaveClass(/sort-active/);
+  await expect(panel.locator('#collectionsContainer')).toHaveClass(/ut-sort-active/);
 
   // Export writes a JSON download and confirms with a toast.
   const [download] = await Promise.all([
@@ -287,8 +287,10 @@ test('toggles layout and sort, exports the collections, and answers the keyboard
 
   // Ctrl+E expands every collection (focus is on the export button, so combos still apply).
   await panel.keyboard.press('Control+e');
-  await expect((await cardFor(panel, 'Alpha One')).locator('.expand-btn')).toHaveClass(/rotated/);
-  await expect((await cardFor(panel, 'Beta Two')).locator('.expand-btn')).toHaveClass(/rotated/);
+  await expect((await cardFor(panel, 'Alpha One')).locator('.expand-btn')).toHaveClass(
+    /ut-rotated/
+  );
+  await expect((await cardFor(panel, 'Beta Two')).locator('.expand-btn')).toHaveClass(/ut-rotated/);
 
   // `?` opens the shortcut help; Escape closes it and leaves focus on the export button.
   await panel.keyboard.press('?');
@@ -299,7 +301,7 @@ test('toggles layout and sort, exports the collections, and answers the keyboard
 
   // `x` asks the panel to close.
   await panel.keyboard.press('x');
-  await expect(panel.locator('body')).toHaveClass(/panel-closing/);
+  await expect(panel.locator('body')).toHaveClass(/ut-panel-closing/);
 });
 
 test('opens the history and settings dialogs, and returns focus when each closes', async ({
@@ -415,7 +417,7 @@ test('keeps a folder’s collections in list layout in grid view', async ({ pane
   expect(sectionOrder).toEqual(['Folders', 'Collections']);
 
   await panel.locator('#toggleLayoutBtn').click();
-  await expect(panel.locator('#collectionsContainer')).toHaveClass(/grid-view/);
+  await expect(panel.locator('#collectionsContainer')).toHaveClass(/ut-grid-view/);
 
   // A root card stacks its header into the grid-card shape…
   const rootDirection = await panel
@@ -546,5 +548,5 @@ test('bulk-deletes a folder with its contents, a nested collection and a root co
     )
     .toEqual([await survivor.locator('.folder-name').inputValue()]);
   await expect(bar).toBeHidden();
-  await expect(panel.locator('#actionsBarDefault')).not.toHaveClass(/hidden/);
+  await expect(panel.locator('#actionsBarDefault')).not.toHaveClass(/ut-hidden/);
 });
