@@ -278,14 +278,16 @@
   cursor: pointer;
 }
 
-.tab-url:hover {
-  color: var(--accent) !important;
-  text-decoration: underline;
-  opacity: 1 !important;
-}
-
 .tab-item:hover .tab-url {
   opacity: 0.85;
+}
+
+/* Ordered after the rule above on purpose: the two have equal specificity, so source order is what
+   lets a hovered URL win its own hover without `!important` (css-migration-plan.md, Phase 5). */
+.tab-url:hover {
+  color: var(--accent);
+  text-decoration: underline;
+  opacity: 1;
 }
 
 .tab-item:hover .tab-title {
@@ -316,19 +318,19 @@
 
 /* Hover effects for options in tab dropdown */
 .tab-dropdown-menu .edit-tab-btn:hover {
-  background: var(--bg-translucent-hover) !important;
-  color: var(--text-primary) !important;
-  border-color: var(--bg-translucent-strong) !important;
+  background: var(--bg-translucent-hover);
+  color: var(--text-primary);
+  border-color: var(--bg-translucent-strong);
 }
 
 .tab-dropdown-menu .open-tab-btn:hover {
-  background: rgba(108, 99, 255, 0.1) !important;
-  color: var(--accent) !important;
-  border-color: rgba(108, 99, 255, 0.2) !important;
+  background: rgba(108, 99, 255, 0.1);
+  color: var(--accent);
+  border-color: rgba(108, 99, 255, 0.2);
 }
 
 .tab-dropdown-menu .remove-tab-btn:hover {
-  background: rgba(255, 107, 139, 0.1) !important;
-  color: var(--danger) !important;
-  border-color: rgba(255, 107, 139, 0.2) !important;
+  background: rgba(255, 107, 139, 0.1);
+  color: var(--danger);
+  border-color: rgba(255, 107, 139, 0.2);
 }

@@ -87,20 +87,24 @@ body.panel-closing {
   overflow-y: auto;
   padding-right: 8px;
   margin-right: -8px;
-  box-shadow: none !important;
+  box-shadow: none;
 }
 
-/* Utility */
-.hidden {
-  display: none !important;
+/* Utility. Doubled class, not `!important`: the utility has to beat a component's own
+   `display` (a dropdown is `display: flex`), and it is imported before every family sheet, so
+   equal specificity would lose on order. The doubled class is the specificity floor — it still
+   loses to a component rule that names the same state, which is why the `.x.hidden` rules in the
+   family sheets keep working (css-migration-plan.md, Phase 5). */
+.hidden.hidden {
+  display: none;
 }
 
 /* Scrollbar - Hidden but functionality intact */
 ::-webkit-scrollbar {
-  display: none !important;
+  display: none;
 }
 
 * {
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }

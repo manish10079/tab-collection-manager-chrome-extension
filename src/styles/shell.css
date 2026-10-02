@@ -406,7 +406,7 @@
 
 .btn-success {
   background: var(--success);
-  color: #0a0a0f !important;
+  color: #0a0a0f;
   padding: 8px 16px;
   border-radius: 8px;
   font-weight: 700;
@@ -425,7 +425,7 @@
 }
 
 /* Restore and Sort buttons stretch equally with all other action buttons */
-#restoreBackupBtn.btn-restore,
+.btn-restore,
 .sort-collections-btn {
   flex: 1;
   position: relative;
@@ -441,9 +441,9 @@
 
 /* Restore button colour accent */
 .btn-restore:hover {
-  background: rgba(78, 205, 196, 0.15) !important;
-  border-color: rgba(78, 205, 196, 0.3) !important;
-  color: var(--success) !important;
+  background: rgba(78, 205, 196, 0.15);
+  border-color: rgba(78, 205, 196, 0.3);
+  color: var(--success);
   transform: translateY(-1px);
 }
 
@@ -705,7 +705,7 @@ mark.search-hl {
 
 /* Animations for dropdown */
 .sort-dropdown-menu.hidden {
-  display: none !important;
+  display: none;
 }
 
 .sort-option {
@@ -739,11 +739,11 @@ mark.search-hl {
 
 /* Hide drag handles when sorting is active */
 .collections-container.sort-active .collection-drag-handle {
-  display: none !important;
+  display: none;
 }
 
 .tabs-list.sort-active .tab-drag-handle {
-  display: none !important;
+  display: none;
 }
 
 /* Ensure the sort buttons look consistent with surrounding styles */
@@ -764,19 +764,10 @@ mark.search-hl {
   /* No translateY — it shifts the button anchor and causes dropdown to flicker */
 }
 
-/* When the dropdown is open, lock the button in place to prevent hover flicker */
-.sort-collections-btn:has(.sort-dropdown-menu:not(.hidden)) {
-  transform: none !important;
-  background: rgba(108, 99, 255, 0.15);
-  border-color: rgba(108, 99, 255, 0.3);
-  color: var(--accent);
-  pointer-events: none; /* Block new hover-state changes on the button itself */
-}
-
-/* Allow pointer events on the dropdown itself so options remain clickable */
-.sort-collections-btn:has(.sort-dropdown-menu:not(.hidden)) .sort-dropdown-menu {
-  pointer-events: auto;
-}
+/* A `:has()` pair used to lock the sort button while its menu was open. Both rules were dead: the
+   menu is a *sibling* of the button (both live inside `.sort-collections-container`), not a
+   descendant, so `:has()` could never match. Removed in Phase 5; the menu's own `z-index` keeps it
+   above the panel. */
 
 .footer-btn-container {
   display: flex;
@@ -825,9 +816,11 @@ mark.search-hl {
     background-color 0.25s;
 }
 
-/* Lift the open folder above its siblings, the way panel.css does for `.collection`. Without this
-   the dropdown could be painted under the next card even once it is no longer clipped. */
-.folder:has(.collection-dropdown-menu:not(.hidden)) {
+/* Lift the folder above its siblings while a dropdown inside it is open, the way
+   `.collection:focus-within` does for a card (css-migration-plan.md, Phase 5): the folder is a
+   stacking context, so the menu's `z-index` cannot escape it and a later sibling would paint over
+   the menu. Opening the menu focuses its button, so focus is the signal, not `:has()`. */
+.folder:focus-within {
   position: relative;
   z-index: 100;
 }

@@ -1,13 +1,13 @@
 {
-  "note": "CSS migration ratchet (css-migration-plan.md). These numbers may only go DOWN. A rise is a regression; a fall means this file is stale and must be lowered in the same commit — the intention is that progress can never be spent silently. `info` is context and is not compared: a legitimate feature adds rules and lines, so those are not ratcheted. One deliberate raise is recorded here: Phase 2 split `panel.css` into the family sheets, which made the legacy classes part of the owned sheets, so `unprefixedClasses` jumped from 35 to 180 in that commit — Phase 3 brings it back down. `panelCssLines` is now 0 because `panel.css` no longer exists, and Phase 3 has begun: the toast family renamed to `ts-` in this commit, so `unprefixedClasses` is 178.",
+  "note": "CSS migration ratchet (css-migration-plan.md). These numbers may only go DOWN. A rise is a regression; a fall means this file is stale and must be lowered in the same commit — the intention is that progress can never be spent silently. `info` is context and is not compared: a legitimate feature adds rules and lines, so those are not ratcheted. One deliberate raise is recorded here: Phase 2 split `panel.css` into the family sheets, which made the legacy classes part of the owned sheets, so `unprefixedClasses` jumped from 35 to 180 in that commit — Phase 3 brings it back down. `panelCssLines` is now 0 because `panel.css` no longer exists, and Phase 3 has begun: the toast family renamed to `ts-`, so `unprefixedClasses` is 178. Phase 5 then took the last four non-zero §5.3 counters to zero in one pass — the 60 `!important`s, the 7 `:has()` stacking workarounds (two of which were dead) and the one over-depth selector — which is why `important`, `deepSelectors` and `hasSelectors` are 0. `colourLiterals` also fell 65 → 63: the two deleted dead `:has()` rules carried an `rgba()` each.",
   "measuredAt": "2026-10-02",
   "version": 1,
   "panelCssLines": 0,
-  "colourLiterals": 65,
-  "important": 60,
-  "deepSelectors": 1,
+  "colourLiterals": 63,
+  "important": 0,
+  "deepSelectors": 0,
   "tagSelectors": 3,
-  "hasSelectors": 7,
+  "hasSelectors": 0,
   "unprefixedClasses": 178,
   "info": {
     "stylesheets": [
@@ -21,15 +21,15 @@
       "toast.css",
       "tokens.css"
     ],
-    "rules": 386,
-    "totalLines": 3233,
+    "rules": 367,
+    "totalLines": 3157,
     "colourLiteralsByFile": {
       "base.css": 4,
       "collections.css": 11,
       "dialogs.css": 1,
       "index.css": 0,
       "settings.css": 4,
-      "shell.css": 35,
+      "shell.css": 33,
       "tabs.css": 10,
       "toast.css": 0
     }

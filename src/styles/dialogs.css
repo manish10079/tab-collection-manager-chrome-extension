@@ -304,13 +304,13 @@
   color: var(--warning);
 }
 
-.duplicate-dialog .modal-header h3 i {
+.duplicate-dialog .modal-header i {
   color: var(--warning);
 }
 
 .duplicate-dialog-body {
-  min-height: auto !important;
-  padding: 20px 24px !important;
+  min-height: auto;
+  padding: 20px 24px;
 }
 
 .duplicate-message {
@@ -362,7 +362,7 @@
   display: flex;
   gap: 10px;
   justify-content: flex-end;
-  padding: 16px 24px !important;
+  padding: 16px 24px;
 }
 
 .duplicate-dialog-footer .btn-secondary {

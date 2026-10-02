@@ -151,12 +151,12 @@
 }
 
 .current-session-collection {
-  border-left: 4px solid var(--success) !important;
+  border-left: 4px solid var(--success);
   background: linear-gradient(
     135deg,
     color-mix(in srgb, var(--success) 7%, transparent) 0%,
     var(--bg-card) 100%
-  ) !important;
+  );
   border-color: color-mix(in srgb, var(--success) 20%, transparent);
 }
 
@@ -165,7 +165,7 @@
     135deg,
     color-mix(in srgb, var(--success) 12%, transparent) 0%,
     var(--bg-card-hover) 100%
-  ) !important;
+  );
   border-color: color-mix(in srgb, var(--success) 45%, transparent);
   box-shadow:
     var(--shadow-card-hover),
@@ -184,7 +184,7 @@
 }
 
 .auto-save-target {
-  border-left: 4px solid var(--accent) !important;
+  border-left: 4px solid var(--accent);
   background: linear-gradient(
     135deg,
     color-mix(in srgb, var(--accent) 8%, transparent) 0%,
@@ -318,7 +318,7 @@
 
 .collection-meta .updated-time,
 .collection-meta .meta-dot {
-  display: none !important;
+  display: none;
 }
 
 .collection-actions {
@@ -361,9 +361,9 @@
   top: 100%;
   right: 0;
   margin-top: 6px;
-  background: var(--bg-dropdown) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  background: var(--bg-dropdown);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border: 1px solid var(--bg-translucent-hover);
   border-radius: 12px;
   box-shadow: var(--shadow);
@@ -377,27 +377,25 @@
 
 .tab-dropdown-menu {
   min-width: 150px;
-  background: var(--bg-dropdown) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  background: var(--bg-dropdown);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .collection-dropdown-menu.hidden,
 .tab-dropdown-menu.hidden {
-  display: none !important;
+  display: none;
 }
 
-/* Fix stacking issues when dropdown menus are open */
-.collection:has(.collection-dropdown-menu:not(.hidden)),
-.collection:has(.tab-dropdown-menu:not(.hidden)),
-.collection:has(.sort-dropdown-menu:not(.hidden)) {
+/* Stacking fix for an open dropdown (css-migration-plan.md, Phase 5). A card paints under the
+   next sibling because its `cardLayoutChange` animation leaves a transform in effect, so the card
+   is a stacking context and the menu's own `z-index: 1000` cannot escape it. Rather than ask
+   `:has()` which menu is open, raise the whole card while focus is inside it: opening a menu
+   focuses its button, and the menu closes — dropping that focus — when it does. The tab menu
+   needs no rule of its own, because the raised card is itself the stacking context now. */
+.collection:focus-within {
   position: relative;
   z-index: 100;
-}
-
-.tab-item:has(.tab-dropdown-menu:not(.hidden)) {
-  position: relative;
-  z-index: 101;
 }
 
 .dropdown-option {
@@ -434,33 +432,33 @@
 
 /* Hover effects for options in collection dropdown */
 .collection-dropdown-menu .open-all-tabs-btn:hover {
-  background: rgba(78, 205, 196, 0.1) !important;
-  color: var(--success) !important;
-  border-color: rgba(78, 205, 196, 0.2) !important;
+  background: rgba(78, 205, 196, 0.1);
+  color: var(--success);
+  border-color: rgba(78, 205, 196, 0.2);
 }
 
 .collection-dropdown-menu .edit-collection-btn:hover {
-  background: var(--bg-translucent-hover) !important;
-  color: var(--text-primary) !important;
-  border-color: var(--bg-translucent-strong) !important;
+  background: var(--bg-translucent-hover);
+  color: var(--text-primary);
+  border-color: var(--bg-translucent-strong);
 }
 
 .collection-dropdown-menu .add-tabs-btn:hover {
-  background: rgba(108, 99, 255, 0.1) !important;
-  color: var(--accent) !important;
-  border-color: rgba(108, 99, 255, 0.2) !important;
+  background: rgba(108, 99, 255, 0.1);
+  color: var(--accent);
+  border-color: rgba(108, 99, 255, 0.2);
 }
 
 .collection-dropdown-menu .share-collection-btn:hover {
-  background: rgba(108, 99, 255, 0.08) !important;
-  color: var(--accent-hover) !important;
-  border-color: rgba(108, 99, 255, 0.15) !important;
+  background: rgba(108, 99, 255, 0.08);
+  color: var(--accent-hover);
+  border-color: rgba(108, 99, 255, 0.15);
 }
 
 .collection-dropdown-menu .delete-collection-btn:hover {
-  background: rgba(255, 107, 139, 0.1) !important;
-  color: var(--danger) !important;
-  border-color: rgba(255, 107, 139, 0.2) !important;
+  background: rgba(255, 107, 139, 0.1);
+  color: var(--danger);
+  border-color: rgba(255, 107, 139, 0.2);
 }
 
 /* Drag and Drop Styling */
@@ -508,13 +506,13 @@
 }
 
 .collection.drag-over {
-  border: 2px dashed var(--accent) !important;
+  border: 2px dashed var(--accent);
   transform: scale(1.01);
   box-shadow: 0 4px 20px rgba(108, 99, 255, 0.2);
 }
 
 .tab-item.drag-over {
-  border: 2px dashed var(--accent) !important;
+  border: 2px dashed var(--accent);
   transform: scale(1.01);
   box-shadow: 0 4px 12px rgba(108, 99, 255, 0.15);
 }
