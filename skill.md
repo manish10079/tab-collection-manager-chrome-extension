@@ -5,9 +5,9 @@
 
 | Field | Value |
 | --- | --- |
-| Document version | 2.1.0 |
+| Document version | 2.1.1 |
 | Status | Active |
-| Last updated | 2026-10-01 |
+| Last updated | 2026-10-02 |
 | Owner | Maintainer (`@mkn`) |
 | Supersedes | — |
 
@@ -39,7 +39,7 @@ through a persistent side panel.
 | UI framework | **React 19 + JavaScript (ES2022+)** (migration target) | Current shipped UI is vanilla JS — see `react-migration-plan.md` |
 | Build | **Vite 6** + `@crxjs/vite-plugin` | Fallback: Vite multi-entry + static copy |
 | State | `chrome.storage.local` as the single source of truth | Wrapped by a store exposing `useSyncExternalStore` |
-| Service worker | Vanilla JS today, ES modules later | Autosave engine is the highest-risk code in the repo |
+| Service worker | ES modules under `background/`, bundled to `background.js` | Autosave engine is the highest-risk code in the repo |
 | Tests | Vitest + React Testing Library + Playwright | Net-new; see §6 |
 | Package manager | **npm** (single lockfile) | Do not mix npm/yarn/pnpm |
 
@@ -125,11 +125,13 @@ requires a compatibility shim for one release.
 
 The React migration is complete through Phase 5.4, so the layout below is no longer the vanilla
 one. The UI is React + JSDoc in `src/`, bundled by Vite, and the stylesheets live in `src/styles/`
-(`panel.css`, the migrated pre-React stylesheet, plus `shell.css` for the rules React owns);
-`background.js` is the last vanilla file (Phase 6 scope).
+(`panel.css`, the migrated pre-React stylesheet, plus `shell.css` for the rules React owns); the
+service worker is ES modules under `background/`, bundled by `scripts/build.mjs` to the single
+`dist/background.js` the manifest names (Phase 6, ADR-0010). No file is excluded from lint or format
+except `src/styles/panel.css`.
 
 ```text
-manifest.json   background.js   icons/
+manifest.json   background/   icons/
 src/sidepanel.html   src/main.jsx   src/app/   src/features/   src/store/   src/lib/   src/shared/   src/styles/
 scripts/build.mjs   scripts/dev.mjs   tests/
 feature_list.md   missing_features.md   README.md   react-migration-plan.md   docs/decisions/
@@ -343,7 +345,6 @@ Allowed types: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `build`, `ci`,
   | `alarms` | Daily GDrive auto-backup |
   | `identity` | Google Drive OAuth |
   | `favicon` | Favicon lookup for saved tabs |
-  | `downloads` | Local JSON export (currently unused by default) |
 
 - Service worker must stay **stateless across restarts**: persist anything you need.
 - Never block the worker on long loops; chunk and persist.
@@ -501,7 +502,7 @@ export { useCollectionActions } from './hooks/useCollectionActions.js';
 
 ## 10. Anti-patterns (do not do)
 
-- ❌ Editing `background.js` and UI state shape in the same commit as unrelated work
+- ❌ Editing the service worker (`background/`) and UI state shape in the same commit as unrelated work
 - ❌ Building HTML with string concatenation / `innerHTML`
 - ❌ Importing one feature from another feature
 - ❌ Duplicating a storage key string instead of importing from `shared/storage-keys.js`
@@ -530,3 +531,4 @@ export { useCollectionActions } from './hooks/useCollectionActions.js';
 | 1.0.0 | 2026-10-01 | Initial standards: stack, architecture, folder structure, parallel-work rules, versioning |
 | 2.0.0 | 2026-10-01 | Reversed the language rule: React + JavaScript (ES2022+) with JSDoc instead of TypeScript; ESLint replaces the type-check gate |
 | 2.1.0 | 2026-10-01 | §3.1 corrected from "Current state (vanilla)" to the post-migration layout: the React migration is complete through Phase 5.3, so `popup.html` / `popup.js` / the store bridge no longer exist and the section no longer claims "no build system, no modules, no tests". |
+| 2.1.1 | 2026-10-02 | Phase 6/7 landed, so §1 and §3.1 name the service worker as ES modules under `background/` (bundled to `dist/background.js`) rather than "vanilla JS today", §5.4's permission table drops the `downloads` row its only caller (the dormant local daily backup) lost, and §10's anti-pattern names the new path. No rule changed. |

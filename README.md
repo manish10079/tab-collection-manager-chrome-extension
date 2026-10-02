@@ -53,9 +53,9 @@ npm run e2e        # end-to-end walk of the built panel (Playwright; builds dist
 
 **Build output:** `npm run build` writes `dist/`, the only loadable build. Vite bundles the whole
 panel from `src/sidepanel.html` and emits the page plus its hashed assets; the build then adds the
-worker, the icons and the manifest, deletes the non-woff2 font fallbacks, and asserts nothing it
-still references went missing. The panel is fully self-contained — Font Awesome and Inter are npm
-runtime deps imported by `src/main.jsx`, never CDN links — so `dist/` (about 1.15 MB) loads no asset
+build then bundles the service worker to `background.js` and adds the icons and the manifest, deletes
+the non-woff2 font fallbacks, and asserts nothing it still references went missing. The panel is fully self-contained — Font Awesome and Inter are npm
+runtime deps imported by `src/main.jsx`, never CDN links — so `dist/` (about 1.12 MB) loads no asset
 from the network.
 
 | You load | You get |
@@ -71,7 +71,7 @@ only place in the UI that writes storage. See
 
 Every collection action — rename, delete, tab edit/remove, pin toggles, open and restore, and
 per-collection export — is React-owned too: React runs the pure rules and the store's write queue,
-while `background.js` keeps restore. See
+while the service worker (`background/`) keeps restore. See
 [`docs/decisions/ADR-0006-collection-actions-in-react.md`](./docs/decisions/ADR-0006-collection-actions-in-react.md).
 
 The shell is React-owned as of Phase 5.2 as well: `src/features/shell` renders the header, the
@@ -89,6 +89,13 @@ and Inter, the rules in the panel stylesheet that no surviving mark-up reaches a
 icon-only control carries an accessible name with focus returning to the trigger when the search or
 create input closes. See
 [`docs/decisions/ADR-0009-self-hosted-assets-and-panel-a11y.md`](./docs/decisions/ADR-0009-self-hosted-assets-and-panel-a11y.md).
+
+The service worker is modular as of Phase 6: the 1,294-line vanilla `background.js` (the last file
+excluded from lint and format) is split into ES modules under `background/` — one capability per file,
+with the pure decisions in `background/lib/` — and `scripts/build.mjs` bundles the entry to the single
+`dist/background.js` the manifest names. No storage key, storage shape or message command changed,
+and the dormant local-daily-backup code and its `downloads` permission are gone. See
+[`docs/decisions/ADR-0010-modular-service-worker.md`](./docs/decisions/ADR-0010-modular-service-worker.md).
 
 Styling lives in `src/styles/`: `panel.css` is the migrated pre-React stylesheet (still global, class
 names unchanged) and `shell.css` adds the rules the React shell owns. Both are bundled by Vite from
@@ -144,11 +151,11 @@ The end-to-end suite is not part of it — it needs a browser download, so it st
 
 `npm run check:size` measures the built output and fails when the panel outgrows its budget:
 
-| Metric | Budget | At plan 1.14.0 |
+| Metric | Budget | At plan 1.15.0 |
 | --- | --- | --- |
 | Panel JS, gzipped | 100 kB | 89.7 kB |
 | Panel CSS, gzipped | 36 kB | 31.1 kB |
-| Packaged `dist/`, raw | 1.25 MB | 1.15 MB |
+| Packaged `dist/`, raw | 1.25 MB | 1.12 MB |
 
 The bundles are the ones Vite emits into `dist/assets/`; the total covers everything in `dist/`,
 so an unexpected new asset (a stray font, a second chunk) shows up there. Raising a budget means
@@ -179,10 +186,10 @@ Rearrange tab hierarchies by simply dragging a tab node by its handle. You can m
 
 ## 🏗️ Technical Details
 
-- **Architecture**: Chrome Manifest V3 API using a centralized Service Worker (`background.js`) alongside a React side panel bundled from `src/sidepanel.html`.
+- **Architecture**: Chrome Manifest V3 API using a modular service worker (`background/`, bundled to `background.js`) alongside a React side panel bundled from `src/sidepanel.html`.
 - **State Management**: Implements a strict asynchronous serialization queue (`updateQueue = updateQueue.then(...)`) to execute deep-cloned state adjustments sequentially, eliminating data corruption from race conditions.
 - **UI Architecture**: Vanilla CSS optimized with customized variables, glassmorphic filters (`blur(12px)`), flex-grid structures, and an explicit layout rendering flow.
-- **Cross-Browser Engine**: Engineered with unified abstraction references (`api = typeof chrome !== 'undefined' ? chrome : browser`) to ensure seamless utility in Chrome, Edge, Brave, and Firefox ecosystems.
+- **Cross-Browser Engine**: Engineered with a unified abstraction (`background/api.js`) that prefers the `browser` namespace when a polyfill is present and falls back to `chrome`, so the worker's utilities stay portable across Chrome, Edge and Brave.
 
 ---
 
@@ -193,11 +200,13 @@ To deliver persistent session indexing without exposing user history to external
 | Permission | Core Function |
 | :--- | :--- |
 | `tabs` | Reads current operational browser configurations (URLs, Pinned markers, Title structures, Focus properties) to package workspaces. |
+| `tabGroups` | Captures Chrome tab-group name/color/collapsed state on save and rebuilds the groups on restore. |
 | `storage` | Serializes data points and keeps your profile preferences intact within local disk modules. |
-| `sidePanel` | Anchors the interface configuration directly inside the browser's persistent peripheral panel layout. |
 | `contextMenus` | Supports shortcut entryways via right-click contextual triggers. |
-| `downloads` | Formulates structured snapshot files if you require local structural file migrations. |
 | `favicon` | Fetches active website icon assets to optimize interface styling. |
+| `sidePanel` | Anchors the interface configuration directly inside the browser's persistent peripheral panel layout. |
+| `alarms` | Schedules the daily Google Drive auto-backup. |
+| `identity` | Signs in to Google Drive for the optional cloud backup. |
 
 ---
 

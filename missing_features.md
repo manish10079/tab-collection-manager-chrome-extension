@@ -23,15 +23,14 @@ Legend: 🔴 major · 🟡 medium · ⚪ minor
   `renderCollections()`; drag targets on folder headers; folder create/rename/delete;
   optional folder colors.
 
-### 2. Chrome Tab Groups capture & restore
+### 2. Chrome Tab Groups capture & restore — ✅ implemented
 - **Ta Box:** stores `chromeGroups` metadata (group name, color, collapsed, pinned) with
   each collection and rebuilds actual Chrome tab groups on restore via the
   `chrome.tabGroups` API (15+ references in its background utils).
-- **Us:** no `tabGroups` usage at all; tab group identity is lost on save/restore.
-- **To build:** add `tabGroups` + `tabGroups.onUpdated` awareness; when saving a
-  collection from open tabs, record each tab's `groupId` plus the group's
-  `title/color/collapsed`; on restore, re-group via `chrome.tabs.group()` +
-  `chrome.tabGroups.update()`.
+- **Us:** implemented. `background/chromeGroups.js` records each tab's `groupId` plus the
+  group's `title/color/collapsed` on save (`collection.chromeGroups` + per-tab
+  `chromeGroupId`), and `background/restore.js` re-groups the unpinned tabs via
+  `chrome.tabs.group()` then applies the metadata with `chrome.tabGroups.update()`.
 
 ### 3. Sharing & collaboration (requires a backend)
 - **Ta Box (Pro, server-backed):** shared folders with members and roles
@@ -79,7 +78,7 @@ Legend: 🔴 major · 🟡 medium · ⚪ minor
 - Ta Box binds **Ctrl+Shift+1..4** to open the 1st–4th collection from anywhere in the
   browser via manifest `commands` + `background` handler.
 - Our shortcuts only work while the side panel has focus.
-- **To build:** add `commands` to manifest.json; handler in background.js that opens
+- **To build:** add `commands` to manifest.json; handler in the worker (`background/`) that opens
   collection N from storage.
 
 ### 8. Sleep/deferred tabs (placeholder page restore)

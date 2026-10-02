@@ -42,9 +42,9 @@ the live state see §2.1.
 | `background.js` | ~1,290 lines | Autosave + debounce + guards, session history, context menus, alarms, GDrive, restore + tab groups |
 | Build | none | Hand-written manifest, no bundler, no deps, no tests |
 
-### 2.1 State at plan v1.14.0
+### 2.1 State at plan v1.15.0
 
-Phases 0-4 and Phase 5 complete. The vanilla UI is gone — no `popup.html`, no `popup.js`, no seam,
+Phases 0-7 complete. The vanilla UI is gone — no `popup.html`, no `popup.js`, no seam,
 no classic script, and no file still named after the old popup: the stylesheet is `src/styles/panel.css`
 as of 1.12.0. Its last trace in the bundle is gone too: the two CDN `<link>`s and the dead half of
 the stylesheet.
@@ -52,13 +52,13 @@ the stylesheet.
 | Layer | Size | Notes |
 |---|---|---|
 | `src/sidepanel.html` | 20 lines | The Vite HTML entry: `#root` + the module script. Vite owns the page and its hashed assets |
-| `src/` (React) | 9,428 lines, 111 files | 25 test files / 196 unit tests; the whole panel — shell, collections, dialogs, settings — plus the store and its boot sequence |
+| `src/` (React) | 9,428 lines, 111 files | 25 test files / 196 unit tests, plus 4 worker files / 34 tests under `background/__tests__/`; the whole panel — shell, collections, dialogs, settings — plus the store and its boot sequence |
 | `e2e/` | 4 files, 7 specs | Playwright walk of the packaged extension in Playwright's Chromium; `npm run e2e` builds `dist/` first (1.13.0) |
 | `src/styles/panel.css` | 2,803 lines | The migrated pre-React stylesheet, renamed from `popup.css` in 1.12.0; bundled by Vite via the HTML entry, with the rules no surviving mark-up reaches swept in 1.11.0. `src/styles/shell.css` layers the React-owned rules on top |
 | Vendor assets | 2 deps | `@fortawesome/fontawesome-free@6.4.0` + `@fontsource/inter`; self-hosted, woff2-only in `dist/` (1.11.0) |
-| `dist/` | 1.15 MB | Was 2.5 MB before the build started dropping non-woff2 font fallbacks (1.11.0) |
+| `dist/` | 1.12 MB | Was 2.5 MB before the build started dropping non-woff2 font fallbacks (1.11.0); the bundled worker is smaller than the copied one (1.15.0) |
 | CI | `.github/workflows/ci.yml` | Lint, format check, tests, build and the bundle-size budget on every push and pull request; the E2E walk stays local (1.14.0) |
-| `background.js` | unchanged | Untouched by the UI migration (Phase 6 scope) |
+| `background/` | 15 files | The service worker, split into ES modules in 1.15.0 with the pure decisions under `background/lib/`; `scripts/build.mjs` bundles the entry to the single `dist/background.js` the manifest names |
 
 What the old shell owned, and where each piece went:
 
@@ -397,25 +397,37 @@ re-confirmed. Toasts landed back in 1.6.0.
 the worker's Drive endpoints), `npm test` is green at 196, and no colour, size, spacing or weight
 rule changed, so the visual diff is intentionally empty.
 
-**Phase 6 — Background modernization (optional, 2-3 days)**
-Port `background.js` to TS modules; extract shared types into `shared/`; add tests for autosave
-guards and tab-group restore.
-*Acceptance:* autosave behaviour unchanged; message protocol unchanged.
+**Phase 6 — Background modernization (2-3 days) — complete**
+`background.js` moves to modules under `background/` (JavaScript + JSDoc, per skill.md 2.0.0,
+not TypeScript as written here originally). The pure decisions live in `background/lib/` — URL
+filtering, snapshotting, grouping, the identity-preserving merge, the partial-restore guard and
+duplicate detection — and `scripts/build.mjs` bundles the entry to `dist/background.js`, so the
+manifest and packaged layout are unchanged. No storage key, storage shape or message command moved.
+*Accepted:* autosave behaviour and the message protocol unchanged, and the seven E2E specs still
+pass against the bundled worker; 34 new unit tests cover the guards and the tab-group rebuild.
 
-**Phase 7 — Store readiness (1 day)**
-Optional `default_popup`, permission audit (`tabGroups` now used; `downloads` only for the
-disabled local backup), docs update, tag a release. (The CDN links were already removed in 5.4.)
+**Phase 7 — Store readiness (1 day) — complete**
+Permission audit: the dormant local-daily-backup module is deleted and `downloads` with it (`tabs`,
+`tabGroups`, `storage`, `contextMenus`, `favicon`, `sidePanel`, `alarms` and `identity` all keep a
+live caller). `default_popup` stays absent — the toolbar icon opens the panel. Versions reconciled
+to 2.0.0 across `manifest.json`, `package.json`, the lockfile, `feature_list.md` and the chrome
+mock, and the release is tagged `v2.0.0`. (The CDN links were already removed in 5.4.)
 
 **Total: ~19-25 developer-days** (~4-5 weeks part-time), once Phase 5's real scope is counted —
-the original 14-19 assumed Phase 3 had finished the interactions. Phases 0-4 are done; Phase 5
-remains, and Phases 6-7 stay optional.
+the original 14-19 assumed Phase 3 had finished the interactions. Phases 0-7 are all complete as of
+plan 1.15.0.
 
 ---
 
 ## 9. Testing strategy
 
-- **Unit (Vitest):** `lib/sort.ts`, `lib/pinning.ts`, `lib/backup.ts`, duplicate normalization,
+- **Unit (Vitest):** `lib/sort.js`, `lib/pinning.js`, `lib/backup.js`, duplicate normalization,
   group capture/restore mapping, store reducers.
+- **Worker (Vitest) — done (1.15.0).** `background/__tests__/` drives the service worker's modules
+  against the central chrome mock: `lib/tabs.js` (URL filtering, snapshot defaults, window
+  grouping, capping, the max-pin merge, the partial-restore guard), `lib/duplicates.js`, `autosave.js`
+  (identity preservation, the backup and history writes, the guard inside and after the startup
+  window) and `restore.js` (tab-group rebuild, the RAM-Saver discard race, restore orchestration).
 - **Component (RTL + jsdom):** `CollectionCard`, `TabRow`, `SettingsModal`, `OpenTabsPicker`
   with a chrome API mock.
 - **E2E (Playwright, `e2e/`, `npm run e2e`) — done (1.13.0).** `dist/` loaded unpacked into
@@ -508,6 +520,7 @@ commit only —
 
 | Version | Date | Notes |
 |---|---|---|
+| 1.15.0 | 2026-10-02 | Phases 6 and 7 finished, releasing 2.0.0. `background.js` — the last vanilla file, 1,294 lines, still excluded from ESLint and Prettier — is now ES modules under `background/`: `index.js` wires the listeners while `state.js`, `autosave.js`, `restore.js`, `contextMenu.js`, `gdrive.js`, `messages.js` (the router), `panel.js`, `chromeGroups.js`, `bootstrap.js` and `runtime.js` own one capability each, and `background/lib/tabs.js` + `background/lib/duplicates.js` hold the pure decisions (URL filtering, snapshotting, window grouping, capping, the identity-preserving merge, the partial-restore guard, duplicate detection). The worker imports the frozen contract from `src/shared/` and the pure group normaliser from `src/lib/tabGroups.js` instead of re-typing keys, and `background/api.js` resolves the `chrome`/`browser` global through a proxy so a late polyfill and the test setup's per-case mock both work. `scripts/build.mjs` gains `bundleWorker()`, a second Vite build emitting a single ES `dist/background.js`, so `manifest.json`, the packaged layout and the E2E assertion on the worker URL are unchanged; copying the directory was rejected because the shared imports would not survive `dist/src/` being removed. No storage key, storage shape or message command changed. 34 new unit tests in `background/__tests__/` cover the autosave guards and the tab-group rebuild (suite 230 in 29 files) and the seven Playwright specs still pass, so the bundled module worker runs under MV3. Phase 7's audit deleted the dormant local-daily-backup module and the `downloads` permission with it — the panel's export/import never used it — and reconciled the drifting version story (manifest/package/lock 1.9.0, `feature_list.md` v2.2.0, the chrome mock 2.0.0) to 2.0.0. ESLint and Prettier now exclude only `src/styles/panel.css`; `dist/` is 1.12 MB. Decision recorded in ADR-0010. |
 | 1.14.0 | 2026-10-02 | Continuous integration, with a size budget. `.github/workflows/ci.yml` runs on every push, pull request and manual dispatch on Node 22 with the npm cache: ESLint, `prettier --check`, `npm test`, `npm run build` and the new `npm run check:size`, in that order so the fast gates fail first and a superseded run is cancelled instead of queueing. The end-to-end suite is deliberately left out — it needs `npx playwright install chromium` and its own X server, so it stays a local command until CI minutes are worth spending on it; `README.md` says so explicitly. `scripts/size-budget.mjs` is the budget: it measures the bundles Vite emits into `dist/assets/` gzipped (JS 100 kB, CSS 36 kB) plus the whole packaged `dist/` raw (1.25 MB), prints all three against their ceilings with the headroom, and exits non-zero with the overage when one is breached. Measuring the bundles from `dist/assets/` rather than all of `dist/` matters: the copied `background.js` would otherwise be counted as panel JS. The check is a separate script rather than a step inside `scripts/build.mjs` because `npm run dev` rebuilds on every source change, where a budget failure would be noise while iterating; skill.md §6 gained the budget as a CI gate and `README.md` documents the numbers and how to raise one. Vite reports the same files in decimal kB and the budget prints binary multiples, a ~2.5% difference that is noted in the script so nobody re-tunes a budget over it. |
 | 1.13.0 | 2026-10-02 | The unpacked load is automated: a Playwright end-to-end suite drives the built `dist/` in the Chromium Playwright bundles, so the manual smoke pass is no longer the only way to prove the packaged extension works. New `playwright.config.js`, `e2e/fixtures.js` (a persistent context with `--load-extension=dist`, the extension id read from the service worker, and the panel page asserted hydrated before any test body runs), `e2e/support/tabServer.js` (a loopback static server so the multi-select picker sees real http tabs) and `e2e/panel.spec.js` with seven specs: the unpacked load and mount; create a collection and keep it across a reload; manual tab add plus the duplicate confirmation, tab/collection rename, pin and remove; multi-select import of the window's open tabs; global search with focus returning to its trigger; layout and sort toggles, a JSON export download, Ctrl+E, `?` and `x`; and the history and settings dialogs with focus restored on Escape. Vitest keeps owning `src/**` and `tests/**`, so the specs live in `e2e/` and neither runner has to exclude the other's files; `npm run e2e` builds `dist/` first and is deliberately not part of `npm test`, which stays jsdom-only and dependency-free. `test-results/` and `playwright-report/` are ignored, and `e2e/**` gets an ESLint override because a Playwright fixture callback is literally named `use` — the React hooks rule reads that as a hook call. Playwright's bundled Chromium is required rather than the machine's Chrome: branded Chrome and Edge dropped `--load-extension` and `--disable-extensions-except` in 2025, so `channel: 'chromium'` (which also allows extensions headless) is the supported path. |
 | 1.12.0 | 2026-10-02 | `popup.css` renamed to `src/styles/panel.css`. Phase 5.3 deleted `popup.html` and `popup.js`, but the last file still named after the old popup was the stylesheet itself — 2,800 lines of pre-React panel styling that nothing referred to by name any more. It moves under `src/styles/` beside `shell.css`, which is exactly the `styles/` the §3 target tree called for, and the Vite entry (`src/sidepanel.html`) links `./styles/panel.css` instead of `../popup.css`, so the rename rides the existing bundle: the emitted `assets/sidepanel-<hash>.css` is byte-identical before and after. `scripts/build.mjs` and its `assertPage()` checks needed no change because they read the emitted HTML and its hashed asset URL rather than the source path. `.prettierignore` points at the new path, and `scripts/dev.mjs` drops its now-redundant `popup.css` watch entry since the parent `src` is already watched. Code and doc comments naming the stylesheet are updated; the historical ADRs and this changelog's earlier rows stay as written, with an amendment added to ADR-0009. No storage, message-protocol, manifest or build-output change; `background.js` untouched. |
