@@ -13,6 +13,8 @@
     "format:check": "prettier --check .",
     "test": "vitest run --passWithNoTests",
     "check:size": "node scripts/size-budget.mjs",
+    "css:metrics": "node scripts/css-metrics.mjs",
+    "css:coverage": "npm run build && node scripts/css-coverage.mjs",
     "e2e": "npm run build && playwright test",
     "e2e:headed": "npm run build && playwright test --headed"
   },

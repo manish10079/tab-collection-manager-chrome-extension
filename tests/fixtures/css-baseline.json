@@ -1,0 +1,21 @@
+{
+  "note": "CSS migration ratchet (css-migration-plan.md, Phase 0). These numbers may only go DOWN. A rise is a regression; a fall means this file is stale and must be lowered in the same commit, so progress can never be spent silently. Regenerate deliberately with `npm run css:metrics -- --baseline`. `info` is context and is not compared: a legitimate feature adds rules and lines, so those are not ratcheted.",
+  "measuredAt": "2026-10-02",
+  "version": 1,
+  "panelCssLines": 2803,
+  "colourLiterals": 171,
+  "important": 60,
+  "deepSelectors": 1,
+  "tagSelectors": 3,
+  "hasSelectors": 7,
+  "unprefixedClasses": 35,
+  "info": {
+    "stylesheets": ["panel.css", "shell.css"],
+    "rules": 386,
+    "totalLines": 3107,
+    "colourLiteralsByFile": {
+      "panel.css": 168,
+      "shell.css": 3
+    }
+  }
+}
