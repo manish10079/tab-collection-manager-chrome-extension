@@ -6,6 +6,7 @@
 // snap away from where it was dropped), pinned items stay on top, and a tab moved into a
 // collection that is already at its pinned limit arrives unpinned.
 import { LIMITS } from '../../../shared/constants.js';
+import { CURRENT_SESSION_ID } from '../../../shared/storage-keys.js';
 import { partitionCollections, partitionTabs } from '../../../lib/sort.js';
 
 /**
@@ -42,6 +43,10 @@ export function setTabSortType(draft, collectionId, sortType) {
  * Move a collection onto another one's position. The collection sort mode drops back to
  * custom, because a sorted list would immediately re-order the drop away.
  *
+ * Dropping onto a collection also adopts that collection's folder, so one drag both reorders and
+ * moves between the root and a folder. Current Session is never an item, but it is guarded anyway
+ * because it must always stay first at the root.
+ *
  * @param {import('../../../store/schema.js').AppState} draft
  * @param {string} sourceId
  * @param {string} targetId
@@ -54,6 +59,10 @@ export function reorderCollections(draft, sourceId, targetId) {
 
   draft.settings.collectionSortType = 'custom';
   const [moved] = draft.collections.splice(from, 1);
+  if (moved.id !== CURRENT_SESSION_ID) {
+    const target = draft.collections.find((entry) => entry.id === targetId);
+    if (target) moved.folderId = target.folderId ?? null;
+  }
   draft.collections.splice(to, 0, moved);
   draft.collections = partitionCollections(draft.collections);
 }

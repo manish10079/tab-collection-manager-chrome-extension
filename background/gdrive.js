@@ -101,6 +101,7 @@ export async function buildBackupPayload() {
     exportedAt: new Date().toISOString(),
     version: api.runtime.getManifest().version,
     collections: state.collections,
+    folders: state.folders,
     sessionHistory: (state.sessionHistory || []).slice(0, 50),
     settings: {
       autoSaveCollectionId: state.autoSaveCollectionId,
@@ -268,11 +269,20 @@ export async function restoreFromGDrive() {
       state.sessionHistory = restoredData.sessionHistory;
     }
 
+    // Folders travel with the backup; an older backup without them keeps the live folders.
+    if (Array.isArray(restoredData.folders)) state.folders = restoredData.folders;
+
     // Keep the live Current Session; drop any Current Session from the backup.
     const liveSession = state.collections.find((c) => c.id === CURRENT_SESSION_ID);
     const newCollections = restoredData.collections.filter((c) => c.id !== CURRENT_SESSION_ID);
     if (liveSession) newCollections.unshift(liveSession);
     state.collections = newCollections;
+
+    // A restored collection may reference a folder that is not in this backup.
+    const folderIds = new Set(state.folders.map((folder) => folder.id));
+    for (const collection of state.collections) {
+      if (collection.folderId && !folderIds.has(collection.folderId)) collection.folderId = null;
+    }
 
     // A restored auto-save id may point at a collection that is not on this device.
     const autoSaveExists =

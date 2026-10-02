@@ -2,6 +2,8 @@
 // Renaming a key requires a migration in src/store/migrations/ plus a schemaVersion bump.
 export const STORAGE_KEYS = Object.freeze({
   collections: 'collections',
+  folders: 'folders',
+  schemaVersion: 'schemaVersion',
   autoSaveCollectionId: 'autoSaveCollectionId',
   lastSessionBackup: 'lastSessionBackup',
   ramSaverEnabled: 'ramSaverEnabled',

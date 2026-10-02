@@ -4,6 +4,7 @@ import { CURRENT_SESSION_ID } from '../../../shared/storage-keys.js';
 import {
   buildCollectionsExport,
   extractImportedCollections,
+  extractImportedFolders,
   isValidImportedCollection,
   mergeImportedCollections,
 } from '../lib/globalBackup.js';
@@ -25,12 +26,22 @@ function importedTab(id, title = id, url = `https://${id}.test`, pinned = false)
 }
 
 describe('buildCollectionsExport', () => {
-  it('wraps the collections with an export timestamp', () => {
+  it('wraps the collections and folders with an export timestamp', () => {
     const collections = [{ id: 'a', name: 'A', tabs: [] }];
-    const payload = buildCollectionsExport(collections, new Date('2026-10-01T12:00:00.000Z'));
+    const folders = [{ id: 'f1', name: 'Work' }];
+    const payload = buildCollectionsExport(
+      collections,
+      folders,
+      new Date('2026-10-01T12:00:00.000Z')
+    );
 
     expect(payload.exportedAt).toBe('2026-10-01T12:00:00.000Z');
     expect(payload.collections).toBe(collections);
+    expect(payload.folders).toBe(folders);
+  });
+
+  it('defaults the folders to an empty list', () => {
+    expect(buildCollectionsExport([], undefined).folders).toEqual([]);
   });
 });
 
@@ -43,6 +54,18 @@ describe('extractImportedCollections', () => {
   it('rejects anything else', () => {
     expect(extractImportedCollections(null)).toBeNull();
     expect(extractImportedCollections({ foo: 1 })).toBeNull();
+  });
+});
+
+describe('extractImportedFolders', () => {
+  it('reads the folders from an export object', () => {
+    expect(extractImportedFolders({ folders: [{ id: 'f1', name: 'Work' }] })).toHaveLength(1);
+  });
+
+  it('returns an empty list for a bare array or a missing field', () => {
+    expect(extractImportedFolders([{ name: 'A', tabs: [] }])).toEqual([]);
+    expect(extractImportedFolders({ collections: [] })).toEqual([]);
+    expect(extractImportedFolders(null)).toEqual([]);
   });
 });
 
@@ -138,6 +161,60 @@ describe('mergeImportedCollections', () => {
     expect(beta.pinned).toBe(false);
     // The first pinned tab is within the per-collection limit; the second is not.
     expect(beta.tabs.map((tab) => tab.pinned)).toEqual([true, false]);
+  });
+
+  it('restores folders and assigns an imported collection to its folder', () => {
+    const target = draft();
+    mergeImportedCollections(
+      target,
+      [{ name: 'Nested', tabs: [], folderId: 'f1' }],
+      [{ id: 'f1', name: 'Work' }]
+    );
+
+    expect(target.folders.map((folder) => folder.name)).toEqual(['Work']);
+    const nested = target.collections.find((entry) => entry.name === 'Nested');
+    expect(nested.folderId).toBe(target.folders[0].id);
+    // The imported folder id is remapped to a freshly minted one.
+    expect(nested.folderId).not.toBe('f1');
+  });
+
+  it('reuses a same-named folder instead of duplicating it', () => {
+    const target = draft([], {});
+    target.folders = [{ id: 'existing', name: 'work' }];
+
+    mergeImportedCollections(
+      target,
+      [{ name: 'Nested', tabs: [], folderId: 'f1' }],
+      [{ id: 'f1', name: 'Work' }]
+    );
+
+    expect(target.folders).toHaveLength(1);
+    expect(target.collections[0].folderId).toBe('existing');
+  });
+
+  it('leaves a collection at the root when its folder is missing from the file', () => {
+    const target = draft();
+    mergeImportedCollections(target, [{ name: 'Orphan', tabs: [], folderId: 'ghost' }], []);
+
+    expect(target.folders).toEqual([]);
+    expect(target.collections[0].folderId).toBeNull();
+  });
+
+  it('imports a legacy file without folders as all-root collections', () => {
+    const target = draft();
+    mergeImportedCollections(target, [{ name: 'Legacy', tabs: [], folderId: 'f1' }]);
+
+    expect(target.folders).toEqual([]);
+    expect(target.collections[0].folderId).toBeNull();
+  });
+
+  it('creates the folders array when the draft does not have one', () => {
+    const legacyDraft = draft();
+    delete legacyDraft.folders;
+
+    mergeImportedCollections(legacyDraft, [], [{ id: 'f1', name: 'Work' }]);
+
+    expect(legacyDraft.folders.map((folder) => folder.name)).toEqual(['Work']);
   });
 
   it('keeps Current Session first after re-partitioning', () => {

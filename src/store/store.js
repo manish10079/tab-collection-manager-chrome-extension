@@ -4,6 +4,7 @@
 // storage.onChanged, so React and the legacy popup code always see the same bytes.
 import { STORAGE_KEYS, STORAGE_KEY_LIST } from '../shared/storage-keys.js';
 import { EMPTY_STATE, normalizeState } from './schema.js';
+import { runMigrations } from './migrations/index.js';
 
 /** Every key the UI owns. `sessionHistory` is written by the service worker only. */
 const WRITABLE_KEYS = Object.freeze(
@@ -50,7 +51,14 @@ export function hydrate() {
   inflight = (async () => {
     try {
       const raw = await chrome.storage.local.get(STORAGE_KEY_LIST);
-      state = normalizeState(raw);
+      // Migrate before normalizing, and write the result back so the upgrade is a one-time cost
+      // (the next read sees the current schemaVersion and skips it).
+      const migrated = runMigrations(raw);
+      state = normalizeState(migrated.data);
+      if (migrated.changed) {
+        await chrome.storage.local.set(toPersistedKeys(state));
+        console.log(`[store] migrated storage schema ${migrated.from} → ${state.schemaVersion}`);
+      }
     } catch (error) {
       state = {
         ...state,
@@ -101,6 +109,8 @@ export function mutate(mutator) {
 function toPersistedKeys(draft) {
   return {
     [STORAGE_KEYS.collections]: draft.collections,
+    [STORAGE_KEYS.folders]: draft.folders,
+    [STORAGE_KEYS.schemaVersion]: draft.schemaVersion,
     [STORAGE_KEYS.lastSessionBackup]: draft.lastSessionBackup,
     ...draft.settings,
   };

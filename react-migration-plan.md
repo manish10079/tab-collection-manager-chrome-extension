@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Document version | 1.14.0 |
-| Status | Phases 0-4 and Phase 5 complete (5.1-5.4); the vanilla UI is gone, the bundle is self-contained and `dist/` loads nothing remotely (see §2.1 and the changelog) |
+| Document version | 1.17.0 |
+| Status | Phases 0-8 complete (5.1-5.4, 6, 7 and the folder hierarchy in 8); the vanilla UI is gone, the bundle is self-contained and `dist/` loads nothing remotely (see §2.1 and the changelog) |
 | Scope | UI layer of the MV3 extension (`src/sidepanel.html`, `src/`, `src/styles/`) |
 | Out of scope | New features, `background.js` rewrite (deferred to Phase 6), Firefox support |
 
@@ -42,9 +42,9 @@ the live state see §2.1.
 | `background.js` | ~1,290 lines | Autosave + debounce + guards, session history, context menus, alarms, GDrive, restore + tab groups |
 | Build | none | Hand-written manifest, no bundler, no deps, no tests |
 
-### 2.1 State at plan v1.16.0
+### 2.1 State at plan v1.17.0
 
-Phases 0-7 complete. The vanilla UI is gone — no `popup.html`, no `popup.js`, no seam,
+Phases 0-8 complete. The vanilla UI is gone — no `popup.html`, no `popup.js`, no seam,
 no classic script, and no file still named after the old popup: the stylesheet is `src/styles/panel.css`
 as of 1.12.0. Its last trace in the bundle is gone too: the two CDN `<link>`s and the dead half of
 the stylesheet.
@@ -59,6 +59,7 @@ the stylesheet.
 | `dist/` | 1.12 MB | Was 2.5 MB before the build started dropping non-woff2 font fallbacks (1.11.0); the bundled worker is smaller than the copied one (1.15.0) |
 | CI | `.github/workflows/ci.yml` | Lint, format check, tests, build and the bundle-size budget on every push and pull request; the E2E walk stays local (1.14.0) |
 | `background/` | 15 files | The service worker, split into ES modules in 1.15.0 with the pure decisions under `background/lib/`; `scripts/build.mjs` bundles the entry to the single `dist/background.js` the manifest names |
+| Folder hierarchy | `src/lib/folders.js`, `src/features/collections/` + `src/store/migrations/` | One level deep: a frozen `folders` array plus a per-collection `folderId`, rendered by `FolderSection`, moved by drag or the card menu, and upgraded through a versioned migration at `schemaVersion` 1 (1.17.0) |
 
 What the old shell owned, and where each piece went:
 
@@ -414,9 +415,25 @@ to 2.0.0 across `manifest.json`, `package.json`, the lockfile, `feature_list.md`
 mock, the release tagged `v2.0.0`, and the version story then single-sourced at 2.0.1 (1.16.0).
 (The CDN links were already removed in 5.4.)
 
+**Phase 8 — Folder hierarchy (2-3 days) — complete**
+The first post-migration feature, and the reason §7.1 of `skill.md` exists: collections can live in
+one-level folders. The storage contract gains a frozen `folders` array plus a per-collection
+`folderId`, applied through the new versioned migration runner (`src/store/migrations/`) so an
+existing profile upgrades in place at `schemaVersion` 1; a dangling `folderId` is dropped in
+`normalizeState`, so a half-applied edit cannot orphan a collection. Rendering splits at
+`CollectionList` — root collections stay direct children of `#collectionsContainer` (the keyboard
+jump and the E2E helpers rely on it) and each folder renders as a `FolderSection` whose
+collections nest inside; `groupCollections` in `src/lib/folders.js` is the pure split. Membership
+moves by dragging a collection onto a folder, by the collection card's "Move to folder" menu, or
+back to the root through a drop zone that only appears while a nested collection is dragged;
+`moveCollectionToFolder` refuses Current Session, and `deleteFolder` keeps its collections and
+returns them to the root. Folders travel in global export/import and the Drive backup.
+*Accepted:* the full gate is green (279 tests in 35 files, 7 E2E specs, bundle size within budget),
+and a pre-folders profile migrates on load. Decision recorded in ADR-0011.
+
 **Total: ~19-25 developer-days** (~4-5 weeks part-time), once Phase 5's real scope is counted —
-the original 14-19 assumed Phase 3 had finished the interactions. Phases 0-7 are all complete as of
-plan 1.15.0.
+the original 14-19 assumed Phase 3 had finished the interactions. Phases 0-8 are all complete as of
+plan 1.17.0.
 
 ---
 
@@ -521,6 +538,7 @@ commit only —
 
 | Version | Date | Notes |
 |---|---|---|
+| 1.17.0 | 2026-10-02 | Phase 8, the first post-migration feature: folders. Collections can be organized into one-level folders, and the storage contract stays migration-safe while gaining two keys. `src/store/migrations/0001-folders.js` plus the ordered runner in `src/store/migrations/index.js` add `folders: []`, pin every collection's `folderId` to a string or `null`, and stamp `schemaVersion` — `store/store.js` runs the migrations inside `hydrate()`, writes the result back once, and `toPersistedKeys` now emits `folders` and `schemaVersion`, both added to the frozen `STORAGE_KEYS`; `normalizeState` normalizes the folders and drops any `folderId` whose folder is gone, so a bad edit cannot orphan a collection. Rendering splits at `CollectionList` into the root collections (still direct children of `#collectionsContainer`, which the keyboard jump and the E2E helpers depend on) and `FolderSection` per folder with its collections nested in `.folder-body`, driven by the pure `groupCollections`/`collectionsInFolder` in `src/lib/folders.js`; `useGroupedCollections` joins them to the store. Membership is managed by `src/features/collections/lib/folderDraft.js` (`createFolder`, `renameFolder`, `deleteFolder` — which keeps its collections and re-roots them — `setFolderExpanded` and `moveCollectionToFolder`, refusing Current Session) behind `useCollectionActions`, with drag-onto-folder and a root drop zone that appears only while a nested collection is dragged; the collection card's menu gains a "Move to folder" section and the controls bar a `#createFolderBtn`. Folders ride through global export/import (`globalBackup.js` gained `folders`, `extractImportedFolders` and folder remapping, with a legacy file still importing as all-root) and the Drive backup (`background/gdrive.js` + `background/state.js`). Test suite 266 → 279 in 35 files (migration, grouping, `folderDraft`, `FolderSection`, `CollectionList`, and the backup round trip), 7 E2E specs still pass and the size budget stays green. Decision recorded in ADR-0011; `skill.md` §2.3 gained the `folders` row at document 2.3.0. |
 | 1.16.0 | 2026-10-02 | The extension version is reconciled as a single source of truth. `manifest.json` moves to 2.0.1 — a patch, because nothing user-visible or breaking has landed since the 2.0.0 tag — and `package.json`, the lockfile and `feature_list.md`'s title follow it. `tests/mocks/chrome.js` no longer hard-codes the name and version: it imports `manifest.json` for `runtime.getManifest()`, and a new `tests/version-alignment.test.js` asserts every copy against the manifest, so the three-way drift (manifest 1.9.0 / feature list v2.2.0 / mock 2.0.0) cannot recur. Only the extension axis is checked: the storage schema, the message protocol and each document's own version stay independent by design (skill.md §7). |
 | 1.15.0 | 2026-10-02 | Phases 6 and 7 finished, releasing 2.0.0. `background.js` — the last vanilla file, 1,294 lines, still excluded from ESLint and Prettier — is now ES modules under `background/`: `index.js` wires the listeners while `state.js`, `autosave.js`, `restore.js`, `contextMenu.js`, `gdrive.js`, `messages.js` (the router), `panel.js`, `chromeGroups.js`, `bootstrap.js` and `runtime.js` own one capability each, and `background/lib/tabs.js` + `background/lib/duplicates.js` hold the pure decisions (URL filtering, snapshotting, window grouping, capping, the identity-preserving merge, the partial-restore guard, duplicate detection). The worker imports the frozen contract from `src/shared/` and the pure group normaliser from `src/lib/tabGroups.js` instead of re-typing keys, and `background/api.js` resolves the `chrome`/`browser` global through a proxy so a late polyfill and the test setup's per-case mock both work. `scripts/build.mjs` gains `bundleWorker()`, a second Vite build emitting a single ES `dist/background.js`, so `manifest.json`, the packaged layout and the E2E assertion on the worker URL are unchanged; copying the directory was rejected because the shared imports would not survive `dist/src/` being removed. No storage key, storage shape or message command changed. 34 new unit tests in `background/__tests__/` cover the autosave guards and the tab-group rebuild (suite 230 in 29 files) and the seven Playwright specs still pass, so the bundled module worker runs under MV3. Phase 7's audit deleted the dormant local-daily-backup module and the `downloads` permission with it — the panel's export/import never used it — and reconciled the drifting version story (manifest/package/lock 1.9.0, `feature_list.md` v2.2.0, the chrome mock 2.0.0) to 2.0.0. ESLint and Prettier now exclude only `src/styles/panel.css`; `dist/` is 1.12 MB. Decision recorded in ADR-0010. |
 | 1.14.0 | 2026-10-02 | Continuous integration, with a size budget. `.github/workflows/ci.yml` runs on every push, pull request and manual dispatch on Node 22 with the npm cache: ESLint, `prettier --check`, `npm test`, `npm run build` and the new `npm run check:size`, in that order so the fast gates fail first and a superseded run is cancelled instead of queueing. The end-to-end suite is deliberately left out — it needs `npx playwright install chromium` and its own X server, so it stays a local command until CI minutes are worth spending on it; `README.md` says so explicitly. `scripts/size-budget.mjs` is the budget: it measures the bundles Vite emits into `dist/assets/` gzipped (JS 100 kB, CSS 36 kB) plus the whole packaged `dist/` raw (1.25 MB), prints all three against their ceilings with the headroom, and exits non-zero with the overage when one is breached. Measuring the bundles from `dist/assets/` rather than all of `dist/` matters: the copied `background.js` would otherwise be counted as panel JS. The check is a separate script rather than a step inside `scripts/build.mjs` because `npm run dev` rebuilds on every source change, where a budget failure would be noise while iterating; skill.md §6 gained the budget as a CI gate and `README.md` documents the numbers and how to raise one. Vite reports the same files in decimal kB and the budget prints binary multiples, a ~2.5% difference that is noted in the script so nobody re-tunes a budget over it. |

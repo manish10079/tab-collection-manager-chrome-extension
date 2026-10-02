@@ -20,3 +20,97 @@
   color: #ff6b6b;
   font-size: 12px;
 }
+
+/* Folders (Phase 8). A folder reuses the collection's look and the legacy control classes, so
+   only the container itself and the drop affordances are added here. */
+.folder {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  transition:
+    border-color 0.25s,
+    box-shadow 0.25s,
+    background-color 0.25s;
+}
+
+.folder.drag-over,
+.folder-root-dropzone.drag-over {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px var(--accent),
+    var(--shadow-card);
+}
+
+.folder-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  cursor: pointer;
+  flex-wrap: wrap;
+}
+
+.folder-left-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.folder-right-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.folder-icon {
+  color: var(--accent);
+}
+
+.folder-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.folder-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 10px 10px;
+}
+
+.folder-empty {
+  margin: 0;
+  padding: 10px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-align: center;
+}
+
+.folder-root-dropzone {
+  padding: 10px;
+  border: 1px dashed var(--accent);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-align: center;
+}
+
+.dropdown-section-label {
+  padding: 6px 12px 2px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dropdown-option[disabled] {
+  cursor: default;
+  opacity: 0.5;
+}

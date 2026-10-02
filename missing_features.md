@@ -15,13 +15,16 @@ Legend: 🔴 major · 🟡 medium · ⚪ minor
 
 ## 🔴 Major missing features
 
-### 1. Folder hierarchy for collections
+### 1. Folder hierarchy for collections — ✅ implemented
 - **Ta Box:** real folders (`folders_index`, `folder_*` records, `parentId` on collections),
   folder colors, collapse state, drag collections in/out of folders, per-folder tab counts.
-- **Us:** flat list only. This is a roadmap item in feature_list.md but not implemented.
-- **To build:** `folders` array + `parentId` in state; nested rendering in
-  `renderCollections()`; drag targets on folder headers; folder create/rename/delete;
-  optional folder colors.
+- **Us:** implemented. A `folders` array plus a per-collection `folderId` (one level deep);
+  `FolderSection` renders the header (expand/collapse, inline rename, counts, options menu)
+  with its collections nested inside; drag a collection onto a folder to move it in, drag a
+  nested collection onto the root drop zone to move it out, and delete keeps the
+  collections. Folders travel through global export/import and the Drive backup, and the
+  persisted shape is upgraded by a versioned migration (`schemaVersion: 1`).
+- **Still missing:** folder colors.
 
 ### 2. Chrome Tab Groups capture & restore — ✅ implemented
 - **Ta Box:** stores `chromeGroups` metadata (group name, color, collapsed, pinned) with
@@ -119,8 +122,8 @@ Legend: 🔴 major · 🟡 medium · ⚪ minor
 
 ## Suggested priority (local-only features first, no backend needed)
 
-1. Chrome tab groups capture & restore — big differentiator, moderate effort
-2. Folder hierarchy — long-planned, high user value
+1. Chrome tab groups capture & restore — ✅ done
+2. Folder hierarchy — ✅ done
 3. Recently closed restore — small effort, uses one new permission
 4. Duplicate sweep + undo — builds directly on our existing duplicate detection
 5. Global keyboard commands (Ctrl+Shift+1..4) — small effort

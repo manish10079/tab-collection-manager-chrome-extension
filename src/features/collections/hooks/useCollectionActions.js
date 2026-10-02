@@ -19,11 +19,23 @@ import {
   setCollectionExpanded,
   setTabSortType,
 } from '../lib/collectionDraft.js';
+import {
+  createFolder,
+  deleteFolder,
+  moveCollectionToFolder,
+  renameFolder,
+  setFolderExpanded,
+} from '../lib/folderDraft.js';
 
 /**
  * @typedef {object} CollectionActions
  * @property {(id: string, expanded: boolean) => Promise<void>} setExpanded
  * @property {(id: string, sortType: string) => Promise<void>} setTabSortType
+ * @property {(id: string, expanded: boolean) => Promise<void>} setFolderExpanded
+ * @property {(name: string) => Promise<'created'|'empty'|'too-long'|'too-many'|'duplicate'>} createFolder
+ * @property {(id: string, name: string) => Promise<boolean>} renameFolder
+ * @property {(id: string) => Promise<void>} deleteFolder
+ * @property {(collectionId: string, folderId: string|null) => Promise<void>} moveCollectionToFolder
  * @property {(id: string) => void} pinCollection
  * @property {(collectionId: string, tabId: string) => void} pinTab
  * @property {(id: string, name: string) => Promise<boolean>} renameCollection
@@ -216,6 +228,50 @@ export function useCollectionActions({ toast, addTabs, importTabs }) {
 
     moveCollection: (sourceId, targetId) =>
       mutate((draft) => reorderCollections(draft, sourceId, targetId)),
+
+    setFolderExpanded: (id, expanded) => mutate((draft) => setFolderExpanded(draft, id, expanded)),
+
+    /** @returns {Promise<'created'|'empty'|'too-long'|'too-many'|'duplicate'>} */
+    createFolder: async (name) => {
+      /** @type {'created'|'empty'|'too-long'|'too-many'|'duplicate'} */
+      let outcome = 'empty';
+      await mutate((draft) => {
+        outcome = createFolder(draft, name, crypto.randomUUID());
+      });
+      return outcome;
+    },
+
+    /** @returns {Promise<boolean>} Whether the rename stuck — the section keeps its draft otherwise. */
+    renameFolder: async (id, name) => {
+      /** @type {'renamed'|'unchanged'|'empty'|'too-long'|'duplicate'|'missing'} */
+      let outcome = 'missing';
+      await mutate((draft) => {
+        outcome = renameFolder(draft, id, name);
+      });
+
+      if (outcome === 'too-long') {
+        toast(`Folder name cannot exceed ${LIMITS.MAX_FOLDER_NAME_LENGTH} characters.`);
+        return false;
+      }
+      if (outcome === 'duplicate') {
+        toast(`Folder name "${String(name).trim()}" already exists.`);
+        return false;
+      }
+      return outcome === 'renamed' || outcome === 'unchanged';
+    },
+
+    deleteFolder: async (id) => {
+      if (!window.confirm('Remove this folder? Its collections are kept in the list.')) return;
+      let moved = 0;
+      await mutate((draft) => {
+        moved = deleteFolder(draft, id).movedCollections;
+      });
+      if (moved > 0)
+        toast(`Folder removed — ${moved} collection${moved === 1 ? '' : 's'} moved out.`);
+    },
+
+    moveCollectionToFolder: (collectionId, folderId) =>
+      mutate((draft) => moveCollectionToFolder(draft, collectionId, folderId)),
 
     reorderTabs: (collectionId, sourceTabId, targetTabId) =>
       mutate((draft) => reorderTabsWithinCollection(draft, collectionId, sourceTabId, targetTabId)),

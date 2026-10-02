@@ -57,6 +57,16 @@ export function ControlsBar({ controller, collectionSortType, isGrid, backup, on
           <button
             type="button"
             className="icon-btn"
+            id="createFolderBtn"
+            title="New Folder"
+            aria-label="Create new folder"
+            onClick={controller.createFolder}
+          >
+            <i className="fas fa-folder-plus" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
             id="globalImportBtn"
             title="Import All Collections (JSON)"
             aria-label="Import all collections"

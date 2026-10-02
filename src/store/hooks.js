@@ -20,6 +20,14 @@ export function useCollections() {
 }
 
 /**
+ * All folders, in their stored order.
+ * @returns {import('./schema.js').Folder[]}
+ */
+export function useFolders() {
+  return useAppState().folders;
+}
+
+/**
  * Persisted settings with defaults applied.
  * @returns {Record<string, unknown>}
  */

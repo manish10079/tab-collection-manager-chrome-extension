@@ -13,6 +13,7 @@ import { STORAGE_KEYS } from './constants.js';
 export async function getState() {
   const result = await api.storage.local.get([
     STORAGE_KEYS.collections,
+    STORAGE_KEYS.folders,
     STORAGE_KEYS.autoSaveCollectionId,
     STORAGE_KEYS.lastSessionBackup,
     STORAGE_KEYS.ramSaverEnabled,
@@ -24,6 +25,7 @@ export async function getState() {
   ]);
   return {
     collections: result[STORAGE_KEYS.collections] || [],
+    folders: result[STORAGE_KEYS.folders] || [],
     autoSaveCollectionId: result[STORAGE_KEYS.autoSaveCollectionId] || null,
     lastSessionBackup: result[STORAGE_KEYS.lastSessionBackup] || null,
     ramSaverEnabled: !!result[STORAGE_KEYS.ramSaverEnabled],

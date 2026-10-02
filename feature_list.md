@@ -172,6 +172,13 @@ A lightweight session restoration system for large collections.
 * Custom tab ordering
 * Dedicated drag handles
 
+### Folder Membership
+
+* Drag a collection onto a folder section to move it in
+* Drag a nested collection onto the root drop zone to move it back out
+* Dropping a collection on another adopts that collection's folder
+* Current Session always stays at the root (it is a live mirror, not a folder member)
+
 ---
 
 ## Duplicate Detection System
@@ -304,9 +311,9 @@ Allows:
 
 ---
 
-## Folder Hierarchy 📁
+## Folder Hierarchy 📁 ✅ Implemented
 
-Organize collections inside folders.
+Organize collections inside folders (one level deep).
 
 ### Example
 
@@ -320,6 +327,19 @@ Work
 ├── Meetings
 └── Research
 ```
+
+### Implemented
+
+* Create, rename and delete folders
+* Expand / collapse folders (state persists)
+* Nested rendering — a folder's collections live inside its body
+* Per-folder tab count and collection count
+* Drag collections into a folder, and back out to the root
+* Move to folder from the collection menu (and remove from folder)
+* Deleting a folder keeps its collections and returns them to the root
+* Folder hierarchy travels with global export/import and Google Drive backup
+* Dangling folder references are dropped on load (a collection can never be orphaned)
+* Migration-safe storage: `schemaVersion` + a `folders` array applied by a versioned migration
 
 ---
 
@@ -460,7 +480,7 @@ Recommended implementation order:
 5. Keyboard Shortcuts ✅
 6. Tagging System
 7. Automatic Cleanup Rules
-8. Folder Hierarchy
+8. Folder Hierarchy ✅
 9. Collection Sharing
 10. Cloud Sync
 
@@ -478,13 +498,21 @@ Legend: 🔴 major · 🟡 medium · ⚪ minor · Status: ✅ implemented · �
 
 ## 🔴 Major missing features
 
-### 1. Folder hierarchy for collections — ❌ Not implemented
+### 1. Folder hierarchy for collections — ✅ Implemented
 * **Ta Box:** real folders (`folders_index`, `parentId` on collections), folder colors,
   collapse state, drag collections in/out of folders, per-folder tab counts.
-* **Us:** flat list only (roadmap item below, not implemented).
-* **To build:** `folders` array + `parentId` in state; nested rendering in
-  `renderCollections()`; drag targets on folder headers; folder create/rename/delete;
-  optional folder colors.
+* **Us:** implemented — a frozen `folders` array plus a per-collection `folderId` (one level
+  deep); `FolderSection` renders a folder header (expand/collapse, inline rename, tab +
+  collection counts, options menu) with its collections nested in `.folder-body`; root
+  collections stay direct children of the list. Drag a collection onto a folder to move it
+  in, drop it on another collection to adopt that collection's folder, or drop it on the
+  root drop zone (shown only while a nested collection is dragged) to move it back out.
+  Create via the controls bar, rename/delete from the folder menu — deleting keeps the
+  collections and returns them to the root. Folders ride along in global export/import and
+  the Google Drive backup; a dangling `folderId` is dropped on load.
+* **Migration-safe:** the persisted shape moved to `schemaVersion: 1` through a versioned
+  migration (`src/store/migrations/`), so an existing profile upgrades in place.
+* **Not built:** folder colors.
 
 ### 2. Chrome Tab Groups capture & restore — ✅ Implemented
 * **Ta Box:** stores `chromeGroups` metadata (group name, color, collapsed, pinned) with
@@ -573,7 +601,7 @@ Legend: 🔴 major · 🟡 medium · ⚪ minor · Status: ✅ implemented · �
 14. **Favorites with custom favorite order** (`isFavorite`, `favoriteOrder`) — 🔶 Partial (pinning covers the main use case; no separate favorites order)
 15. **`lastOpened` tracking per collection** — enables "recently opened" sort — ❌ Not implemented
 16. **`unlimitedStorage` permission** — ❌ Not implemented (we cap collections at 200 tabs; Ta Box doesn't cap)
-17. **Storage versioning + data validation & migration** (`storageVersion`, `syncVersion`) — 🔶 Partial (only a light one-off `addedAt` backfill migration; no version numbers or validation)
+17. **Storage versioning + data validation & migration** (`storageVersion`, `syncVersion`) — 🔶 Partial (a `schemaVersion` key and a versioned migration runner (`src/store/migrations/`) now upgrade an existing profile in place; still no sync-versioning and validation is limited to `normalizeState`)
 18. **Cross-browser support reality check** — ❌ Chrome-only (Ta Box bundles `browser-polyfill.min.js`; we claim Firefox support but our MV3 manifest has no `sidebar_action` and uses Chrome-only APIs (sidePanel))
 
 ---
@@ -581,7 +609,7 @@ Legend: 🔴 major · 🟡 medium · ⚪ minor · Status: ✅ implemented · �
 ## Suggested priority (local-only features first, no backend needed)
 
 1. Chrome tab groups capture & restore — ✅ Done
-2. Folder hierarchy — long-planned, high user value
+2. Folder hierarchy — ✅ Done
 3. Recently closed restore — small effort, uses one new permission
 4. Duplicate sweep + undo — builds on our existing duplicate detection
 5. Global keyboard commands (Ctrl+Shift+1..4) — small effort

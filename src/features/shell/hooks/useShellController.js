@@ -4,10 +4,16 @@ import { LIMITS } from '../../../shared/constants.js';
 import { CURRENT_SESSION_ID } from '../../../shared/storage-keys.js';
 import { formatFileTimestamp } from '../../../lib/format.js';
 import { downloadJson } from '../../../lib/download.js';
-import { createCollection, setCollectionExpanded } from '../../collections/index.js';
+import {
+  createCollection,
+  createFolder,
+  nextFolderName,
+  setCollectionExpanded,
+} from '../../collections/index.js';
 import {
   buildCollectionsExport,
   extractImportedCollections,
+  extractImportedFolders,
   isValidImportedCollection,
   mergeImportedCollections,
 } from '../lib/globalBackup.js';
@@ -30,6 +36,7 @@ import { scrollIntoView } from '../lib/scrollIntoView.js';
  * @property {(value: string) => void} setQuery
  * @property {(value: string) => void} setCreateName
  * @property {() => Promise<boolean>} submitCreate
+ * @property {() => Promise<boolean>} createFolder
  * @property {() => void} toggleLayout
  * @property {(sortType: string) => void} setCollectionSort
  * @property {() => Promise<void>} exportAll
@@ -107,6 +114,27 @@ export function useShellController({ toast }) {
     return false;
   }, [createName, toast]);
 
+  /**
+   * Create a folder straight away with the next free default name; the section opens expanded and
+   * its name is edited inline, so there is no separate prompt or slide to build.
+   */
+  const createFolderAction = useCallback(async () => {
+    let outcome = /** @type {'created'|'empty'|'too-long'|'too-many'|'duplicate'} */ ('empty');
+    let name = '';
+    await mutate((draft) => {
+      name = nextFolderName(draft.folders);
+      outcome = createFolder(draft, name, crypto.randomUUID());
+    });
+
+    if (outcome === 'created') {
+      toast(`Folder "${name}" created`);
+      return true;
+    }
+    if (outcome === 'too-many') toast(`Cannot add more than ${LIMITS.MAX_FOLDERS} folders.`);
+    else if (outcome === 'duplicate') toast(`Folder "${name}" already exists.`);
+    return false;
+  }, [toast]);
+
   const toggleLayout = useCallback(() => {
     mutate((draft) => {
       draft.settings.layoutViewMode = draft.settings.layoutViewMode === 'grid' ? 'list' : 'grid';
@@ -120,13 +148,13 @@ export function useShellController({ toast }) {
   }, []);
 
   const exportAll = useCallback(async () => {
-    const { collections } = getSnapshot();
+    const { collections, folders } = getSnapshot();
     if (collections.length === 0) {
       toast('No collections to export.');
       return;
     }
     downloadJson(
-      buildCollectionsExport(collections),
+      buildCollectionsExport(collections, folders),
       `tab_collections_backup_${formatFileTimestamp()}.json`
     );
     toast('All collections exported successfully');
@@ -154,9 +182,10 @@ export function useShellController({ toast }) {
       return;
     }
 
+    const importedFolders = extractImportedFolders(result.data);
     let outcome = { added: 0, merged: 0, skipped: 0 };
     await mutate((draft) => {
-      outcome = mergeImportedCollections(draft, valid);
+      outcome = mergeImportedCollections(draft, valid, importedFolders);
     });
     toast(`Import completed: Created ${outcome.added} and merged ${outcome.merged} collections.`);
   }, [toast]);
@@ -270,6 +299,7 @@ export function useShellController({ toast }) {
     setQuery,
     setCreateName,
     submitCreate,
+    createFolder: createFolderAction,
     toggleLayout,
     setCollectionSort,
     exportAll,

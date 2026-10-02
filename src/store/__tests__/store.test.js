@@ -2,9 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { getSnapshot, hydrate, mutate } from '../store.js';
 import { installChromeMock } from '../../../tests/mocks/chrome.js';
 
-/** Keys the UI owns — must match what the legacy `setState` wrote. */
+/**
+ * Keys the UI owns. All but the first two are the legacy `setState` set; `folders` and
+ * `schemaVersion` joined it with the folder feature (skill.md §7.1).
+ */
 const WRITABLE_KEYS = [
   'collections',
+  'folders',
+  'schemaVersion',
   'autoSaveCollectionId',
   'lastSessionBackup',
   'ramSaverEnabled',

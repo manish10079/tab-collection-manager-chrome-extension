@@ -10,6 +10,7 @@
 
 - **🚀 Instant Sessions**: Save your entire multi-window browser session with a single click or dynamic multi-select mode.
 - **📁 Custom Spaces**: Organize tabs into named collections with unique metadata tracking (creation time, modified time, and drag-and-drop custom order).
+- **🗂️ Nested Folders**: Group collections into one-level folders — expand/collapse them, drag collections in and out, and see per-folder tab counts. Folders are migration-safe (a versioned storage upgrade) and travel with your backups.
 - **🔄 Auto-Save Engine**: Background service worker automatically tracks window changes, tab closures, and URL shifts inside a dedicated, debounced (500ms) **Current Session** collection.
 - **⚡ RAM Saver Mode**: Restores collections gracefully by leveraging background tab discarding (`api.tabs.discard`), preventing performance stutter or memory spikes.
 - **📌 Pinned Workspaces & Tabs**: Keep critical collections locked at the top of your layout and enforce maximum pinned tab thresholds within individual folders.
@@ -88,14 +89,29 @@ The polish pass is done as of Phase 5.4: the two CDN `<link>`s are replaced by b
 and Inter, the rules in the panel stylesheet that no surviving mark-up reaches are removed, and every
 icon-only control carries an accessible name with focus returning to the trigger when the search or
 create input closes. See
-[`docs/decisions/ADR-0009-self-hosted-assets-and-panel-a11y.md`](./docs/decisions/ADR-0009-self-hosted-assets-and-panel-a11y.md).
+[`docs/decisions/ADR-0009-self-hosted-assets-and-panel-a11y.md`](./docs/decisions/ADR-0009-self-hosted-assets-and-panel-a11y.md).The service worker is modular as of Phase 6: the 1,294-line vanilla `background.js` (the last file
 
-The service worker is modular as of Phase 6: the 1,294-line vanilla `background.js` (the last file
 excluded from lint and format) is split into ES modules under `background/` — one capability per file,
+
 with the pure decisions in `background/lib/` — and `scripts/build.mjs` bundles the entry to the single
+
 `dist/background.js` the manifest names. No storage key, storage shape or message command changed,
+
 and the dormant local-daily-backup code and its `downloads` permission are gone. See
+
 [`docs/decisions/ADR-0010-modular-service-worker.md`](./docs/decisions/ADR-0010-modular-service-worker.md).
+
+Folders arrived in Phase 8: collections can live in one-level folders, rendered by `FolderSection`
+
+with the collections nested inside, and moved in or out by drag or the card menu. This is the first
+
+change to the storage contract since the migration, so it ships with a versioned migration
+
+(`src/store/migrations/`, `schemaVersion` 1) that upgrades an existing profile on first load and
+
+drops any folder reference that no longer resolves. See
+
+[`docs/decisions/ADR-0011-folders.md`](./docs/decisions/ADR-0011-folders.md).
 
 Styling lives in `src/styles/`: `panel.css` is the migrated pre-React stylesheet (still global, class
 names unchanged) and `shell.css` adds the rules the React shell owns. Both are bundled by Vite from
@@ -151,11 +167,11 @@ The end-to-end suite is not part of it — it needs a browser download, so it st
 
 `npm run check:size` measures the built output and fails when the panel outgrows its budget:
 
-| Metric | Budget | At plan 1.16.0 |
+| Metric | Budget | At plan 1.17.0 |
 | --- | --- | --- |
-| Panel JS, gzipped | 100 kB | 89.7 kB |
-| Panel CSS, gzipped | 36 kB | 31.1 kB |
-| Packaged `dist/`, raw | 1.25 MB | 1.12 MB |
+| Panel JS, gzipped | 100 kB | 91.6 kB |
+| Panel CSS, gzipped | 36 kB | 31.5 kB |
+| Packaged `dist/`, raw | 1.25 MB | 1.13 MB |
 
 The bundles are the ones Vite emits into `dist/assets/`; the total covers everything in `dist/`,
 so an unexpected new asset (a stray font, a second chunk) shows up there. Raising a budget means
@@ -171,7 +187,7 @@ See [`react-migration-plan.md`](./react-migration-plan.md) for the migration roa
 ## 📖 How to Use
 
 ### 1. Organizing Your Layout
-Click the extension action item or trigger the side panel. Enter a unique title into the folder console to initialize an empty collection folder (duplicate names are flagged case-insensitively).
+Click the extension action item or trigger the side panel. Enter a unique title into the create box to start an empty collection (duplicate names are flagged case-insensitively). Use the folder button to add a folder, then drag a collection onto it — or pick **Move to folder** in the collection's menu — to file it away. Deleting a folder keeps its collections and returns them to the root.
 
 ### 2. Live Automation
 Head into settings to toggle the background **Auto-Save Engine**. The background engine monitors system layout changes, applying specialized startup stabilization boundaries to isolate active workspaces perfectly.

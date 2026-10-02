@@ -1,8 +1,16 @@
+/**
+ * Storage-schema version (skill.md §7.1). Bump it with every `store/migrations/` entry; the store
+ * runs the migrations newer than the stored value once, then persists the new number.
+ */
+export const SCHEMA_VERSION = 1;
+
 /** Limits shared by the UI and the service worker (`background/` imports this module). */
 export const LIMITS = Object.freeze({
   MAX_TABS_PER_COLLECTION: 200,
   MAX_SESSION_HISTORY: 100,
   MAX_COLLECTION_NAME_LENGTH: 100,
+  MAX_FOLDER_NAME_LENGTH: 100,
+  MAX_FOLDERS: 200,
 });
 
 /** Default values applied when a persisted setting is missing. */

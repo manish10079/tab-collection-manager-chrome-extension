@@ -11,6 +11,7 @@ import { TabPanel } from './TabPanel.jsx';
  * @property {import('../../../store/schema.js').Collection} collection
  * @property {boolean} isAutoSaveTarget
  * @property {boolean} isGrid           Grid view moves the tab panel into a modal
+ * @property {import('../../../store/schema.js').Folder[]} [folders] Every folder, for the move menu
  * @property {import('../hooks/useCollectionActions.js').CollectionActions} actions
  */
 
@@ -21,7 +22,7 @@ import { TabPanel } from './TabPanel.jsx';
  * @param {CollectionCardProps} props
  * @returns {import('react').ReactElement}
  */
-export function CollectionCard({ collection, isAutoSaveTarget, isGrid, actions }) {
+export function CollectionCard({ collection, isAutoSaveTarget, isGrid, actions, folders = [] }) {
   const isCurrentSession = collection.id === CURRENT_SESSION_ID;
   const [menuOpen, setMenuOpen] = useState(false);
   /** Draft name while editing; null means "not editing". */
@@ -200,6 +201,35 @@ export function CollectionCard({ collection, isAutoSaveTarget, isGrid, actions }
                   <i className="fas fa-plus" /> Add new tab
                 </button>
               )}
+              {folders.length > 0 && !isCurrentSession ? (
+                <>
+                  <div className="dropdown-section-label">Move to folder</div>
+                  {folders.map((folder) => (
+                    <button
+                      key={folder.id}
+                      type="button"
+                      className="dropdown-option move-to-folder-btn"
+                      title={`Move to ${folder.name}`}
+                      disabled={collection.folderId === folder.id}
+                      onClick={choose(() =>
+                        actions.moveCollectionToFolder(collection.id, folder.id)
+                      )}
+                    >
+                      <i className="fas fa-folder" /> {folder.name}
+                    </button>
+                  ))}
+                  {collection.folderId ? (
+                    <button
+                      type="button"
+                      className="dropdown-option remove-from-folder-btn"
+                      title="Move to the root list"
+                      onClick={choose(() => actions.moveCollectionToFolder(collection.id, null))}
+                    >
+                      <i className="fas fa-folder-minus" /> Remove from folder
+                    </button>
+                  ) : null}
+                </>
+              ) : null}
               <button
                 type="button"
                 className="dropdown-option share-collection-btn"
