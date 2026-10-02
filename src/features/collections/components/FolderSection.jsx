@@ -130,14 +130,6 @@ export function FolderSection({
         </div>
 
         <div className="folder-right-section">
-          <div className="collection-meta">
-            <span className="folder-count">{formatTabCount(tabCount)}</span>
-            <span className="meta-dot">•</span>
-            <span className="folder-collections-count">
-              {collections.length} {collections.length === 1 ? 'collection' : 'collections'}
-            </span>
-          </div>
-
           <div className="collection-actions" ref={menuRef}>
             <button
               type="button"
@@ -177,16 +169,27 @@ export function FolderSection({
           {collections.length === 0 ? (
             <p className="folder-empty">Empty folder — drag collections here.</p>
           ) : (
-            collections.map((collection) => (
-              <CollectionCard
-                key={collection.id}
-                collection={collection}
-                folders={folders}
-                isGrid={isGrid}
-                isAutoSaveTarget={collection.id === autoSaveCollectionId}
-                actions={actions}
-              />
-            ))
+            <>
+              {/* The counts live in the body so the header stays a single row; a collapsed folder
+                  hides them along with its contents. */}
+              <p className="folder-summary">
+                <span>
+                  {collections.length} {collections.length === 1 ? 'collection' : 'collections'}
+                </span>
+                <span className="meta-dot">•</span>
+                <span>{formatTabCount(tabCount)}</span>
+              </p>
+              {collections.map((collection) => (
+                <CollectionCard
+                  key={collection.id}
+                  collection={collection}
+                  folders={folders}
+                  isGrid={isGrid}
+                  isAutoSaveTarget={collection.id === autoSaveCollectionId}
+                  actions={actions}
+                />
+              ))}
+            </>
           )}
         </div>
       ) : null}

@@ -33,12 +33,18 @@ function renderSection(overrides = {}) {
 }
 
 describe('FolderSection', () => {
-  it('renders the name, the counts and the collections inside it', () => {
-    renderSection();
+  it('keeps the counts in the body, not the header', () => {
+    const { view } = renderSection();
 
     expect(screen.getByDisplayValue('Work')).toBeTruthy();
-    expect(screen.getByText('1 collection')).toBeTruthy();
     expect(screen.getByDisplayValue('Alpha')).toBeTruthy();
+
+    const summary = view.container.querySelector('.folder-body .folder-summary');
+    expect(summary).toBeTruthy();
+    expect(summary.textContent).toContain('1 collection');
+    expect(summary.textContent).toContain('0 tabs');
+    // The header is a single compact row: the counts no longer live there.
+    expect(view.container.querySelector('.folder-header .folder-summary')).toBeNull();
   });
 
   it('shows a hint instead of a body for an empty folder', () => {

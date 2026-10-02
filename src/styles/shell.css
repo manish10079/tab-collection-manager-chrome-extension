@@ -92,6 +92,22 @@
   padding: 0 10px 10px;
 }
 
+/* The folder's counts sit in the body rather than the header, which keeps the header a single
+   compact row; they are only visible while the folder is expanded. */
+.folder-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0 2px;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.folder-summary .meta-dot {
+  opacity: 0.6;
+}
+
 .folder-empty {
   margin: 0;
   padding: 10px;
