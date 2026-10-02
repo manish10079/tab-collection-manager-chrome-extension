@@ -1,0 +1,432 @@
+/* Settings family: the settings cards and rows, the toggles, the shortcuts help and the
+   cloud-backup buttons. Split out of `panel.css` in Phase 2 without renaming a class
+   (css-migration-plan.md). */
+
+/* ===== Settings UI Styles ===== */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ============================================================
+   MATERIAL 3 SETTINGS MODAL
+   ============================================================ */
+
+.settings-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  min-height: auto; /* Override default 360px min-height from .modal-body */
+}
+
+/* Settings Cards - Material 3 elevated surface */
+.settings-card {
+  background: var(--bg-translucent-subtle);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.settings-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.settings-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0.8;
+}
+
+.settings-card-icon {
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.settings-card-body {
+  padding: 4px 0;
+}
+
+/* ── Keyboard Shortcuts card ─────────────────────────────── */
+.shortcut-grid {
+  padding: 8px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 4px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.shortcut-row:last-child {
+  border-bottom: none;
+}
+
+.shortcut-keys {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.shortcut-keys kbd {
+  display: inline-block;
+  min-width: 26px;
+  padding: 2px 8px;
+  text-align: center;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-translucent-strong);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+}
+
+.shortcut-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+/* ── Shortcuts Help modal ─────────────────────────────────── */
+.shortcuts-help-modal {
+  max-width: 420px;
+}
+
+.shortcuts-help-body {
+  padding: 8px 20px 16px;
+  min-height: auto;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.shortcuts-help-footer {
+  justify-content: center;
+  padding: 12px 20px;
+}
+
+.shortcuts-help-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.shortcuts-help-hint i {
+  color: var(--accent);
+  opacity: 0.9;
+}
+
+/* ── Jump-to-collection highlight (1-9 shortcut) ─────────── */
+.collection.shortcut-jump-highlight {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent),
+    var(--shadow-card-hover);
+  animation: jumpPulse 1.2s ease;
+}
+
+@keyframes jumpPulse {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Settings Rows inside cards */
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  gap: 12px;
+  transition: background 0.15s ease;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-row:last-child {
+  border-bottom: none;
+}
+
+.settings-row:hover {
+  background: var(--bg-translucent-normal);
+}
+
+.settings-row-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-row-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 15%, transparent),
+    color-mix(in srgb, var(--accent) 5%, transparent)
+  );
+  border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
+  flex-shrink: 0;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
+}
+
+.settings-row-icon i {
+  font-size: 13px;
+  color: var(--accent);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-row:hover .settings-row-icon {
+  transform: scale(1.05);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 20%, transparent),
+    color-mix(in srgb, var(--accent) 8%, transparent)
+  );
+}
+
+.settings-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.settings-row-label {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-row-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  opacity: 0.75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.settings-row-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Action buttons row in settings */
+.settings-row-actions {
+  padding: 10px 16px 12px;
+  gap: 8px;
+  justify-content: flex-start;
+  border-top: 1px solid var(--border);
+  margin-top: 0;
+}
+
+/* ============================================================
+   MATERIAL 3 TOGGLE SWITCH
+   ============================================================ */
+
+.toggle-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toggle-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.toggle-track {
+  position: relative;
+  width: 48px;
+  height: 26px;
+  background: var(--bg-translucent-strong);
+  border-radius: 13px;
+  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  padding: 0 3px;
+  flex-shrink: 0;
+}
+
+.toggle-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--text-primary);
+  border-radius: 50%;
+  transition:
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    background 0.25s ease,
+    box-shadow 0.25s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  will-change: transform;
+}
+
+/* Checked state */
+.toggle-input:checked + .toggle-track {
+  background: var(--accent);
+}
+
+.toggle-input:checked + .toggle-track .toggle-thumb {
+  transform: translateX(22px);
+  background: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Hover state */
+.toggle-switch:hover .toggle-track {
+  background: var(--bg-translucent-strong);
+  filter: brightness(1.2);
+}
+
+.toggle-switch:hover .toggle-input:checked + .toggle-track {
+  filter: brightness(1.15);
+}
+
+/* Focus-visible ring for keyboard navigation */
+.toggle-input:focus-visible + .toggle-track {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* Disabled state */
+.toggle-input:disabled + .toggle-track {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   LIMIT INPUT GROUP (used with toggles)
+   ============================================================ */
+
+.limit-input-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.limit-input-group.disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.limit-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.limit-input {
+  width: 48px;
+  height: 28px;
+  padding: 2px 4px;
+  background: var(--bg-translucent-normal);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 12px;
+  text-align: center;
+  transition: var(--transition);
+  outline: none;
+  font-weight: 600;
+}
+
+.limit-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+  background: var(--bg-translucent-hover);
+}
+
+/* Chrome, Safari, Edge, Opera: Remove spin buttons from number input */
+.limit-input::-webkit-outer-spin-button,
+.limit-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox: Remove spin buttons */
+.limit-input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+/* ===== Settings Modal specific ===== */
+.settings-modal {
+  max-width: 420px;
+}
+
+/* ===== Cloud Backup Buttons ===== */
+.cloud-backup-btn {
+  padding: 8px 14px !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  border-radius: 10px !important;
+  white-space: nowrap;
+}
+
+.cloud-backup-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.settings-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 16px 14px;
+  border-top: 1px solid var(--border);
+}

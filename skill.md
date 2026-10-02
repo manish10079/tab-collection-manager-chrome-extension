@@ -5,7 +5,7 @@
 
 | Field | Value |
 | --- | --- |
-| Document version | 2.4.0 |
+| Document version | 2.5.0 |
 | Status | Active |
 | Last updated | 2026-10-02 |
 | Owner | Maintainer (`@mkn`) |
@@ -131,10 +131,11 @@ requires a compatibility shim for one release.
 
 The React migration is complete through Phase 5.4, so the layout below is no longer the vanilla
 one. The UI is React + JSDoc in `src/`, bundled by Vite, and the stylesheets live in `src/styles/`
-(`panel.css`, the migrated pre-React stylesheet, plus `shell.css` for the rules React owns); the
-service worker is ES modules under `background/`, bundled by `scripts/build.mjs` to the single
-`dist/background.js` the manifest names (Phase 6, ADR-0010). No file is excluded from lint or format
-except `src/styles/panel.css`.
+(`tokens.css` for the design values, `index.css` as the single entry, and the per-feature family
+sheets `base`/`shell`/`collections`/`tabs`/`dialogs`/`settings`/`toast` the CSS migration split the
+old `panel.css` into); the service worker is ES modules under `background/`, bundled by
+`scripts/build.mjs` to the single `dist/background.js` the manifest names (Phase 6, ADR-0010). No
+file is excluded from lint or format.
 
 ```text
 manifest.json   background/   icons/
@@ -173,7 +174,7 @@ runs the Playwright walk against `dist/` loaded unpacked.
 │  ├─ store/                     # schema.js, store.js, hooks.js, migrations/
 │  ├─ lib/                       # pure utils: sort.js, pinning.js, backup.js, url.js, format.js
 │  ├─ shared/                    # types/, storage-keys.js, messages.js, constants.js
-│  └─ styles/                    # panel.css (migrated stylesheet), shell.css
+│  └─ styles/                    # tokens.css, index.css + base/shell/collections/tabs/dialogs/settings/toast.css
 ├─ background/
 │  ├─ index.js                   # service worker entry
 │  ├─ autosave.js  restore.js  contextMenu.js  alarms.js  gdrive.js
@@ -540,4 +541,5 @@ export { useCollectionActions } from './hooks/useCollectionActions.js';
 | 2.1.1 | 2026-10-02 | Phase 6/7 landed, so §1 and §3.1 name the service worker as ES modules under `background/` (bundled to `dist/background.js`) rather than "vanilla JS today", §5.4's permission table drops the `downloads` row its only caller (the dormant local daily backup) lost, and §10's anti-pattern names the new path. No rule changed. |
 | 2.2.0 | 2026-10-02 | §2.1 allows the service worker to import `lib/` as well as `shared/`. The modular worker needs one pure helper (`normalizeGroupId`) that already has a canonical home; the diagram always placed `store/`, `lib/` and `shared/` in one chrome-free foundations layer, so the stricter wording barring the `lib/` edge only forced a duplicate. UI imports stay forbidden. |
 | 2.3.0 | 2026-10-02 | §2.3's storage contract gains the `folders` row and notes the per-collection `folderId`, both introduced by the folder hierarchy (Phase 8) under `schemaVersion` 1. No rule changed. |
+| 2.5.0 | 2026-10-02 | §3.1's stylesheet description follows Phase 2 of the CSS migration: `panel.css` is gone, split into `tokens.css` (Phase 1) plus the `base`/`shell`/`collections`/`tabs`/`dialogs`/`settings`/`toast` family sheets, with `index.css` as the single entry. The repository is no longer Prettier-excluded anywhere. No rule changed. |
 | 2.4.0 | 2026-10-02 | §2.3's snapshot rows gain `chromeGroups`: a session snapshot's tabs reference their Chrome group by number, so the map has to be stored with them or the id resolves to nothing and no restore path can rebuild the group. Landed with migration 0002 and `schemaVersion` 2. No rule changed. |

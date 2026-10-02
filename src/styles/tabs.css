@@ -1,0 +1,334 @@
+/* Tabs family: a tab row inside a collection, its expanded state, the per-collection
+   search, the Chrome tab-group badge and the tab menu. Split out of `panel.css` in Phase 2
+   without renaming a class (css-migration-plan.md). */
+
+/* Tabs inside collection */
+.collection-tabs {
+  padding: 0 20px 0;
+  border-top: 1px solid var(--border);
+  /* Collapsed state — hidden but animatable */
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Prevent border flash while collapsed */
+  border-top-color: transparent;
+}
+
+/* Expanded state */
+.collection-tabs.expanded {
+  padding: 0 20px 20px;
+  max-height: none;
+  overflow: visible;
+  opacity: 1;
+  transform: translateY(0);
+  border-top-color: var(--border);
+}
+
+/* Per-collection tab search */
+.collection-tab-search {
+  position: relative;
+  margin: 12px 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.collection-tab-search::before {
+  content: '\f002';
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  font-size: 11px;
+  pointer-events: none;
+  transition: color 0.25s ease;
+  z-index: 1;
+}
+
+.collection-tab-search:focus-within::before {
+  color: var(--accent);
+}
+
+.collection-tab-search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 14px 8px 32px;
+  background: var(--bg-translucent-subtle);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 400;
+  transition: var(--transition);
+}
+
+.collection-tab-search-input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+.collection-tab-search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--border-card);
+  box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.15);
+}
+
+.collection-tab-search .icon-btn {
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  border-radius: 6px;
+  background: var(--bg-translucent-subtle);
+  border: 1px solid var(--border-card);
+  font-size: 11px;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.collection-tab-search .import-tabs-btn:hover {
+  background: rgba(78, 205, 196, 0.15);
+  border-color: rgba(78, 205, 196, 0.3);
+  color: var(--success);
+}
+
+.collection-tab-search .export-tabs-btn:hover {
+  background: rgba(108, 99, 255, 0.15);
+  border-color: rgba(108, 99, 255, 0.3);
+  color: var(--accent);
+}
+
+/* No-results inside a collection */
+.collection-tabs-no-results {
+  text-align: center;
+  padding: 16px 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  opacity: 0;
+  animation: searchFadeIn 0.25s ease 0.05s forwards;
+}
+
+.tabs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.tab-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--bg-translucent-normal);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tab-item:hover {
+  background: var(--bg-card-hover);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: var(--shadow-item-hover);
+}
+
+.tab-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 18%, transparent) 0%,
+    color-mix(in srgb, var(--accent) 5%, transparent) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.tab-icon:hover {
+  transform: scale(1.05);
+  border-color: var(--accent);
+}
+
+.tab-number {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.tab-favicon-img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  display: block;
+}
+
+.tab-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0; /* Enable truncation for children */
+}
+
+/* Chrome tab-group badge — marks saved tabs that came from a Chrome tab group */
+.tab-group-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  max-width: 92px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--bg-translucent-normal);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.tab-group-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #5f6368;
+  flex-shrink: 0;
+}
+
+.tab-group-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tab-title {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  width: 100%;
+  transition: var(--transition);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.tab-title:not([readonly]) {
+  cursor: text;
+  color: var(--text-primary);
+}
+
+.tab-title:not([readonly]):focus {
+  outline: none;
+  background: var(--border);
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.tab-title[readonly] {
+  cursor: pointer;
+}
+
+.tab-title[readonly]:focus {
+  outline: none;
+  border-color: transparent;
+  background: transparent;
+}
+
+.tab-url {
+  font-size: 11px;
+  color: var(--text-secondary);
+  opacity: 0.65;
+  padding-left: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 380px;
+  transition:
+    opacity 0.2s ease,
+    color 0.2s ease;
+  cursor: pointer;
+}
+
+.tab-url:hover {
+  color: var(--accent) !important;
+  text-decoration: underline;
+  opacity: 1 !important;
+}
+
+.tab-item:hover .tab-url {
+  opacity: 0.85;
+}
+
+.tab-item:hover .tab-title {
+  color: var(--text-primary);
+}
+
+/* Custom action button styles inside tab item */
+.tab-item .icon-btn.tab-menu-btn {
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  font-size: 12px;
+  opacity: 0.7;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab-item:hover .icon-btn.tab-menu-btn {
+  opacity: 1;
+  background: var(--bg-translucent-subtle);
+  border-color: var(--border-card);
+}
+
+/* Hover effects for options in tab dropdown */
+.tab-dropdown-menu .edit-tab-btn:hover {
+  background: var(--bg-translucent-hover) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--bg-translucent-strong) !important;
+}
+
+.tab-dropdown-menu .open-tab-btn:hover {
+  background: rgba(108, 99, 255, 0.1) !important;
+  color: var(--accent) !important;
+  border-color: rgba(108, 99, 255, 0.2) !important;
+}
+
+.tab-dropdown-menu .remove-tab-btn:hover {
+  background: rgba(255, 107, 139, 0.1) !important;
+  color: var(--danger) !important;
+  border-color: rgba(255, 107, 139, 0.2) !important;
+}

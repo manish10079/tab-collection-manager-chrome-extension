@@ -8,7 +8,7 @@
 /**
  * The panel header. Replaces the legacy markup that `popup.js` filled in on `DOMContentLoaded`
  * (react-migration-plan.md §8, Phase 5.2). The `#app-name` id is kept because
- * `src/styles/panel.css` styles it.
+ * `src/styles/shell.css` styles it.
  *
  * @param {AppHeaderProps} props
  * @returns {import('react').ReactElement}

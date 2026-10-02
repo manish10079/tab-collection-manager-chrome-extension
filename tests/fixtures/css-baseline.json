@@ -1,22 +1,37 @@
 {
-  "note": "CSS migration ratchet (css-migration-plan.md, Phase 0). These numbers may only go DOWN. A rise is a regression; a fall means this file is stale and must be lowered in the same commit — the intention is that progress can never be spent silently. `info` is context and is not compared: a legitimate feature adds rules and lines, so those are not ratcheted.",
+  "note": "CSS migration ratchet (css-migration-plan.md). These numbers may only go DOWN. A rise is a regression; a fall means this file is stale and must be lowered in the same commit — the intention is that progress can never be spent silently. `info` is context and is not compared: a legitimate feature adds rules and lines, so those are not ratcheted. One deliberate raise is recorded here: Phase 2 split `panel.css` into the family sheets, which made the legacy classes part of the owned sheets, so `unprefixedClasses` jumped from 35 to 180 in that commit — they come down in Phase 3's rename. `panelCssLines` is now 0 because `panel.css` no longer exists.",
   "measuredAt": "2026-10-02",
   "version": 1,
-  "panelCssLines": 2727,
+  "panelCssLines": 0,
   "colourLiterals": 65,
   "important": 60,
   "deepSelectors": 1,
   "tagSelectors": 3,
   "hasSelectors": 7,
-  "unprefixedClasses": 35,
+  "unprefixedClasses": 180,
   "info": {
-    "stylesheets": ["index.css", "panel.css", "shell.css", "tokens.css"],
+    "stylesheets": [
+      "base.css",
+      "collections.css",
+      "dialogs.css",
+      "index.css",
+      "settings.css",
+      "shell.css",
+      "tabs.css",
+      "toast.css",
+      "tokens.css"
+    ],
     "rules": 386,
-    "totalLines": 3132,
+    "totalLines": 3233,
     "colourLiteralsByFile": {
+      "base.css": 4,
+      "collections.css": 11,
+      "dialogs.css": 1,
       "index.css": 0,
-      "panel.css": 65,
-      "shell.css": 0
+      "settings.css": 4,
+      "shell.css": 35,
+      "tabs.css": 10,
+      "toast.css": 0
     }
   }
 }

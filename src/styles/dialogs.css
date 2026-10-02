@@ -1,0 +1,463 @@
+/* Dialogs family: the modal system, the duplicate-URL dialog, the view-collection modal
+   and the history / session-details modal. Split out of `panel.css` in Phase 2 without
+   renaming a class (css-migration-plan.md). */
+
+/* ===== Modal System ===== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* Frosted glass overlay — translucent tinted blur, NOT solid black */
+  background: var(--modal-overlay-bg);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 1000;
+  padding: 32px 16px;
+  overflow-y: auto;
+  animation: overlayFadeIn 0.2s ease forwards;
+}
+
+@keyframes overlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal {
+  /* Uses the same surface color as the rest of the extension */
+  background: var(--bg-secondary);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 440px;
+  border: 1px solid var(--modal-glass-border);
+  box-shadow: var(--shadow-modal);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--modal-header-bg);
+  border-bottom: 1px solid var(--modal-glass-border);
+}
+
+.modal-header h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-primary);
+}
+
+.modal-header h3 i {
+  color: var(--accent);
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.close-modal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: var(--bg-translucent-normal);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.close-modal:hover {
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 30%, transparent);
+  color: var(--danger);
+  transform: scale(1.1);
+}
+
+.modal-body {
+  padding: 20px;
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-mode-selector {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  background: var(--bg-translucent-subtle);
+  border-radius: 12px;
+  padding: 6px;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.mode-btn.active {
+  background: var(--accent);
+  color: white;
+}
+
+.tab-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.tab-form input {
+  padding: 12px 16px;
+  background: var(--bg-translucent-normal);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: var(--transition);
+}
+
+.tab-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--bg-translucent-hover);
+  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.15);
+}
+
+.select-all-row {
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: var(--bg-translucent-subtle);
+  border-radius: 8px;
+  border: 1px dashed var(--border);
+}
+
+.open-tabs-list {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--bg-translucent-subtle);
+}
+
+.open-tab-item {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.open-tab-item:last-child {
+  border-bottom: none;
+}
+
+.open-tab-item .checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.open-tab-favicon-container {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--bg-translucent-subtle);
+  border: 1px solid var(--bg-translucent-normal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: -2px; /* Slight offset to align with checkbox */
+}
+
+.open-tab-favicon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  display: block;
+}
+
+.open-tab-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.open-tab-details .tab-title {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.open-tab-details .tab-url {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  display: block;
+}
+
+.tab-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  background: var(--bg-translucent-normal);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  display: grid;
+  place-content: center;
+  transition: var(--transition);
+  margin-top: 4px;
+}
+
+.tab-checkbox:hover {
+  background: var(--bg-translucent-active);
+  border-color: var(--accent);
+}
+
+.tab-checkbox:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.tab-checkbox::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  transform: scale(0);
+  transition: 120ms transform ease-in-out;
+  box-shadow: inset 10px 10px white;
+  transform-origin: bottom left;
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+
+.tab-checkbox:checked::before {
+  transform: scale(1);
+}
+
+.modal-footer {
+  padding: 20px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* ==================== DUPLICATE URL DIALOG ==================== */
+.duplicate-dialog {
+  max-width: 400px;
+}
+
+.duplicate-dialog .modal-header h3 {
+  color: var(--warning);
+}
+
+.duplicate-dialog .modal-header h3 i {
+  color: var(--warning);
+}
+
+.duplicate-dialog-body {
+  min-height: auto !important;
+  padding: 20px 24px !important;
+}
+
+.duplicate-message {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.duplicate-message strong {
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.duplicate-collection-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.duplicate-collection-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--warning) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 20%, transparent);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.duplicate-collection-item i {
+  color: var(--warning);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.duplicate-collection-item .dup-collection-name {
+  font-weight: 600;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.duplicate-dialog-footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  padding: 16px 24px !important;
+}
+
+.duplicate-dialog-footer .btn-secondary {
+  background: var(--warning);
+  border-color: var(--warning);
+}
+
+.duplicate-dialog-footer .btn-secondary:hover {
+  background: var(--warning-hover);
+  border-color: var(--warning-hover);
+}
+
+/* View Collection Modal (for Grid View) styling */
+.view-collection-modal {
+  max-width: 500px;
+}
+
+.view-collection-modal .modal-body {
+  padding: 16px;
+  min-height: auto;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.view-collection-modal .collection-tabs {
+  border-top: none;
+}
+
+.view-collection-modal .collection-tabs.expanded {
+  padding: 0;
+  max-height: none;
+  opacity: 1;
+  transform: none;
+}
+
+/* Ensure the tab items inside the modal are spacious and look great (list-style sizing) */
+.view-collection-modal .tab-item {
+  gap: 12px;
+  padding: 8px 12px;
+}
+
+.view-collection-modal .tab-item .tab-drag-handle {
+  width: 14px;
+  font-size: 14px;
+}
+
+.view-collection-modal .tab-item .tab-number {
+  min-width: 16px;
+  font-size: 11px;
+}
+
+.view-collection-modal .tab-item .tab-icon {
+  width: 26px;
+  height: 26px;
+}
+
+.view-collection-modal .tab-item .tab-favicon-img {
+  width: 16px;
+  height: 16px;
+}
+
+.view-collection-modal .tab-item .tab-title {
+  font-size: 13.5px;
+}
+
+.view-collection-modal .tab-item .tab-url {
+  font-size: 11px;
+  padding-left: 6px;
+}
+
+/* ===== History / Session Details Modal ===== */
+.history-modal {
+  max-width: 480px;
+}
+
+.session-details-modal {
+  max-width: 440px;
+}
+
+.history-modal-body {
+  padding: 16px;
+  min-height: 220px;
+  max-height: 68vh;
+  overflow-y: auto;
+}
+
+.history-modal-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.history-modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.history-modal-body::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}

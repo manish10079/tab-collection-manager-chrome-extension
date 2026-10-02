@@ -1,3 +1,762 @@
+/* Shell family: the header, the controls bar and its slides, the buttons, the sort menu and
+   the search UI. Split out of `panel.css` in Phase 2 without renaming a class
+   (css-migration-plan.md); the React-owned shell rules that used to live alone in this file
+   follow at the end. */
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.header h1 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+#app-name {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.header .subtitle {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+/* Compact Row and Action Bars */
+.compact-controls-row {
+  margin-bottom: 1px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.actions-bar-default {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.actions-bar-default .icon-btn {
+  flex: 1; /* Stretch buttons to fill the row evenly and look very premium */
+  width: auto;
+  height: 36px;
+  padding: 5px;
+  border-radius: 12px;
+  background: var(--bg-translucent-subtle);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 15px;
+  transition: all 0.25s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+/* Hover colors for each button type */
+.actions-bar-default #toggleSearchBtn:hover {
+  background: rgba(108, 99, 255, 0.15);
+  border-color: rgba(108, 99, 255, 0.3);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.actions-bar-default #toggleCreateBtn:hover {
+  background: rgba(108, 99, 255, 0.15);
+  border-color: rgba(108, 99, 255, 0.3);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.actions-bar-default #globalImportBtn:hover {
+  background: rgba(78, 205, 196, 0.15);
+  border-color: rgba(78, 205, 196, 0.3);
+  color: var(--success);
+  transform: translateY(-1px);
+}
+
+.actions-bar-default #globalExportBtn:hover {
+  background: rgba(108, 99, 255, 0.15);
+  border-color: rgba(108, 99, 255, 0.3);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.actions-bar-default #toggleLayoutBtn:hover {
+  background: rgba(108, 99, 255, 0.15);
+  border-color: rgba(108, 99, 255, 0.3);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+/* Slide containers for input states */
+.input-slide-container {
+  width: 100%;
+  animation: slideFadeIn 0.2s ease forwards;
+}
+
+@keyframes slideFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.input-wrapper input {
+  flex: 1;
+  height: 34px;
+  padding: 6px 14px;
+  background: var(--bg-translucent-normal);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-size: 13px;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+}
+
+.input-wrapper input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.2);
+}
+
+/* Custom search icon styling inside active search wrapper */
+.input-wrapper.search-wrapper {
+  position: relative;
+}
+
+.input-wrapper.search-wrapper::before {
+  content: '\f002'; /* Search icon magnifying glass */
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  font-size: 14px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.input-wrapper.search-wrapper input {
+  padding-left: 38px;
+}
+
+.input-wrapper .input-action-btn {
+  width: 34px;
+  height: 34px;
+  padding: 5px;
+  border-radius: 10px;
+  background: var(--bg-translucent-subtle);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 13px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.input-wrapper .input-action-btn:hover {
+  background: var(--bg-translucent-hover);
+  color: var(--text-primary);
+}
+
+.input-wrapper .input-action-btn.success-btn:hover {
+  background: rgba(78, 205, 196, 0.15);
+  border-color: rgba(78, 205, 196, 0.3);
+  color: var(--success);
+}
+
+.input-wrapper .input-action-btn.cancel-btn:hover {
+  background: rgba(255, 107, 139, 0.15);
+  border-color: rgba(255, 107, 139, 0.3);
+  color: var(--danger);
+}
+
+/* Shared by the search reveal/entrance rules below. */
+@keyframes searchFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Controls */
+.controls {
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+}
+
+/* Controls inputs (hidden by default, handled via compact row) */
+
+/* Pill badge next to "RAM Saver" text */
+.ram-saver-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(78, 205, 196, 0.25), rgba(69, 183, 209, 0.25));
+  color: var(--accent);
+  border: 1px solid rgba(78, 205, 196, 0.35);
+  letter-spacing: 0.3px;
+  vertical-align: middle;
+  margin-left: 2px;
+  text-transform: uppercase;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-weight: 500;
+  user-select: none;
+}
+
+.checkbox-label input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  background: var(--bg-translucent-normal);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  display: grid;
+  place-content: center;
+  transition: var(--transition);
+  margin: 0;
+}
+
+.checkbox-label input[type='checkbox']:hover {
+  background: var(--bg-translucent-active);
+  border-color: var(--accent);
+}
+
+.checkbox-label input[type='checkbox']:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.checkbox-label input[type='checkbox']::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  transform: scale(0);
+  transition: 120ms transform ease-in-out;
+  box-shadow: inset 10px 10px white;
+  transform-origin: bottom left;
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+
+.checkbox-label input[type='checkbox']:checked::before {
+  transform: scale(1);
+}
+
+/* Buttons */
+.btn-secondary,
+.btn-outline {
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: var(--transition);
+}
+
+.btn-secondary {
+  background: var(--bg-translucent-active);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  background: var(--bg-translucent-strong);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.btn-outline:hover {
+  background: var(--bg-translucent-normal);
+  color: var(--text-primary);
+}
+
+.icon-btn {
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  border-radius: 8px;
+  background: var(--bg-translucent-normal);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.icon-btn i,
+.icon-btn svg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  line-height: 1;
+  text-align: center;
+}
+
+.icon-btn:hover {
+  background: var(--bg-translucent-active);
+  color: var(--text-primary);
+}
+
+.btn-success {
+  background: var(--success);
+  color: #0a0a0f !important;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: var(--transition);
+}
+
+.btn-success:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+/* Restore and Sort buttons stretch equally with all other action buttons */
+#restoreBackupBtn.btn-restore,
+.sort-collections-btn {
+  flex: 1;
+  position: relative;
+  overflow: visible;
+  width: auto;
+  height: 36px;
+  border-radius: 12px;
+  background: var(--bg-translucent-subtle);
+  color: var(--text-secondary);
+  font-size: 15px;
+  transition: all 0.25s ease;
+}
+
+/* Restore button colour accent */
+.btn-restore:hover {
+  background: rgba(78, 205, 196, 0.15) !important;
+  border-color: rgba(78, 205, 196, 0.3) !important;
+  color: var(--success) !important;
+  transform: translateY(-1px);
+}
+
+/* ============================================================
+   GLOBAL SEARCH RESULTS  (two-section layout)
+   ============================================================ */
+
+.search-results-container {
+  display: none;
+  padding: 4px 0 12px;
+  animation: searchFadeIn 0.2s ease forwards;
+}
+
+/* ── Section wrapper ─────────────────────────────────────── */
+.search-section {
+  margin-bottom: 14px;
+}
+
+/* ── Section header pill ─────────────────────────────────── */
+.search-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 10px 5px 12px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  background: var(--bg-translucent-subtle);
+  border-left: 3px solid var(--accent);
+}
+
+.search-section-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+  color: var(--text-muted);
+}
+
+.search-section-title i {
+  color: var(--accent);
+  font-size: 11px;
+}
+
+.search-section-count {
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(78, 205, 196, 0.18);
+  color: var(--accent);
+  border: 1px solid rgba(78, 205, 196, 0.3);
+  border-radius: 20px;
+  padding: 1px 8px;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* ── Section body ────────────────────────────────────────── */
+.search-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ── Collection result card ──────────────────────────────── */
+.search-collection-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.search-collection-result:hover {
+  border-color: var(--accent);
+  background: rgba(78, 205, 196, 0.06);
+  transform: translateX(2px);
+}
+
+.search-result-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-result-icon {
+  color: var(--accent);
+  font-size: 14px;
+  width: 16px;
+  flex-shrink: 0;
+}
+
+.search-result-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.search-result-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.search-result-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.search-result-arrow {
+  color: var(--text-muted);
+  font-size: 10px;
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+
+.search-collection-result:hover .search-result-arrow {
+  color: var(--accent);
+}
+
+/* ── Tab group ───────────────────────────────────────────── */
+.search-tab-group {
+  margin-bottom: 6px;
+}
+
+.search-tab-group-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  padding: 3px 4px 4px;
+}
+
+.search-tab-group-label i {
+  color: var(--accent);
+  font-size: 10px;
+}
+
+/* ── Tab result row ──────────────────────────────────────── */
+.search-tab-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px 8px 12px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin-bottom: 3px;
+  transition: var(--transition);
+}
+
+.search-tab-result:hover {
+  border-color: rgba(78, 205, 196, 0.35);
+  background: rgba(78, 205, 196, 0.03);
+}
+
+.search-tab-favicon-container {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--bg-translucent-subtle);
+  border: 1px solid var(--bg-translucent-normal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.search-tab-favicon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  display: block;
+}
+
+.search-tab-result-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.search-tab-result-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-tab-result-url {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Open button inside tab result ───────────────────────── */
+.search-open-tab-btn {
+  flex-shrink: 0;
+  opacity: 0.5;
+  transition: var(--transition);
+}
+
+.search-tab-result:hover .search-open-tab-btn {
+  opacity: 1;
+  color: var(--accent);
+}
+
+/* ── Inline match highlight ──────────────────────────────── */
+mark.search-hl {
+  background: rgba(78, 205, 196, 0.22);
+  color: var(--accent);
+  border-radius: 3px;
+  padding: 0 2px;
+  font-style: normal;
+}
+
+/* Sort Dropdown Components */
+.sort-tabs-container,
+.sort-collections-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sort-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 6px;
+  background: var(--bg-dropdown); /* Solid opaque background — no bleed-through */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  z-index: 1000;
+  min-width: 175px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Animations for dropdown */
+.sort-dropdown-menu.hidden {
+  display: none !important;
+}
+
+.sort-option {
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 10px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: var(--transition);
+}
+
+.sort-option:hover {
+  background: var(--bg-translucent-normal);
+  color: var(--text-primary);
+}
+
+.sort-option.active {
+  background: rgba(108, 99, 255, 0.15);
+  color: var(--accent);
+  font-weight: 600;
+  border: 1px solid rgba(108, 99, 255, 0.2);
+}
+
+.sort-option i {
+  width: 14px;
+  text-align: center;
+}
+
+/* Hide drag handles when sorting is active */
+.collections-container.sort-active .collection-drag-handle {
+  display: none !important;
+}
+
+.tabs-list.sort-active .tab-drag-handle {
+  display: none !important;
+}
+
+/* Ensure the sort buttons look consistent with surrounding styles */
+.sort-tabs-btn {
+  background: var(--bg-translucent-subtle);
+}
+
+.sort-tabs-btn:hover {
+  background: rgba(108, 99, 255, 0.15);
+  border-color: rgba(108, 99, 255, 0.3);
+  color: var(--accent);
+}
+
+.sort-collections-btn:hover {
+  background: rgba(108, 99, 255, 0.15);
+  border-color: rgba(108, 99, 255, 0.3);
+  color: var(--accent);
+  /* No translateY — it shifts the button anchor and causes dropdown to flicker */
+}
+
+/* When the dropdown is open, lock the button in place to prevent hover flicker */
+.sort-collections-btn:has(.sort-dropdown-menu:not(.hidden)) {
+  transform: none !important;
+  background: rgba(108, 99, 255, 0.15);
+  border-color: rgba(108, 99, 255, 0.3);
+  color: var(--accent);
+  pointer-events: none; /* Block new hover-state changes on the button itself */
+}
+
+/* Allow pointer events on the dropdown itself so options remain clickable */
+.sort-collections-btn:has(.sort-dropdown-menu:not(.hidden)) .sort-dropdown-menu {
+  pointer-events: auto;
+}
+
+.footer-btn-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 /* React-owned styles. Class prefix `rs-` avoids collisions with the migrated panel stylesheet
    (skill.md §5.3). Collection list styling still comes from panel.css, so the React markup
    deliberately reuses the legacy class names. */

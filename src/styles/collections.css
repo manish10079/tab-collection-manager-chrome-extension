@@ -1,0 +1,679 @@
+/* Collections family: the list, cards, grid view, drag and drop, the section headings and
+   pinning, plus the dropdown chrome the collection and tab menus share. Split out of
+   `panel.css` in Phase 2 without renaming a class (css-migration-plan.md). */
+
+/* No-results message inside collections container */
+.search-no-results {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0;
+  animation: searchFadeIn 0.3s ease 0.05s forwards;
+}
+
+.search-no-results i {
+  font-size: 32px;
+  margin-bottom: 12px;
+  display: block;
+  opacity: 0.4;
+}
+
+/* Collections */
+.collections-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Grid View Layout Styles */
+.collections-container.grid-view {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+@keyframes cardLayoutChange {
+  from {
+    opacity: 0.5;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.collections-container.grid-view .collection,
+.collections-container:not(.grid-view) .collection {
+  animation: cardLayoutChange 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.collections-container.grid-view .collection-header {
+  flex-direction: column;
+  align-items: stretch;
+  padding: 12px;
+  gap: 8px;
+}
+
+.collections-container.grid-view .collection-left-section {
+  width: 100%;
+  gap: 8px;
+}
+
+.collections-container.grid-view .collection-right-section {
+  width: 100%;
+  justify-content: space-between;
+  border-top: 1px solid var(--bg-translucent-normal);
+  padding-top: 8px;
+  gap: 8px;
+}
+
+.collections-container.grid-view .collection-name {
+  font-size: 14.5px;
+  max-width: none;
+  flex: 1;
+}
+
+.collections-container.grid-view .collection-drag-handle {
+  font-size: 13px;
+  width: 12px;
+}
+
+.collections-container.grid-view .expand-btn {
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
+}
+
+.collections-container.grid-view .collection-tabs {
+  padding: 0 12px 0;
+}
+
+.collections-container.grid-view .collection-tabs.expanded {
+  padding: 0 12px 12px;
+}
+
+.collections-container.grid-view .collection-tab-search {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.collections-container.grid-view .collection-tab-search-input {
+  width: 100%;
+  flex: 1 1 100%;
+  padding-left: 28px;
+}
+
+.collections-container.grid-view .collection-tab-search::before {
+  left: 10px;
+}
+
+.collections-container.grid-view .collection-tab-search .icon-btn,
+.collections-container.grid-view .collection-tab-search .sort-tabs-container {
+  flex: 1;
+}
+
+.collections-container.grid-view .collection-tab-search .sort-tabs-btn {
+  width: 100%;
+  height: 28px;
+}
+
+.collections-container.grid-view .tab-item {
+  gap: 6px;
+  padding: 6px 8px;
+}
+
+.collections-container.grid-view .tab-item .tab-drag-handle {
+  width: 10px;
+  font-size: 11px;
+}
+
+.collections-container.grid-view .tab-item .tab-number {
+  min-width: auto;
+  font-size: 10px;
+  margin-right: 2px;
+}
+
+.collections-container.grid-view .tab-item .tab-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.collections-container.grid-view .tab-item .tab-favicon-img {
+  width: 12px;
+  height: 12px;
+}
+
+.collections-container.grid-view .tab-item .tab-content {
+  gap: 1px;
+}
+
+.collections-container.grid-view .tab-item .tab-title {
+  font-size: 12px;
+  padding: 1px 4px;
+}
+
+.collections-container.grid-view .tab-item .tab-url {
+  font-size: 10px;
+  padding-left: 4px;
+}
+
+.collections-container.grid-view .tab-item .icon-btn.pin-tab-btn,
+.collections-container.grid-view .tab-item .icon-btn.tab-menu-btn {
+  width: 24px;
+  height: 24px;
+  font-size: 10px;
+}
+
+.collections-container.grid-view .collection:nth-child(odd) .collection-dropdown-menu {
+  left: 0;
+  right: auto;
+}
+
+.collections-container.grid-view .collection:nth-child(odd) .tab-dropdown-menu {
+  left: auto;
+  right: 0;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+
+.empty-state i {
+  font-size: 48px;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  font-size: 20px;
+  margin-bottom: 10px;
+  color: var(--text-primary);
+}
+
+.empty-state p {
+  font-size: 15px;
+}
+
+.collection {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-card);
+  overflow: visible;
+  box-shadow: var(--shadow-card);
+  transition:
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.25s,
+    box-shadow 0.25s,
+    background-color 0.25s;
+}
+
+.collection:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: var(--bg-card-hover);
+  box-shadow:
+    var(--shadow-card-hover),
+    0 0 20px color-mix(in srgb, var(--accent) 15%, transparent);
+  /* Removed translateY(-2px) — it shifts the card up and causes dropdown flicker */
+}
+
+.current-session-collection {
+  border-left: 4px solid var(--success) !important;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--success) 7%, transparent) 0%,
+    var(--bg-card) 100%
+  ) !important;
+  border-color: color-mix(in srgb, var(--success) 20%, transparent);
+}
+
+.current-session-collection:hover {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--success) 12%, transparent) 0%,
+    var(--bg-card-hover) 100%
+  ) !important;
+  border-color: color-mix(in srgb, var(--success) 45%, transparent);
+  box-shadow:
+    var(--shadow-card-hover),
+    0 0 20px color-mix(in srgb, var(--success) 15%, transparent);
+}
+
+.current-session-collection .collection-name {
+  color: var(--success);
+  font-weight: 500;
+  cursor: default;
+}
+
+.current-session-collection .collection-name:focus {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.auto-save-target {
+  border-left: 4px solid var(--accent) !important;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 8%, transparent) 0%,
+    var(--bg-card) 100%
+  );
+  border-color: color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.auto-save-target:hover {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 13%, transparent) 0%,
+    var(--bg-card-hover) 100%
+  );
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  box-shadow:
+    var(--shadow-card-hover),
+    0 0 20px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.collection-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  gap: 12px;
+  cursor: pointer;
+  flex-wrap: wrap;
+}
+
+.collection-left-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.collection-right-section {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.expand-btn {
+  background: var(--bg-translucent-subtle);
+  border: 1px solid var(--bg-translucent-normal);
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.2s,
+    border-color 0.2s,
+    color 0.2s;
+  flex-shrink: 0;
+}
+
+.expand-btn:hover {
+  background: var(--bg-translucent-hover);
+  border-color: var(--bg-translucent-strong);
+  color: var(--text-primary);
+}
+
+.expand-btn.rotated {
+  transform: rotate(90deg);
+}
+
+.collection-name {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  font-size: 17.5px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 6px;
+  min-width: 80px;
+  max-width: 320px;
+  flex: 1;
+  width: 100%;
+  transition: var(--transition);
+  cursor: default;
+  pointer-events: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.collection-name:not([readonly]) {
+  cursor: text;
+  pointer-events: auto;
+  background: var(--bg-translucent-normal);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--text-primary);
+}
+
+.collection-name:not([readonly]):focus {
+  outline: none;
+  background: var(--border);
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.collection-name[readonly]:focus {
+  outline: none;
+}
+
+.collection:hover .collection-name {
+  color: var(--text-primary);
+}
+
+.collection-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  opacity: 0.8;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.collection-meta .updated-time,
+.collection-meta .meta-dot {
+  display: none !important;
+}
+
+.collection-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.collection-actions .icon-btn {
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  border-radius: 9px;
+  background: var(--bg-translucent-subtle);
+  border: 1px solid var(--border-card);
+  font-size: 15px;
+  transition: all 0.2s ease-in-out;
+  color: var(--text-secondary);
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.collection-actions .collection-menu-btn:hover {
+  background: var(--bg-translucent-hover);
+  border-color: var(--bg-translucent-strong);
+  color: var(--text-primary);
+}
+
+/* Dropdown style inside collection actions and tab menu container */
+.collection-actions,
+.tab-menu-container {
+  position: relative;
+}
+
+.collection-dropdown-menu,
+.tab-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 6px;
+  background: var(--bg-dropdown) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid var(--bg-translucent-hover);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  z-index: 1000;
+  min-width: 190px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tab-dropdown-menu {
+  min-width: 150px;
+  background: var(--bg-dropdown) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.collection-dropdown-menu.hidden,
+.tab-dropdown-menu.hidden {
+  display: none !important;
+}
+
+/* Fix stacking issues when dropdown menus are open */
+.collection:has(.collection-dropdown-menu:not(.hidden)),
+.collection:has(.tab-dropdown-menu:not(.hidden)),
+.collection:has(.sort-dropdown-menu:not(.hidden)) {
+  position: relative;
+  z-index: 100;
+}
+
+.tab-item:has(.tab-dropdown-menu:not(.hidden)) {
+  position: relative;
+  z-index: 101;
+}
+
+.dropdown-option {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+  /* Scope transition to only non-layout properties to avoid flicker */
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.dropdown-option:hover {
+  background: var(--bg-translucent-normal);
+  color: var(--text-primary);
+}
+
+.dropdown-option i {
+  width: 16px;
+  text-align: center;
+  font-size: 13px;
+}
+
+/* Hover effects for options in collection dropdown */
+.collection-dropdown-menu .open-all-tabs-btn:hover {
+  background: rgba(78, 205, 196, 0.1) !important;
+  color: var(--success) !important;
+  border-color: rgba(78, 205, 196, 0.2) !important;
+}
+
+.collection-dropdown-menu .edit-collection-btn:hover {
+  background: var(--bg-translucent-hover) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--bg-translucent-strong) !important;
+}
+
+.collection-dropdown-menu .add-tabs-btn:hover {
+  background: rgba(108, 99, 255, 0.1) !important;
+  color: var(--accent) !important;
+  border-color: rgba(108, 99, 255, 0.2) !important;
+}
+
+.collection-dropdown-menu .share-collection-btn:hover {
+  background: rgba(108, 99, 255, 0.08) !important;
+  color: var(--accent-hover) !important;
+  border-color: rgba(108, 99, 255, 0.15) !important;
+}
+
+.collection-dropdown-menu .delete-collection-btn:hover {
+  background: rgba(255, 107, 139, 0.1) !important;
+  color: var(--danger) !important;
+  border-color: rgba(255, 107, 139, 0.2) !important;
+}
+
+/* Drag and Drop Styling */
+.collection,
+.tab-item {
+  user-select: none;
+}
+
+.collection-header {
+  cursor: pointer;
+}
+
+.tab-item {
+  cursor: default;
+}
+
+.drag-handle {
+  cursor: grab;
+  color: var(--bg-translucent-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 30px;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.drag-handle i {
+  font-size: 14px;
+}
+
+.drag-handle:hover {
+  color: var(--text-primary);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.collection.dragging,
+.tab-item.dragging {
+  opacity: 0.4;
+  border: 1px dashed var(--accent);
+}
+
+.collection.drag-over {
+  border: 2px dashed var(--accent) !important;
+  transform: scale(1.01);
+  box-shadow: 0 4px 20px rgba(108, 99, 255, 0.2);
+}
+
+.tab-item.drag-over {
+  border: 2px dashed var(--accent) !important;
+  transform: scale(1.01);
+  box-shadow: 0 4px 12px rgba(108, 99, 255, 0.15);
+}
+
+/* Pinning Feature Styles */
+.collection-actions .pin-collection-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--bg-translucent-subtle);
+  border: 1px solid var(--border-card);
+  font-size: 15px;
+  transition: all 0.2s ease-in-out;
+  color: var(--text-secondary);
+}
+
+.collection-actions .pin-collection-btn:hover {
+  background: var(--bg-translucent-hover);
+  border-color: var(--bg-translucent-strong);
+  color: var(--text-primary);
+}
+
+.collection-actions .pin-collection-btn.pinned {
+  color: var(--danger); /* Premium Amber */
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  border-color: color-mix(in srgb, var(--warning) 35%, transparent);
+  opacity: 1;
+}
+
+.collection-actions .pin-collection-btn.pinned:hover {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--warning) 25%, transparent);
+  border-color: color-mix(in srgb, var(--warning) 50%, transparent);
+}
+
+.collection.pinned {
+  border-color: color-mix(in srgb, var(--warning) 25%, transparent);
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--warning) 3%, transparent) 0%,
+    rgba(255, 255, 255, 0.01) 100%
+  );
+}
+
+.tab-menu-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tab-item .icon-btn.pin-tab-btn {
+  width: 28px;
+  height: 28px;
+  padding: 5px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  font-size: 12px;
+  opacity: 0.7;
+  transition: all 0.2s ease-in-out;
+  color: var(--text-secondary);
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab-item:hover .icon-btn.pin-tab-btn {
+  opacity: 1;
+  background: var(--bg-translucent-subtle);
+  border-color: var(--border-card);
+}
+
+.tab-item .icon-btn.pin-tab-btn.pinned {
+  color: var(--warning); /* Premium Amber */
+  opacity: 1;
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  border-color: color-mix(in srgb, var(--warning) 30%, transparent);
+}
+
+.tab-item .icon-btn.pin-tab-btn.pinned:hover {
+  color: var(--warning-accent);
+  background: color-mix(in srgb, var(--warning) 25%, transparent);
+}
+
+.tab-item.pinned {
+  border-color: color-mix(in srgb, var(--warning) 20%, transparent);
+  background: color-mix(in srgb, var(--warning) 2%, transparent);
+}

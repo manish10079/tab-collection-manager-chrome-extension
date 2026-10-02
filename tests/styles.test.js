@@ -15,6 +15,20 @@ import {
 const ENTRY_STYLESHEET = 'index.css';
 
 /**
+ * The feature families `panel.css` was split into in Phase 2, in cascade order. `tokens.css` comes
+ * first and the React-owned `shell.css` sits with the other shell rules.
+ */
+const FAMILY_SHEETS = [
+  'base.css',
+  'shell.css',
+  'collections.css',
+  'tabs.css',
+  'dialogs.css',
+  'settings.css',
+  'toast.css',
+];
+
+/**
  * The Phase 0 ratchet of the CSS migration (css-migration-plan.md §5).
  *
  * The panel still renders the pre-React `panel.css`, so the four §5.3 rules (tokens only, no
@@ -78,7 +92,7 @@ describe('css ratchet', () => {
     const imports = [...entry.matchAll(/@import\s+['"]\.\/([\w.-]+)['"]\s*;/g)].map(
       (match) => match[1]
     );
-    expect(imports).toEqual([TOKEN_STYLESHEET, LEGACY_STYLESHEET, 'shell.css']);
+    expect(imports).toEqual([TOKEN_STYLESHEET, ...FAMILY_SHEETS]);
 
     const present = (await listStylesheets())
       .map((sheet) => sheet.file)
@@ -97,14 +111,13 @@ describe('css ratchet', () => {
     expect(entry).toContain(LEGACY_STYLESHEET);
   });
 
-  it('keeps colour literals in the token file once the legacy sheet is gone', async () => {
-    // Phase 6 turns this on. Until `panel.css` — the bulk of the remaining literals — is deleted,
-    // the ratchet's `colourLiterals` count is the guard; a binary "no literal anywhere else"
+  it('keeps colour literals in the token file once the migration has removed them', async () => {
+    // Phase 6 turns this on. Until the ratchet's `colourLiterals` reaches zero — Phases 2-5 retire
+    // them family by family — that count is the guard, and a binary "no literal anywhere else"
     // assertion would fire on the legitimate intermediate states of the migration.
     const sheets = await listStylesheets();
     const hasTokens = sheets.some((sheet) => sheet.file === TOKEN_STYLESHEET);
-    const hasLegacy = sheets.some((sheet) => sheet.file === LEGACY_STYLESHEET);
-    if (!hasTokens || hasLegacy) return;
+    if (!hasTokens || baseline().colourLiterals > 0) return;
 
     const offenders = sheets
       .filter((sheet) => sheet.file !== TOKEN_STYLESHEET)

@@ -8,7 +8,7 @@ import { hydrate, startStorageSync } from './store/store.js';
 //
 // Font Awesome is pinned to 6.4.0 — the version the CDN link used to serve. `all.min.css` is
 // imported rather than the per-style files because it also declares the legacy
-// `'Font Awesome 5 Free'` family that two `::before` icons in `src/styles/panel.css` ask for.
+// `'Font Awesome 5 Free'` family that two `::before` icons in the panel's stylesheets ask for.
 import '@fortawesome/fontawesome-free/css/all.min.css';
 // Weights actually used by the stylesheet (300 was requested from the CDN but never used,
 // and 900 is left out on purpose: nothing loaded a 900 face before either).
@@ -17,7 +17,7 @@ import '@fontsource/inter/500.css';
 import '@fontsource/inter/600.css';
 import '@fontsource/inter/700.css';
 
-// The panel's single stylesheet entry — `tokens.css`, then `panel.css`, then `shell.css`. Keeping
+// The panel's single stylesheet entry — `tokens.css` then the family sheets. Keeping
 // the cascade in one file (rather than split between the HTML link and this import) is what the
 // CSS migration's Phase 1 established; `tests/styles.test.js` asserts the order.
 import './styles/index.css';

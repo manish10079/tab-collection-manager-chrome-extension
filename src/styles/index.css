@@ -2,11 +2,15 @@
  *
  * Vite bundles these into one hashed asset, so the order below *is* the cascade order — and it is
  * asserted by `tests/styles.test.js`, so a later import cannot silently reorder it. `tokens.css`
- * comes first so every later sheet resolves its `var(--…)`; `panel.css` is the migrated pre-React
- * sheet, and `shell.css` layers the React-owned rules on top. That is the same order the two were
- * loaded in before this file existed (the HTML `<link>` for `panel.css`, then `main.jsx`'s import of
- * `shell.css`), which is why moving them here changes no rendering.
+ * comes first so every later sheet resolves its `var(--…)`; `base.css` is the reset and layout
+ * boxes; the feature families follow. Phase 2 split the one 2,700-line `panel.css` into these
+ * sheets without renaming a class, so the bundled result resolves to the same styles.
  */
 @import './tokens.css';
-@import './panel.css';
+@import './base.css';
 @import './shell.css';
+@import './collections.css';
+@import './tabs.css';
+@import './dialogs.css';
+@import './settings.css';
+@import './toast.css';

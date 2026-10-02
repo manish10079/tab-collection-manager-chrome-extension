@@ -18,8 +18,9 @@ export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 export const STYLES_DIR = 'src/styles';
 
 /**
- * The stylesheet allowed to hold colour literals. It does not exist yet — Phase 1 creates it — so
- * every literal counts against the ratchet until then, which is what makes Phase 1 measurable.
+ * The stylesheet allowed to hold colour literals (created in Phase 1). Every literal in any other
+ * sheet counts against the ratchet, so moving one into `tokens.css` lowers the count and adding one
+ * elsewhere raises it.
  */
 export const TOKEN_STYLESHEET = 'tokens.css';
 
