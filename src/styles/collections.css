@@ -1,6 +1,6 @@
 /* Collections family: the list, cards, grid view, drag and drop, the section headings and
-   pinning, plus the dropdown chrome the collection and tab menus share. Split out of
-   `panel.css` in Phase 2 without renaming a class (css-migration-plan.md). */
+   pinning, plus the dropdown chrome the collection and tab menus share. Split out of the legacy
+   single stylesheet in Phase 2 without renaming a class (css-migration-plan.md). */
 
 /* No-results message inside collections container */
 .search-no-results {

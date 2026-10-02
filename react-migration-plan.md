@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Document version | 1.17.6 |
+| Document version | 1.17.7 |
 | Status | Phases 0-8 complete (5.1-5.4, 6, 7 and the folder hierarchy in 8); the vanilla UI is gone, the bundle is self-contained and `dist/` loads nothing remotely (see §2.1 and the changelog) |
 | Scope | UI layer of the MV3 extension (`src/sidepanel.html`, `src/`, `src/styles/`) |
 | Out of scope | New features, `background.js` rewrite (deferred to Phase 6), Firefox support |
@@ -45,8 +45,8 @@ the live state see §2.1.
 ### 2.1 State at plan v1.17.0
 
 Phases 0-8 complete. The vanilla UI is gone — no `popup.html`, no `popup.js`, no seam,
-no classic script, and no file still named after the old popup: the stylesheet is `src/styles/panel.css`
-as of 1.12.0. Its last trace in the bundle is gone too: the two CDN `<link>`s and the dead half of
+no classic script, and no file still named after the old popup: its stylesheet was the last holdout, and the CSS migration has since split and deleted it (ADR-0014).
+Its last trace in the bundle is gone too: the two CDN `<link>`s and the dead half of
 the stylesheet.
 
 | Layer | Size | Notes |
@@ -54,7 +54,7 @@ the stylesheet.
 | `src/sidepanel.html` | 20 lines | The Vite HTML entry: `#root` + the module script. Vite owns the page and its hashed assets |
 | `src/` (React) | 9,428 lines, 111 files | 25 test files / 196 unit tests, plus 4 worker files / 34 tests under `background/__tests__/`; the whole panel — shell, collections, dialogs, settings — plus the store and its boot sequence |
 | `e2e/` | 4 files, 7 specs | Playwright walk of the packaged extension in Playwright's Chromium; `npm run e2e` builds `dist/` first (1.13.0) |
-| `src/styles/panel.css` | 2,803 lines | The migrated pre-React stylesheet, renamed from `popup.css` in 1.12.0; bundled by Vite via the HTML entry, with the rules no surviving mark-up reaches swept in 1.11.0. `src/styles/shell.css` layers the React-owned rules on top |
+| `src/styles/` | 9 sheets | `tokens.css`, the `index.css` entry and the `base`/`shell`/`collections`/`tabs`/`dialogs`/`settings`/`toast` family sheets the CSS migration split the pre-React stylesheet into (1.17.7); one hashed bundle, cascade order asserted by `tests/styles.test.js` |
 | Vendor assets | 2 deps | `@fortawesome/fontawesome-free@6.4.0` + `@fontsource/inter`; self-hosted, woff2-only in `dist/` (1.11.0) |
 | `dist/` | 1.12 MB | Was 2.5 MB before the build started dropping non-woff2 font fallbacks (1.11.0); the bundled worker is smaller than the copied one (1.15.0) |
 | CI | `.github/workflows/ci.yml` | Lint, format check, tests, build and the bundle-size budget on every push and pull request; the E2E walk stays local (1.14.0) |
@@ -75,7 +75,7 @@ What the old shell owned, and where each piece went:
 | State bridge for the classic script (`window.__tcmStore`) | ✅ deleted with its only caller (1.10.0) | done |
 | Self-hosted Font Awesome + Inter (two CDN `<link>`s) | ✅ runtime deps, bundled by Vite; `dist/` ships woff2 only (1.11.0) | done |
 | Dead rules in the panel stylesheet | ✅ swept: 102 lines no React mark-up reaches (1.11.0) | done |
-| The last `popup*` filename | ✅ `popup.css` → `src/styles/panel.css`, linked from the Vite entry (1.12.0) | done |
+| The last `popup*` filename | ✅ `popup.css` → the pre-React stylesheet, later split into the `src/styles/` family sheets and deleted (1.12.0, 1.17.7) | done |
 | Accessible names, slide focus return, Escape routing | ✅ `aria-label`s, `aria-hidden` icons, `useRestoreFocus` (1.11.0) | done |
 
 ### Pain points this migration fixes
@@ -539,6 +539,7 @@ commit only —
 
 | Version | Date | Notes |
 |---|---|---|
+| 1.17.7 | 2026-10-02 | The CSS migration is finished, and the "Retained artifacts" note in §2.1 is corrected with it. The pre-React stylesheet the migration targeted is gone: `src/styles/` is now `tokens.css`, the `index.css` entry and the `base`/`shell`/`collections`/`tabs`/`dialogs`/`settings`/`toast` family sheets, split from it in Phase 2, renamed family by family in Phase 3, flattened in Phase 5 and deleted in Phase 6. Nothing user-visible, no storage shape, no message and no manifest field moves — the extension version does not bump for a pure refactor — so this row records only the closure of the styling work and the doc corrections that follow it. The migration itself, with its ratchet and its two rendering tools (`scripts/css-coverage.mjs`, `scripts/css-probe.mjs`), is recorded in ADR-0014 and `css-migration-plan.md`. |
 | 1.17.6 | 2026-10-02 | Extension version bumped to 2.3.0 — a MINOR, because the change users can see since 2.2.0 is that Chrome tab groups now survive **every** restore path (1.17.5), a fix for silent data loss. `manifest.json` moves 2.2.0 → 2.3.0 and `package.json`, both lockfile version fields, `feature_list.md`'s title and `missing_features.md`'s header follow it. For the first time a second axis moves with it: the storage `schemaVersion` is now **2**, shipped as the additive migration `0002-session-groups.js` in 1.17.5 — a snapshot written before it simply gains an empty `chromeGroups` and restores exactly as it did, so it is not a breaking change and the release stays MINOR (folders did the same at `schemaVersion` 1 in 1.17.0). The message protocol is unchanged. The two CSS-migration commits that landed in the same window — Phase 0's ratchet and coverage tool, Phase 1's `tokens.css` extraction — move no version axis and are recorded in `css-migration-plan.md`. `tests/version-alignment.test.js` passes 4/4. |
 | 1.17.5 | 2026-10-02 | Chrome tab groups now survive **every** restore path. A saved tab references its group by number, and only the collection's own `chromeGroups` map resolved that number — so a path that carried tabs without the map recorded group ids that pointed at nothing. Two fixes, one for each direction. *Capture:* `autosave.js` writes `chromeGroups` into `lastSessionBackup` and into each `sessionHistory` entry (it already wrote `chromeGroupId` onto every tab, so the snapshots were internally inconsistent). *Restore:* the history dialog's Open All no longer creates its tabs from the panel; it sends the whole entry to the worker's `restoreSession`, which is the single implementation of the group rebuild (ADR-0004) and is what a collection's Open All Tabs and Restore Previous Session already used — `openSessionTabs.js` is deleted with it. The export/import payload also carries `chromeGroups` and each tab's `chromeGroupId`, remapped onto keys free in the target collection on a merge (so an import can never overwrite a group the existing tabs point at), with an identical group reused to keep a re-import idempotent. Both snapshot shapes changed, so `schemaVersion` moves to 2 with migration `0002-session-groups.js` (additive: a pre-migration snapshot gains an empty map, i.e. it restores exactly as it did before). Suite 316 → 321 in 38 files, and a new Playwright spec restores a snapshot against real Chrome and asserts `chrome.tabGroups` reports the saved title and colour — it fails with `Received array: []` if the map is removed. Decision recorded in ADR-0013; `skill.md` §2.3 gained the snapshot `chromeGroups` note at document 2.4.0. |
 | 1.17.4 | 2026-10-02 | Extension version bumped to 2.2.0 — a MINOR, because the one feature since 2.1.1 is user-visible: bulk delete (1.17.3), which is also the first change to reverse a documented decision (ADR-0011 → ADR-0012). The two-section layout, the foldable headings and the count badges were already in 2.1.1, so 2.2.0 carries them rather than introducing them. `manifest.json` moves from 2.1.1 to 2.2.0 and `package.json`, both lockfile version fields, `feature_list.md`'s title and `missing_features.md`'s header follow it. The other axes stay where they were: the storage `schemaVersion` is still 1 and the message protocol is unchanged, because every change in this release was UI state or a CSS/rendering fix. `tests/version-alignment.test.js` passes, which is the point of the separate axes (skill.md §7). |

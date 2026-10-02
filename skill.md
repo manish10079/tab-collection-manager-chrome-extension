@@ -5,7 +5,7 @@
 
 | Field | Value |
 | --- | --- |
-| Document version | 2.6.0 |
+| Document version | 2.7.0 |
 | Status | Active |
 | Last updated | 2026-10-02 |
 | Owner | Maintainer (`@mkn`) |
@@ -133,7 +133,7 @@ The React migration is complete through Phase 5.4, so the layout below is no lon
 one. The UI is React + JSDoc in `src/`, bundled by Vite, and the stylesheets live in `src/styles/`
 (`tokens.css` for the design values, `index.css` as the single entry, and the per-feature family
 sheets `base`/`shell`/`collections`/`tabs`/`dialogs`/`settings`/`toast` the CSS migration split the
-old `panel.css` into); the service worker is ES modules under `background/`, bundled by
+legacy single stylesheet into); the service worker is ES modules under `background/`, bundled by
 `scripts/build.mjs` to the single `dist/background.js` the manifest names (Phase 6, ADR-0010). No
 file is excluded from lint or format.
 
@@ -558,3 +558,4 @@ export { useCollectionActions } from './hooks/useCollectionActions.js';
 | 2.5.0 | 2026-10-02 | §3.1's stylesheet description follows Phase 2 of the CSS migration: `panel.css` is gone, split into `tokens.css` (Phase 1) plus the `base`/`shell`/`collections`/`tabs`/`dialogs`/`settings`/`toast` family sheets, with `index.css` as the single entry. The repository is no longer Prettier-excluded anywhere. No rule changed. |
 | 2.4.0 | 2026-10-02 | §2.3's snapshot rows gain `chromeGroups`: a session snapshot's tabs reference their Chrome group by number, so the map has to be stored with them or the id resolves to nothing and no restore path can rebuild the group. Landed with migration 0002 and `schemaVersion` 2. No rule changed. |
 | 2.6.0 | 2026-10-02 | §5.3's naming rule becomes the closed prefix map: the three prefixes it named grow to the seven the panel needs (`cc-` collections, `tab-` tab rows, `sh-` shell, `dl-` dialogs, `set-` settings, `ts-` toasts, `ut-` shared utilities), each with the family sheet that owns it and an example class. The panel is larger than three features, so the rule has to say which prefix a new class takes before the CSS migration's Phase 3 renames family by family. This also retires `rs-`, the prefix `shell.css` invented for itself, in favour of `sh-`. Classes keep their current names until their family's rename commit. |
+| 2.7.0 | 2026-10-02 | §3.1 says the legacy single stylesheet is now gone rather than merely split, after the CSS migration's Phase 6 retired it; the `tokens.css` + `index.css` + family sheets in `src/styles/` are the panel's only styling and no file is excluded from lint or format. The refactor — tokens, the closed prefix map, the coverage and computed-style tools, and the deletion of the legacy sheet — is recorded in ADR-0014. No rule changed. |

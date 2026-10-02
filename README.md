@@ -117,7 +117,7 @@ drops any folder reference that no longer resolves. See
 Styling lives in `src/styles/`. `index.css` is the single entry: it imports `tokens.css` (the design
 values, and the only file allowed a raw colour) followed by the per-feature family sheets — `base`,
 `shell`, `collections`, `tabs`, `dialogs`, `settings` and `toast` — that the CSS migration split the
-old 2,700-line `panel.css` into, without renaming a class yet. `src/main.jsx` imports that one entry,
+legacy single stylesheet into; that file is now deleted, so the families are the panel's only styling. `src/main.jsx` imports that one entry,
 so Vite emits a single hashed stylesheet and the cascade order is decided in one place rather than
 split between the page and the JS.
 

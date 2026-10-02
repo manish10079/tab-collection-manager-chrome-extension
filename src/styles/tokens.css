@@ -1,10 +1,10 @@
 /* Design tokens — the one stylesheet allowed to declare a raw colour (css-migration-plan.md, §2).
  *
- * Phase 1 moved these three blocks verbatim out of `panel.css`: the dark `:root`, the light
- * `[data-theme="light"]` override, and the values both themes share. The names are unchanged — this
- * phase renames nothing — so every other sheet keeps consuming `var(--…)` and the cascade is
- * unaffected as long as `index.css` imports this file first. Panel.css's own literal colours are
- * being retired family by family on top of this.
+ * Phase 1 moved these three blocks verbatim out of the legacy single stylesheet: the dark `:root`,
+ * the light `[data-theme="light"]` override, and the values both themes share. The names are
+ * unchanged — this phase renames nothing — so every other sheet keeps consuming `var(--…)` and the
+ * cascade is unaffected as long as `index.css` imports this file first. The legacy sheet's own
+ * literal colours were retired family by family on top of this (Phases 2-5).
  */
 
 /* ==========================================================================

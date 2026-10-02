@@ -1,6 +1,6 @@
 /* Tabs family: a tab row inside a collection, its expanded state, the per-collection
-   search, the Chrome tab-group badge and the tab menu. Split out of `panel.css` in Phase 2
-   without renaming a class (css-migration-plan.md). */
+   search, the Chrome tab-group badge and the tab menu. Split out of the legacy single stylesheet
+   in Phase 2 without renaming a class (css-migration-plan.md). */
 
 /* Tabs inside collection */
 .collection-tabs {

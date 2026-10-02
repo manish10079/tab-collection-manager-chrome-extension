@@ -1,6 +1,6 @@
 /* Dialogs family: the modal system, the duplicate-URL dialog, the view-collection modal
-   and the history / session-details modal. Split out of `panel.css` in Phase 2 without
-   renaming a class (css-migration-plan.md). */
+   and the history / session-details modal. Split out of the legacy single stylesheet in
+   Phase 2 without renaming a class (css-migration-plan.md). */
 
 /* ===== Modal System ===== */
 .modal-overlay {

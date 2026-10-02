@@ -3,7 +3,7 @@
  * Vite bundles these into one hashed asset, so the order below *is* the cascade order — and it is
  * asserted by `tests/styles.test.js`, so a later import cannot silently reorder it. `tokens.css`
  * comes first so every later sheet resolves its `var(--…)`; `base.css` is the reset and layout
- * boxes; the feature families follow. Phase 2 split the one 2,700-line `panel.css` into these
+ * boxes; the feature families follow. Phase 2 split the one 2,700-line legacy sheet into these
  * sheets without renaming a class, so the bundled result resolves to the same styles.
  */
 @import './tokens.css';

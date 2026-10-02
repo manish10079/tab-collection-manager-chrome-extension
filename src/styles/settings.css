@@ -1,6 +1,6 @@
 /* Settings family: the settings cards and rows, the toggles, the shortcuts help and the
-   cloud-backup buttons. Split out of `panel.css` in Phase 2 without renaming a class
-   (css-migration-plan.md). */
+   cloud-backup buttons. Split out of the legacy single stylesheet in Phase 2 without renaming
+   a class (css-migration-plan.md). */
 
 /* ===== Settings UI Styles ===== */
 .header-actions {

@@ -1,5 +1,5 @@
 /* Shell family: the header, the controls bar and its slides, the buttons, the sort menu and
-   the search UI. Split out of `panel.css` in Phase 2 without renaming a class
+   the search UI. Split out of the legacy single stylesheet in Phase 2 without renaming a class
    (css-migration-plan.md); the React-owned shell rules that used to live alone in this file
    follow at the end. */
 
@@ -775,14 +775,15 @@ mark.search-hl {
   gap: 8px;
 }
 
-/* React-owned styles. Class prefix `rs-` avoids collisions with the migrated panel stylesheet
-   (skill.md §5.3). Collection list styling still comes from panel.css, so the React markup
-   deliberately reuses the legacy class names. */
+/* React-owned shell rules. The `rs-` prefix this file had invented for itself is retired in
+   favour of `sh-` (skill.md §5.3); collection-list styling lives in the `cc-` family's
+   `collections.css`, whose legacy class names stay until that family's rename commit
+   (css-migration-plan.md, Phase 3). */
 
 /* Wrapper the controls bar puts around the collections sort button so the dropdown can close on
    an outside click. It takes the row's equal-width stretch the button used to take itself, and
-   anchors the absolutely-positioned `.sort-dropdown-menu` (panel.css) exactly like the legacy
-   markup did when the menu lived inside the button. */
+   anchors the absolutely-positioned `.sort-dropdown-menu` exactly like the legacy markup did
+   when the menu lived inside the button. */
 .sort-collections-container {
   position: relative;
   display: flex;
@@ -908,7 +909,7 @@ mark.search-hl {
   text-align: center;
 }
 
-/* Grid view with folders. panel.css styles the grid cards with `.collections-container.grid-view
+/* Grid view with folders. collections.css styles the grid cards with `.collections-container.grid-view
    .collection`, a descendant selector that also matches collections nested inside a folder, so
    they would inherit the stacked grid-card header. A folder spans the whole grid as a section and
    the collections inside it keep the normal list appearance; these rules out-specify the grid

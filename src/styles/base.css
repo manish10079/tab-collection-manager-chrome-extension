@@ -1,6 +1,6 @@
 /* Base family: the reset, the body/panel open-close animations, the layout boxes and the
-   hidden scrollbars. Split out of `panel.css` in Phase 2 without renaming a class
-   (css-migration-plan.md). */
+   hidden scrollbars. Split out of the legacy single stylesheet in Phase 2 without renaming a
+   class (css-migration-plan.md). */
 
 /* The design tokens this sheet consumes now live in `tokens.css`, imported first by `index.css`
    (css-migration-plan.md, Phase 1). Everything below still references them through `var(--…)`. */
