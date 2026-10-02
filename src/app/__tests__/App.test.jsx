@@ -100,7 +100,7 @@ describe('App', () => {
       target: { value: 'research' },
     });
 
-    const result = document.querySelector('.search-collection-result');
+    const result = document.querySelector('.sh-search-collection-result');
     expect(result).toBeTruthy();
     expect(result.textContent).toContain('Research');
     // The list is replaced by the results while a query is active.

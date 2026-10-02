@@ -63,7 +63,7 @@ export function TabPanel({ collection, actions, forceExpanded = false }) {
         {isCurrentSession ? null : (
           <button
             type="button"
-            className="icon-btn tab-import-tabs-btn"
+            className="sh-icon-btn tab-import-tabs-btn"
             title="Import tabs (JSON)"
             onClick={() => actions.importTabs(collection.id)}
           >
@@ -73,17 +73,17 @@ export function TabPanel({ collection, actions, forceExpanded = false }) {
 
         <button
           type="button"
-          className="icon-btn tab-export-tabs-btn"
+          className="sh-icon-btn tab-export-tabs-btn"
           title="Export tabs (JSON)"
           onClick={() => actions.exportCollection(collection)}
         >
           <i className="fas fa-file-export" />
         </button>
 
-        <div className="sort-tabs-container" ref={sortRef}>
+        <div className="sh-sort-tabs-container" ref={sortRef}>
           <button
             type="button"
-            className="icon-btn sort-tabs-btn"
+            className="sh-icon-btn sh-sort-tabs-btn"
             title="Sort Tabs"
             aria-haspopup="menu"
             aria-expanded={sortOpen}
@@ -91,11 +91,11 @@ export function TabPanel({ collection, actions, forceExpanded = false }) {
           >
             <i className={`fa-solid ${TAB_SORT_ICONS[activeSort] || 'fa-arrow-up-wide-short'}`} />
           </button>
-          <div className={`sort-dropdown-menu${sortOpen ? '' : ' ut-hidden'}`}>
+          <div className={`sh-sort-dropdown-menu${sortOpen ? '' : ' ut-hidden'}`}>
             {TAB_SORT_OPTIONS.map((option) => (
               <div
                 key={option.value}
-                className={`sort-option${option.value === activeSort ? ' ut-active' : ''}`}
+                className={`sh-sort-option${option.value === activeSort ? ' ut-active' : ''}`}
                 data-value={option.value}
                 role="menuitem"
                 tabIndex={0}

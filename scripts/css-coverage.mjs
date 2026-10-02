@@ -262,7 +262,7 @@ async function walkPanel(page, coverage) {
     await card.locator('.tab-item').first().waitFor({ state: 'visible', timeout: 5000 });
     await card.locator('.cc-pin-collection-btn').click();
     await card.locator('.tab-pin-tab-btn').first().click();
-    await card.locator('.tab-actions .icon-btn, .tab-item .icon-btn').last().click();
+    await card.locator('.tab-actions .sh-icon-btn, .tab-item .sh-icon-btn').last().click();
   });
   await record(page, coverage);
   await hoverSweep(page, coverage, { quiet: true });
@@ -436,7 +436,7 @@ async function walkPanel(page, coverage) {
 
   // ── Sort menu ──
   await step('open the sort menu', async () => {
-    await page.locator('.sort-collections-btn').first().click();
+    await page.locator('.sh-sort-collections-btn').first().click();
   });
   await record(page, coverage);
   await hoverSweep(page, coverage, { quiet: true });

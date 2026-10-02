@@ -40,7 +40,7 @@ async function cardFor(panel, name) {
             id: inputs.find((input) => input.value === wanted)?.closest('.cc-collection')?.dataset
               .id,
             names: inputs.map((input) => input.value),
-            storageError: document.querySelector('#collectionsContainer .rs-error')?.textContent,
+            storageError: document.querySelector('#collectionsContainer .sh-error')?.textContent,
           };
         }, name);
         return state;
@@ -242,7 +242,7 @@ test('searches collections and tabs, and returns focus when the search closes', 
 
   await input.fill('zeta');
   // The results replace the list rather than filtering it in place.
-  const result = panel.locator('.search-collection-result');
+  const result = panel.locator('.sh-search-collection-result');
   await expect(result).toHaveCount(1);
   await expect(result).toContainText('Zeta Notes');
   await expect(panel.locator('#collectionsContainer')).toHaveCount(0);
@@ -509,7 +509,7 @@ test('bulk-deletes a folder with its contents, a nested collection and a root co
   await panel.locator('#toggleSelectBtn').click();
   const bar = panel.locator('#selectionBar');
   await expect(bar).toBeVisible();
-  await expect(bar.locator('.selection-count')).toHaveText('0 selected');
+  await expect(bar.locator('.sh-selection-count')).toHaveText('0 selected');
   await expect(bar.locator('#deleteSelectedBtn')).toBeDisabled();
 
   // The live Current Session can never be deleted, so its box is disabled rather than deletable.
@@ -523,11 +523,11 @@ test('bulk-deletes a folder with its contents, a nested collection and a root co
   // its collection), a collection nested inside another folder, and a root collection.
   // The folder's own box is the header one; the cards nested in its body have their own.
   await doomedFolder.locator('.cc-folder-header .cc-select-checkbox input').check();
-  await expect(bar.locator('.selection-count')).toHaveText('1 selected');
+  await expect(bar.locator('.sh-selection-count')).toHaveText('1 selected');
   await keptFolder.locator('.cc-folder-body .cc-collection .cc-select-checkbox input').check();
-  await expect(bar.locator('.selection-count')).toHaveText('2 selected');
+  await expect(bar.locator('.sh-selection-count')).toHaveText('2 selected');
   await (await cardFor(panel, 'E2E Keep')).locator('.cc-select-checkbox input').check();
-  await expect(bar.locator('.selection-count')).toHaveText('3 selected');
+  await expect(bar.locator('.sh-selection-count')).toHaveText('3 selected');
 
   // Deleting asks once; Playwright has to accept the dialog (it auto-dismisses otherwise).
   panel.once('dialog', (dialog) => dialog.accept());

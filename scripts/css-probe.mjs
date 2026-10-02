@@ -88,18 +88,18 @@ const PROBES = [
   'html',
   'body',
   '.ut-container',
-  '.header',
+  '.sh-header',
   '#app-name',
-  '.controls',
-  '.compact-controls-row',
+  '.sh-controls',
+  '.sh-compact-controls-row',
   '#actionsBarDefault',
-  '#actionsBarDefault .icon-btn',
+  '#actionsBarDefault .sh-icon-btn',
   '.sh-action-label',
   '#toggleSearchBtn',
   '#historyBtn',
   '#restoreBackupBtn',
-  '.sort-collections-btn',
-  '.sort-dropdown-menu',
+  '.sh-sort-collections-btn',
+  '.sh-sort-dropdown-menu',
   '#collectionsContainer',
   '.cc-section-heading',
   '.cc-collection',
@@ -117,10 +117,10 @@ const PROBES = [
   '.tab-tabs-list',
   '.tab-collection-tabs',
   '.tab-collection-tab-search-input',
-  '.selection-bar',
-  '.selection-count',
-  '.search-results-container',
-  '.search-section',
+  '.sh-selection-bar',
+  '.sh-selection-count',
+  '.sh-search-results-container',
+  '.sh-search-section',
   '.ut-empty-state',
   '.dl-modal-overlay',
   '.dl-modal',
@@ -133,7 +133,7 @@ const PROBES = [
   '.set-toggle-thumb',
   '.dl-history-modal',
   '.ts-toast',
-  '.footer-btn-container',
+  '.sh-footer-btn-container',
 ];
 
 /**
@@ -464,7 +464,7 @@ async function walkPanel(page, capture) {
   await page.keyboard.press('Escape');
 
   await step('open the sort menu', async () => {
-    await page.locator('.sort-collections-btn').first().click();
+    await page.locator('.sh-sort-collections-btn').first().click();
   });
   await capture('sort-menu-open');
   await page.keyboard.press('Escape');

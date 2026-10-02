@@ -176,7 +176,7 @@ export function CollectionCard({
             {isCurrentSession ? null : (
               <button
                 type="button"
-                className={`icon-btn cc-pin-collection-btn${collection.pinned ? ' ut-pinned' : ''}`}
+                className={`sh-icon-btn cc-pin-collection-btn${collection.pinned ? ' ut-pinned' : ''}`}
                 title={collection.pinned ? 'Unpin Collection' : 'Pin Collection'}
                 aria-pressed={!!collection.pinned}
                 onClick={() => actions.pinCollection(collection.id)}
@@ -187,7 +187,7 @@ export function CollectionCard({
 
             <button
               type="button"
-              className="icon-btn cc-collection-menu-btn"
+              className="sh-icon-btn cc-collection-menu-btn"
               title="Collection options"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
@@ -199,7 +199,7 @@ export function CollectionCard({
             <div className={`cc-collection-dropdown-menu${menuOpen ? '' : ' ut-hidden'}`}>
               <button
                 type="button"
-                className="dropdown-option cc-open-all-tabs-btn"
+                className="sh-dropdown-option cc-open-all-tabs-btn"
                 title="Open all tabs"
                 onClick={choose(() => actions.openAllTabs(collection.id))}
               >
@@ -208,7 +208,7 @@ export function CollectionCard({
               {isCurrentSession ? null : (
                 <button
                   type="button"
-                  className="dropdown-option cc-edit-collection-btn"
+                  className="sh-dropdown-option cc-edit-collection-btn"
                   title="Edit collection name"
                   onClick={choose(() => setDraftName(collection.name))}
                 >
@@ -218,7 +218,7 @@ export function CollectionCard({
               {isCurrentSession ? null : (
                 <button
                   type="button"
-                  className="dropdown-option cc-add-tabs-btn"
+                  className="sh-dropdown-option cc-add-tabs-btn"
                   title="Add tabs to the collection"
                   onClick={choose(() => actions.addTabs(collection.id))}
                 >
@@ -227,12 +227,12 @@ export function CollectionCard({
               )}
               {folders.length > 0 && !isCurrentSession ? (
                 <>
-                  <div className="dropdown-section-label">Move to folder</div>
+                  <div className="sh-dropdown-section-label">Move to folder</div>
                   {folders.map((folder) => (
                     <button
                       key={folder.id}
                       type="button"
-                      className="dropdown-option move-to-folder-btn"
+                      className="sh-dropdown-option move-to-folder-btn"
                       title={`Move to ${folder.name}`}
                       disabled={collection.folderId === folder.id}
                       onClick={choose(() =>
@@ -245,7 +245,7 @@ export function CollectionCard({
                   {collection.folderId ? (
                     <button
                       type="button"
-                      className="dropdown-option remove-from-folder-btn"
+                      className="sh-dropdown-option remove-from-folder-btn"
                       title="Move to the root list"
                       onClick={choose(() => actions.moveCollectionToFolder(collection.id, null))}
                     >
@@ -256,7 +256,7 @@ export function CollectionCard({
               ) : null}
               <button
                 type="button"
-                className="dropdown-option cc-share-collection-btn"
+                className="sh-dropdown-option cc-share-collection-btn"
                 title="Share collection"
                 onClick={choose(() => actions.copyCollectionLinks(collection))}
               >
@@ -265,7 +265,7 @@ export function CollectionCard({
               {isCurrentSession ? null : (
                 <button
                   type="button"
-                  className="dropdown-option cc-delete-collection-btn"
+                  className="sh-dropdown-option cc-delete-collection-btn"
                   title="Delete collection"
                   onClick={choose(() => actions.deleteCollection(collection.id))}
                 >

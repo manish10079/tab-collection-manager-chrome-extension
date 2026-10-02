@@ -153,7 +153,7 @@ export function FolderSection({
           <div className="cc-collection-actions" ref={menuRef}>
             <button
               type="button"
-              className="icon-btn folder-menu-btn"
+              className="sh-icon-btn folder-menu-btn"
               title="Folder options"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
@@ -165,7 +165,7 @@ export function FolderSection({
             <div className={`cc-collection-dropdown-menu${menuOpen ? '' : ' ut-hidden'}`}>
               <button
                 type="button"
-                className="dropdown-option edit-folder-btn"
+                className="sh-dropdown-option edit-folder-btn"
                 title="Edit folder name"
                 onClick={choose(() => setDraftName(folder.name))}
               >
@@ -173,7 +173,7 @@ export function FolderSection({
               </button>
               <button
                 type="button"
-                className="dropdown-option delete-folder-btn"
+                className="sh-dropdown-option delete-folder-btn"
                 title="Delete folder and the collections inside it"
                 onClick={choose(() => actions.deleteFolder(folder.id))}
               >

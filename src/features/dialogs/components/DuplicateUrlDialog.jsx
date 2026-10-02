@@ -29,10 +29,10 @@ export function DuplicateUrlDialog({ request, onSettle }) {
       onClose={() => onSettle(false)}
       footer={
         <>
-          <button type="button" className="btn-outline" onClick={() => onSettle(false)}>
+          <button type="button" className="sh-btn-outline" onClick={() => onSettle(false)}>
             Cancel
           </button>
-          <button type="button" className="btn-secondary" onClick={() => onSettle(true)}>
+          <button type="button" className="sh-btn-secondary" onClick={() => onSettle(true)}>
             <i className="fas fa-plus" /> Add Anyway
           </button>
         </>

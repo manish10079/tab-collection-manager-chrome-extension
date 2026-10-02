@@ -28,8 +28,8 @@ export function CreateSlide({ name, onNameChange, onSubmit, onCancel }) {
   }, []);
 
   return (
-    <div className="input-slide-container">
-      <div className="input-wrapper create-wrapper">
+    <div className="sh-input-slide-container">
+      <div className="sh-input-wrapper create-wrapper">
         <input
           ref={inputRef}
           type="text"
@@ -52,7 +52,7 @@ export function CreateSlide({ name, onNameChange, onSubmit, onCancel }) {
         />
         <button
           type="button"
-          className="icon-btn input-action-btn success-btn"
+          className="sh-icon-btn sh-input-action-btn sh-success-btn"
           title="Create"
           aria-label="Create collection"
           onClick={onSubmit}
@@ -61,7 +61,7 @@ export function CreateSlide({ name, onNameChange, onSubmit, onCancel }) {
         </button>
         <button
           type="button"
-          className="icon-btn input-action-btn cancel-btn"
+          className="sh-icon-btn sh-input-action-btn sh-cancel-btn"
           title="Cancel"
           aria-label="Cancel new collection"
           onClick={onCancel}

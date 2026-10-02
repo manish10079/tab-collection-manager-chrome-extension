@@ -121,7 +121,7 @@ export function App() {
         {search.isEmpty ? (
           <div id="collectionsContainer" className={containerClasses.join(' ')}>
             {error ? (
-              <p className="rs-error" role="alert">
+              <p className="sh-error" role="alert">
                 Could not read extension storage: {error}
               </p>
             ) : null}

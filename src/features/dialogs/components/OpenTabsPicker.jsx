@@ -58,7 +58,7 @@ export function OpenTabsPicker({ collectionId, intake, onClose }) {
   return (
     <div className="tab-form multi-form">
       <div className="dl-select-all-row">
-        <label className="checkbox-label" htmlFor="selectAllTabs">
+        <label className="sh-checkbox-label" htmlFor="selectAllTabs">
           <input id="selectAllTabs" type="checkbox" checked={allSelected} onChange={toggleAll} />
           <span>Select All Tabs</span>
         </label>
@@ -72,7 +72,7 @@ export function OpenTabsPicker({ collectionId, intake, onClose }) {
           const displayTitle = String(tab.title ?? '').trim() || 'Untitled';
           return (
             <div className="dl-open-tab-item" key={tab.id}>
-              <label className="checkbox-label" htmlFor={`open-tab-${tab.id}`}>
+              <label className="sh-checkbox-label" htmlFor={`open-tab-${tab.id}`}>
                 <input
                   id={`open-tab-${tab.id}`}
                   type="checkbox"
@@ -99,16 +99,16 @@ export function OpenTabsPicker({ collectionId, intake, onClose }) {
           );
         })}
       </div>
-      <div className="footer-btn-container">
+      <div className="sh-footer-btn-container">
         <button
           type="button"
-          className="btn-secondary"
+          className="sh-btn-secondary"
           disabled={busy || selectedIds.size === 0}
           onClick={handleAddSelected}
         >
           <i className="fas fa-check" /> Add Selected
         </button>
-        <button type="button" className="btn-outline" onClick={onClose}>
+        <button type="button" className="sh-btn-outline" onClick={onClose}>
           Cancel
         </button>
       </div>

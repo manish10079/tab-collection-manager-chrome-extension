@@ -25,22 +25,22 @@ export function GlobalSearchResults({ search, query, extensionId, onOpenCollecti
   const hasResults = search.nameMatches.length > 0 || search.tabMatchGroups.length > 0;
 
   return (
-    <div className="search-results-container" id="searchResultsContainer">
+    <div className="sh-search-results-container" id="searchResultsContainer">
       {hasResults ? (
         <>
           {search.nameMatches.length > 0 ? (
-            <div className="search-section">
-              <div className="search-section-header">
-                <span className="search-section-title">
+            <div className="sh-search-section">
+              <div className="sh-search-section-header">
+                <span className="sh-search-section-title">
                   <i className="fas fa-folder" /> Collections
                 </span>
-                <span className="search-section-count">{search.nameMatches.length}</span>
+                <span className="sh-search-section-count">{search.nameMatches.length}</span>
               </div>
-              <div className="search-section-body">
+              <div className="sh-search-section-body">
                 {search.nameMatches.map((collection) => (
                   <div
                     key={collection.id}
-                    className="search-collection-result"
+                    className="sh-search-collection-result"
                     data-id={collection.id}
                     role="button"
                     tabIndex={0}
@@ -52,18 +52,18 @@ export function GlobalSearchResults({ search, query, extensionId, onOpenCollecti
                       }
                     }}
                   >
-                    <div className="search-result-left">
-                      <i className="fas fa-folder-open search-result-icon" />
-                      <div className="search-result-info">
-                        <span className="search-result-name">
+                    <div className="sh-search-result-left">
+                      <i className="fas fa-folder-open sh-search-result-icon" />
+                      <div className="sh-search-result-info">
+                        <span className="sh-search-result-name">
                           <Highlight text={collection.name} query={search.query} />
                         </span>
-                        <span className="search-result-meta">
+                        <span className="sh-search-result-meta">
                           {collection.tabs.length} tab{collection.tabs.length !== 1 ? 's' : ''}
                         </span>
                       </div>
                     </div>
-                    <i className="fas fa-chevron-right search-result-arrow" />
+                    <i className="fas fa-chevron-right sh-search-result-arrow" />
                   </div>
                 ))}
               </div>
@@ -71,24 +71,24 @@ export function GlobalSearchResults({ search, query, extensionId, onOpenCollecti
           ) : null}
 
           {search.tabMatchGroups.length > 0 ? (
-            <div className="search-section">
-              <div className="search-section-header">
-                <span className="search-section-title">
+            <div className="sh-search-section">
+              <div className="sh-search-section-header">
+                <span className="sh-search-section-title">
                   <i className="fas fa-link" /> Tabs
                 </span>
-                <span className="search-section-count">{search.totalTabHits}</span>
+                <span className="sh-search-section-count">{search.totalTabHits}</span>
               </div>
-              <div className="search-section-body">
+              <div className="sh-search-section-body">
                 {search.tabMatchGroups.map(({ collection, hits }) => (
-                  <div className="search-tab-group" key={collection.id}>
-                    <div className="search-tab-group-label">
+                  <div className="sh-search-tab-group" key={collection.id}>
+                    <div className="sh-search-tab-group-label">
                       <i className="fas fa-folder" /> {collection.name}
                     </div>
                     {hits.map((tab) => (
-                      <div className="search-tab-result" key={tab.id}>
-                        <div className="search-tab-favicon-container">
+                      <div className="sh-search-tab-result" key={tab.id}>
+                        <div className="sh-search-tab-favicon-container">
                           <img
-                            className="search-tab-favicon"
+                            className="sh-search-tab-favicon"
                             src={resolveFaviconUrl(tab.url, extensionId)}
                             alt=""
                             onError={(event) => {
@@ -96,17 +96,17 @@ export function GlobalSearchResults({ search, query, extensionId, onOpenCollecti
                             }}
                           />
                         </div>
-                        <div className="search-tab-result-body">
-                          <div className="search-tab-result-title">
+                        <div className="sh-search-tab-result-body">
+                          <div className="sh-search-tab-result-title">
                             <Highlight text={tab.title || 'Untitled'} query={search.query} />
                           </div>
-                          <div className="search-tab-result-url">
+                          <div className="sh-search-tab-result-url">
                             <Highlight text={truncateUrl(tab.url, 62, '…')} query={search.query} />
                           </div>
                         </div>
                         <button
                           type="button"
-                          className="icon-btn search-open-tab-btn"
+                          className="sh-icon-btn sh-search-open-tab-btn"
                           title="Open tab"
                           aria-label="Open tab"
                           onClick={(event) => {
@@ -125,7 +125,7 @@ export function GlobalSearchResults({ search, query, extensionId, onOpenCollecti
           ) : null}
         </>
       ) : (
-        <div className="search-no-results">
+        <div className="sh-search-no-results">
           <i className="fas fa-search" />
           No collections or tabs match <strong>&quot;{String(query ?? '').trim()}&quot;</strong>
         </div>
@@ -147,7 +147,7 @@ function Highlight({ text, query }) {
     <>
       {segments.map((segment, index) =>
         segment.match ? (
-          <mark key={index} className="search-hl">
+          <mark key={index} className="sh-search-hl">
             {segment.text}
           </mark>
         ) : (

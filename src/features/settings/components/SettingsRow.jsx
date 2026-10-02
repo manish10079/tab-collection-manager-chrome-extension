@@ -27,7 +27,7 @@ export function SettingsRow({ icon, label, description, badge, title, children, 
           <div className="set-settings-row-text">
             <span className="set-settings-row-label">
               {label}
-              {badge ? <span className="ram-saver-badge">{badge}</span> : null}
+              {badge ? <span className="sh-ram-saver-badge">{badge}</span> : null}
             </span>
             <span className="set-settings-row-desc">{description}</span>
           </div>

@@ -202,7 +202,7 @@
   border-bottom: none;
 }
 
-.dl-open-tab-item .checkbox-label {
+.dl-open-tab-item .sh-checkbox-label {
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -365,12 +365,12 @@
   padding: 16px 24px;
 }
 
-.dl-duplicate-dialog-footer .btn-secondary {
+.dl-duplicate-dialog-footer .sh-btn-secondary {
   background: var(--warning);
   border-color: var(--warning);
 }
 
-.dl-duplicate-dialog-footer .btn-secondary:hover {
+.dl-duplicate-dialog-footer .sh-btn-secondary:hover {
   background: var(--warning-hover);
   border-color: var(--warning-hover);
 }

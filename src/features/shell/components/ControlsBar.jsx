@@ -45,17 +45,17 @@ export function ControlsBar({
     : 'Restore Previous Session';
 
   return (
-    <div className="controls">
-      <div className="compact-controls-row">
+    <div className="sh-controls">
+      <div className="sh-compact-controls-row">
         {/* The default row stays mounted and is hidden while a slide is open, so the slide's
             mount/unmount animation matches the legacy show/hide. */}
         <div
-          className={`actions-bar-default${slide || selectionMode ? ' ut-hidden' : ''}`}
+          className={`sh-actions-bar-default${slide || selectionMode ? ' ut-hidden' : ''}`}
           id="actionsBarDefault"
         >
           <button
             type="button"
-            className="icon-btn"
+            className="sh-icon-btn"
             id="toggleSearchBtn"
             title="Search Collections or Tabs (Ctrl+F)"
             aria-label="Search collections or tabs"
@@ -66,7 +66,7 @@ export function ControlsBar({
           </button>
           <button
             type="button"
-            className="icon-btn"
+            className="sh-icon-btn"
             id="toggleCreateBtn"
             title="Create New Collection (Ctrl+N)"
             aria-label="Create new collection"
@@ -77,7 +77,7 @@ export function ControlsBar({
           </button>
           <button
             type="button"
-            className="icon-btn"
+            className="sh-icon-btn"
             id="createFolderBtn"
             title="New Folder"
             aria-label="Create new folder"
@@ -88,7 +88,7 @@ export function ControlsBar({
           </button>
           <button
             type="button"
-            className="icon-btn"
+            className="sh-icon-btn"
             id="toggleSelectBtn"
             title="Select folders or collections to delete"
             aria-label="Select items to delete"
@@ -99,7 +99,7 @@ export function ControlsBar({
           </button>
           <button
             type="button"
-            className="icon-btn"
+            className="sh-icon-btn"
             id="globalImportBtn"
             title="Import All Collections (JSON)"
             aria-label="Import all collections"
@@ -110,7 +110,7 @@ export function ControlsBar({
           </button>
           <button
             type="button"
-            className="icon-btn"
+            className="sh-icon-btn"
             id="globalExportBtn"
             title="Export All Collections (JSON)"
             aria-label="Export all collections"
@@ -121,7 +121,7 @@ export function ControlsBar({
           </button>
           <button
             type="button"
-            className="icon-btn"
+            className="sh-icon-btn"
             id="toggleLayoutBtn"
             title={isGrid ? 'Switch to List View' : 'Switch to Grid View'}
             aria-label={isGrid ? 'Switch to list view' : 'Switch to grid view'}
@@ -134,7 +134,7 @@ export function ControlsBar({
           {/* Visible only when the worker has recorded a restorable backup. */}
           <button
             type="button"
-            className={`icon-btn btn-restore${hasBackup ? '' : ' ut-hidden'}`}
+            className={`sh-icon-btn sh-btn-restore${hasBackup ? '' : ' ut-hidden'}`}
             id="restoreBackupBtn"
             title={restoreTitle}
             aria-label="Restore previous session"
@@ -148,7 +148,7 @@ export function ControlsBar({
 
           <button
             type="button"
-            className="icon-btn"
+            className="sh-icon-btn"
             id="historyBtn"
             title="Session History"
             aria-label="Session history"
@@ -160,11 +160,11 @@ export function ControlsBar({
         </div>
 
         {selectionMode ? (
-          <div className="selection-bar" id="selectionBar">
-            <span className="selection-count">{selectedCount} selected</span>
+          <div className="sh-selection-bar" id="selectionBar">
+            <span className="sh-selection-count">{selectedCount} selected</span>
             <button
               type="button"
-              className="selection-delete"
+              className="sh-selection-delete"
               id="deleteSelectedBtn"
               disabled={selectedCount === 0}
               onClick={onDeleteSelected}
@@ -173,7 +173,7 @@ export function ControlsBar({
             </button>
             <button
               type="button"
-              className="icon-btn"
+              className="sh-icon-btn"
               id="cancelSelectionBtn"
               title="Cancel selection"
               aria-label="Cancel selection"

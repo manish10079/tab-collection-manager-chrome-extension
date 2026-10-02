@@ -19,7 +19,7 @@ export function SettingsCard({ icon, title, badge, children }) {
         <i className={`fas ${icon} set-settings-card-icon`} />
         <span>
           {title}
-          {badge ? <span className="ram-saver-badge">{badge}</span> : null}
+          {badge ? <span className="sh-ram-saver-badge">{badge}</span> : null}
         </span>
       </div>
       <div className="set-settings-card-body">{children}</div>

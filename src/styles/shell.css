@@ -4,7 +4,7 @@
    follow at the end. */
 
 /* Header */
-.header {
+.sh-header {
   text-align: center;
   margin-bottom: 12px;
   padding: 10px 0;
@@ -16,7 +16,7 @@
   gap: 12px;
 }
 
-.header h1 {
+.sh-header h1 {
   font-size: 20px;
   font-weight: 700;
   margin-bottom: 0;
@@ -31,14 +31,14 @@
   font-weight: 600;
 }
 
-.header .subtitle {
+.sh-header .sh-subtitle {
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 400;
 }
 
 /* Compact Row and Action Bars */
-.compact-controls-row {
+.sh-compact-controls-row {
   margin-bottom: 1px;
   position: relative;
   display: flex;
@@ -52,14 +52,14 @@
    widen its column, and each cell stacks icon over label instead of sitting side by side. A hidden
    control (the restore button with no backup) is removed from the grid, so the second row simply
    ends early rather than leaving a hole. */
-.actions-bar-default {
+.sh-actions-bar-default {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 6px 8px;
   width: 100%;
 }
 
-.actions-bar-default .icon-btn {
+.sh-actions-bar-default .sh-icon-btn {
   width: auto;
   height: auto;
   min-height: 46px;
@@ -74,14 +74,14 @@
   transition: all 0.25s ease;
   cursor: pointer;
   box-sizing: border-box;
-  /* No `display` here: `.icon-btn` already sets `flex`/`center`, and repeating it at this
+  /* No `display` here: `.sh-icon-btn` already sets `flex`/`center`, and repeating it at this
      specificity would out-rank the `.ut-hidden` utility (which is only a doubled class) whenever the
      restore button is hidden (css-migration-plan.md, Phase 5). */
 }
 
-/* `.icon-btn i` is `width/height: 100%` for the square icon-only buttons; in this stacked cell that
+/* `.sh-icon-btn i` is `width/height: 100%` for the square icon-only buttons; in this stacked cell that
    would stretch the glyph over the label, so it goes back to its natural size. */
-.actions-bar-default .icon-btn i {
+.sh-actions-bar-default .sh-icon-btn i {
   width: auto;
   height: auto;
   font-size: 14px;
@@ -100,35 +100,35 @@
 }
 
 /* Hover colors for each button type */
-.actions-bar-default #toggleSearchBtn:hover {
+.sh-actions-bar-default #toggleSearchBtn:hover {
   background: rgba(108, 99, 255, 0.15);
   border-color: rgba(108, 99, 255, 0.3);
   color: var(--accent);
   transform: translateY(-1px);
 }
 
-.actions-bar-default #toggleCreateBtn:hover {
+.sh-actions-bar-default #toggleCreateBtn:hover {
   background: rgba(108, 99, 255, 0.15);
   border-color: rgba(108, 99, 255, 0.3);
   color: var(--accent);
   transform: translateY(-1px);
 }
 
-.actions-bar-default #globalImportBtn:hover {
+.sh-actions-bar-default #globalImportBtn:hover {
   background: rgba(78, 205, 196, 0.15);
   border-color: rgba(78, 205, 196, 0.3);
   color: var(--success);
   transform: translateY(-1px);
 }
 
-.actions-bar-default #globalExportBtn:hover {
+.sh-actions-bar-default #globalExportBtn:hover {
   background: rgba(108, 99, 255, 0.15);
   border-color: rgba(108, 99, 255, 0.3);
   color: var(--accent);
   transform: translateY(-1px);
 }
 
-.actions-bar-default #toggleLayoutBtn:hover {
+.sh-actions-bar-default #toggleLayoutBtn:hover {
   background: rgba(108, 99, 255, 0.15);
   border-color: rgba(108, 99, 255, 0.3);
   color: var(--accent);
@@ -136,7 +136,7 @@
 }
 
 /* Slide containers for input states */
-.input-slide-container {
+.sh-input-slide-container {
   width: 100%;
   animation: slideFadeIn 0.2s ease forwards;
 }
@@ -152,14 +152,14 @@
   }
 }
 
-.input-wrapper {
+.sh-input-wrapper {
   display: flex;
   align-items: center;
   gap: 8px;
   width: 100%;
 }
 
-.input-wrapper input {
+.sh-input-wrapper input {
   flex: 1;
   height: 34px;
   padding: 6px 14px;
@@ -173,18 +173,18 @@
   align-items: center;
 }
 
-.input-wrapper input:focus {
+.sh-input-wrapper input:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.2);
 }
 
 /* Custom search icon styling inside active search wrapper */
-.input-wrapper.search-wrapper {
+.sh-input-wrapper.sh-search-wrapper {
   position: relative;
 }
 
-.input-wrapper.search-wrapper::before {
+.sh-input-wrapper.sh-search-wrapper::before {
   content: '\f002'; /* Search icon magnifying glass */
   font-family: 'Font Awesome 5 Free';
   font-weight: 900;
@@ -198,11 +198,11 @@
   z-index: 1;
 }
 
-.input-wrapper.search-wrapper input {
+.sh-input-wrapper.sh-search-wrapper input {
   padding-left: 38px;
 }
 
-.input-wrapper .input-action-btn {
+.sh-input-wrapper .sh-input-action-btn {
   width: 34px;
   height: 34px;
   padding: 5px;
@@ -220,18 +220,18 @@
   flex-shrink: 0;
 }
 
-.input-wrapper .input-action-btn:hover {
+.sh-input-wrapper .sh-input-action-btn:hover {
   background: var(--bg-translucent-hover);
   color: var(--text-primary);
 }
 
-.input-wrapper .input-action-btn.success-btn:hover {
+.sh-input-wrapper .sh-input-action-btn.sh-success-btn:hover {
   background: rgba(78, 205, 196, 0.15);
   border-color: rgba(78, 205, 196, 0.3);
   color: var(--success);
 }
 
-.input-wrapper .input-action-btn.cancel-btn:hover {
+.sh-input-wrapper .sh-input-action-btn.sh-cancel-btn:hover {
   background: rgba(255, 107, 139, 0.15);
   border-color: rgba(255, 107, 139, 0.3);
   color: var(--danger);
@@ -250,7 +250,7 @@
 }
 
 /* Controls */
-.controls {
+.sh-controls {
   background: var(--bg-secondary);
   border-radius: var(--radius);
   padding: 10px 14px;
@@ -266,7 +266,7 @@
 /* Controls inputs (hidden by default, handled via compact row) */
 
 /* Pill badge next to "RAM Saver" text */
-.ram-saver-badge {
+.sh-ram-saver-badge {
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -283,7 +283,7 @@
   text-transform: uppercase;
 }
 
-.checkbox-label {
+.sh-checkbox-label {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -292,7 +292,7 @@
   user-select: none;
 }
 
-.checkbox-label input[type='checkbox'] {
+.sh-checkbox-label input[type='checkbox'] {
   appearance: none;
   -webkit-appearance: none;
   width: 18px;
@@ -307,17 +307,17 @@
   margin: 0;
 }
 
-.checkbox-label input[type='checkbox']:hover {
+.sh-checkbox-label input[type='checkbox']:hover {
   background: var(--bg-translucent-active);
   border-color: var(--accent);
 }
 
-.checkbox-label input[type='checkbox']:checked {
+.sh-checkbox-label input[type='checkbox']:checked {
   background: var(--accent);
   border-color: var(--accent);
 }
 
-.checkbox-label input[type='checkbox']::before {
+.sh-checkbox-label input[type='checkbox']::before {
   content: '';
   width: 10px;
   height: 10px;
@@ -328,13 +328,13 @@
   clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
 }
 
-.checkbox-label input[type='checkbox']:checked::before {
+.sh-checkbox-label input[type='checkbox']:checked::before {
   transform: scale(1);
 }
 
 /* Buttons */
-.btn-secondary,
-.btn-outline {
+.sh-btn-secondary,
+.sh-btn-outline {
   padding: 12px 24px;
   border-radius: 12px;
   font-weight: 600;
@@ -348,28 +348,28 @@
   transition: var(--transition);
 }
 
-.btn-secondary {
+.sh-btn-secondary {
   background: var(--bg-translucent-active);
   color: var(--text-primary);
   border: 1px solid var(--border);
 }
 
-.btn-secondary:hover {
+.sh-btn-secondary:hover {
   background: var(--bg-translucent-strong);
 }
 
-.btn-outline {
+.sh-btn-outline {
   background: transparent;
   color: var(--text-secondary);
   border: 1px solid var(--border);
 }
 
-.btn-outline:hover {
+.sh-btn-outline:hover {
   background: var(--bg-translucent-normal);
   color: var(--text-primary);
 }
 
-.icon-btn {
+.sh-icon-btn {
   width: 28px;
   height: 28px;
   padding: 5px;
@@ -386,8 +386,8 @@
   box-sizing: border-box;
 }
 
-.icon-btn i,
-.icon-btn svg {
+.sh-icon-btn i,
+.sh-icon-btn svg {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -399,12 +399,12 @@
   text-align: center;
 }
 
-.icon-btn:hover {
+.sh-icon-btn:hover {
   background: var(--bg-translucent-active);
   color: var(--text-primary);
 }
 
-.btn-success {
+.sh-btn-success {
   background: var(--success);
   color: #0a0a0f;
   padding: 8px 16px;
@@ -419,14 +419,14 @@
   transition: var(--transition);
 }
 
-.btn-success:hover {
+.sh-btn-success:hover {
   filter: brightness(1.1);
   transform: translateY(-1px);
 }
 
 /* Restore and Sort buttons stretch equally with all other action buttons */
-.btn-restore,
-.sort-collections-btn {
+.sh-btn-restore,
+.sh-sort-collections-btn {
   flex: 1;
   position: relative;
   overflow: visible;
@@ -440,7 +440,7 @@
 }
 
 /* Restore button colour accent */
-.btn-restore:hover {
+.sh-btn-restore:hover {
   background: rgba(78, 205, 196, 0.15);
   border-color: rgba(78, 205, 196, 0.3);
   color: var(--success);
@@ -451,19 +451,19 @@
    GLOBAL SEARCH RESULTS  (two-section layout)
    ============================================================ */
 
-.search-results-container {
+.sh-search-results-container {
   display: none;
   padding: 4px 0 12px;
   animation: searchFadeIn 0.2s ease forwards;
 }
 
 /* ── Section wrapper ─────────────────────────────────────── */
-.search-section {
+.sh-search-section {
   margin-bottom: 14px;
 }
 
 /* ── Section header pill ─────────────────────────────────── */
-.search-section-header {
+.sh-search-section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -474,7 +474,7 @@
   border-left: 3px solid var(--accent);
 }
 
-.search-section-title {
+.sh-search-section-title {
   display: flex;
   align-items: center;
   gap: 7px;
@@ -485,12 +485,12 @@
   color: var(--text-muted);
 }
 
-.search-section-title i {
+.sh-search-section-title i {
   color: var(--accent);
   font-size: 11px;
 }
 
-.search-section-count {
+.sh-search-section-count {
   font-size: 10px;
   font-weight: 700;
   background: rgba(78, 205, 196, 0.18);
@@ -503,14 +503,14 @@
 }
 
 /* ── Section body ────────────────────────────────────────── */
-.search-section-body {
+.sh-search-section-body {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
 /* ── Collection result card ──────────────────────────────── */
-.search-collection-result {
+.sh-search-collection-result {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -522,59 +522,59 @@
   transition: var(--transition);
 }
 
-.search-collection-result:hover {
+.sh-search-collection-result:hover {
   border-color: var(--accent);
   background: rgba(78, 205, 196, 0.06);
   transform: translateX(2px);
 }
 
-.search-result-left {
+.sh-search-result-left {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.search-result-icon {
+.sh-search-result-icon {
   color: var(--accent);
   font-size: 14px;
   width: 16px;
   flex-shrink: 0;
 }
 
-.search-result-info {
+.sh-search-result-info {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.search-result-name {
+.sh-search-result-name {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-primary);
 }
 
-.search-result-meta {
+.sh-search-result-meta {
   font-size: 11px;
   color: var(--text-muted);
 }
 
-.search-result-arrow {
+.sh-search-result-arrow {
   color: var(--text-muted);
   font-size: 10px;
   flex-shrink: 0;
   transition: var(--transition);
 }
 
-.search-collection-result:hover .search-result-arrow {
+.sh-search-collection-result:hover .sh-search-result-arrow {
   color: var(--accent);
 }
 
 /* ── Tab group ───────────────────────────────────────────── */
-.search-tab-group {
+.sh-search-tab-group {
   margin-bottom: 6px;
 }
 
-.search-tab-group-label {
+.sh-search-tab-group-label {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -586,13 +586,13 @@
   padding: 3px 4px 4px;
 }
 
-.search-tab-group-label i {
+.sh-search-tab-group-label i {
   color: var(--accent);
   font-size: 10px;
 }
 
 /* ── Tab result row ──────────────────────────────────────── */
-.search-tab-result {
+.sh-search-tab-result {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -605,12 +605,12 @@
   transition: var(--transition);
 }
 
-.search-tab-result:hover {
+.sh-search-tab-result:hover {
   border-color: rgba(78, 205, 196, 0.35);
   background: rgba(78, 205, 196, 0.03);
 }
 
-.search-tab-favicon-container {
+.sh-search-tab-favicon-container {
   width: 24px;
   height: 24px;
   border-radius: 6px;
@@ -622,14 +622,14 @@
   flex-shrink: 0;
 }
 
-.search-tab-favicon {
+.sh-search-tab-favicon {
   width: 14px;
   height: 14px;
   object-fit: contain;
   display: block;
 }
 
-.search-tab-result-body {
+.sh-search-tab-result-body {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -637,7 +637,7 @@
   flex: 1;
 }
 
-.search-tab-result-title {
+.sh-search-tab-result-title {
   font-size: 12px;
   font-weight: 500;
   color: var(--text-primary);
@@ -646,7 +646,7 @@
   text-overflow: ellipsis;
 }
 
-.search-tab-result-url {
+.sh-search-tab-result-url {
   font-size: 10px;
   color: var(--text-muted);
   white-space: nowrap;
@@ -655,19 +655,19 @@
 }
 
 /* ── Open button inside tab result ───────────────────────── */
-.search-open-tab-btn {
+.sh-search-open-tab-btn {
   flex-shrink: 0;
   opacity: 0.5;
   transition: var(--transition);
 }
 
-.search-tab-result:hover .search-open-tab-btn {
+.sh-search-tab-result:hover .sh-search-open-tab-btn {
   opacity: 1;
   color: var(--accent);
 }
 
 /* ── Inline match highlight ──────────────────────────────── */
-mark.search-hl {
+mark.sh-search-hl {
   background: rgba(78, 205, 196, 0.22);
   color: var(--accent);
   border-radius: 3px;
@@ -676,15 +676,15 @@ mark.search-hl {
 }
 
 /* Sort Dropdown Components */
-.sort-tabs-container,
-.sort-collections-btn {
+.sh-sort-tabs-container,
+.sh-sort-collections-btn {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
-.sort-dropdown-menu {
+.sh-sort-dropdown-menu {
   position: absolute;
   top: 100%;
   right: 0;
@@ -704,11 +704,11 @@ mark.search-hl {
 }
 
 /* Animations for dropdown */
-.sort-dropdown-menu.ut-hidden {
+.sh-sort-dropdown-menu.ut-hidden {
   display: none;
 }
 
-.sort-option {
+.sh-sort-option {
   padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
@@ -720,19 +720,19 @@ mark.search-hl {
   transition: var(--transition);
 }
 
-.sort-option:hover {
+.sh-sort-option:hover {
   background: var(--bg-translucent-normal);
   color: var(--text-primary);
 }
 
-.sort-option.ut-active {
+.sh-sort-option.ut-active {
   background: rgba(108, 99, 255, 0.15);
   color: var(--accent);
   font-weight: 600;
   border: 1px solid rgba(108, 99, 255, 0.2);
 }
 
-.sort-option i {
+.sh-sort-option i {
   width: 14px;
   text-align: center;
 }
@@ -747,17 +747,17 @@ mark.search-hl {
 }
 
 /* Ensure the sort buttons look consistent with surrounding styles */
-.sort-tabs-btn {
+.sh-sort-tabs-btn {
   background: var(--bg-translucent-subtle);
 }
 
-.sort-tabs-btn:hover {
+.sh-sort-tabs-btn:hover {
   background: rgba(108, 99, 255, 0.15);
   border-color: rgba(108, 99, 255, 0.3);
   color: var(--accent);
 }
 
-.sort-collections-btn:hover {
+.sh-sort-collections-btn:hover {
   background: rgba(108, 99, 255, 0.15);
   border-color: rgba(108, 99, 255, 0.3);
   color: var(--accent);
@@ -765,11 +765,11 @@ mark.search-hl {
 }
 
 /* A `:has()` pair used to lock the sort button while its menu was open. Both rules were dead: the
-   menu is a *sibling* of the button (both live inside `.sort-collections-container`), not a
+   menu is a *sibling* of the button (both live inside `.sh-sort-collections-container`), not a
    descendant, so `:has()` could never match. Removed in Phase 5; the menu's own `z-index` keeps it
    above the panel. */
 
-.footer-btn-container {
+.sh-footer-btn-container {
   display: flex;
   justify-content: space-between;
   gap: 8px;
@@ -782,15 +782,15 @@ mark.search-hl {
 
 /* Wrapper the controls bar puts around the collections sort button so the dropdown can close on
    an outside click. It takes the row's equal-width stretch the button used to take itself, and
-   anchors the absolutely-positioned `.sort-dropdown-menu` exactly like the legacy markup did
+   anchors the absolutely-positioned `.sh-sort-dropdown-menu` exactly like the legacy markup did
    when the menu lived inside the button. */
-.sort-collections-container {
+.sh-sort-collections-container {
   position: relative;
   display: flex;
   flex: 1;
 }
 
-.rs-error {
+.sh-error {
   padding: 8px 10px;
   border-radius: 10px;
   /* Derived from the `--danger` token rather than a second hard-coded red — this was the one
@@ -958,7 +958,7 @@ mark.search-hl {
   right: 0;
 }
 
-.dropdown-section-label {
+.sh-dropdown-section-label {
   padding: 6px 12px 2px;
   color: var(--text-secondary);
   font-size: 10px;
@@ -966,7 +966,7 @@ mark.search-hl {
   text-transform: uppercase;
 }
 
-.dropdown-option[disabled] {
+.sh-dropdown-option[disabled] {
   cursor: default;
   opacity: 0.5;
 }
@@ -1047,21 +1047,21 @@ mark.search-hl {
     var(--shadow-card);
 }
 
-.selection-bar {
+.sh-selection-bar {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 6px 2px;
 }
 
-.selection-count {
+.sh-selection-count {
   margin-right: auto;
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 500;
 }
 
-.selection-delete {
+.sh-selection-delete {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1076,11 +1076,11 @@ mark.search-hl {
   cursor: pointer;
 }
 
-.selection-delete:hover:not([disabled]) {
+.sh-selection-delete:hover:not([disabled]) {
   background: color-mix(in srgb, var(--danger) 20%, transparent);
 }
 
-.selection-delete[disabled] {
+.sh-selection-delete[disabled] {
   cursor: default;
   opacity: 0.5;
 }

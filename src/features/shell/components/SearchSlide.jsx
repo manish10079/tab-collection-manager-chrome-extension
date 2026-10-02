@@ -27,8 +27,8 @@ export function SearchSlide({ query, onQueryChange, onClose }) {
   }, []);
 
   return (
-    <div className="input-slide-container">
-      <div className="input-wrapper search-wrapper">
+    <div className="sh-input-slide-container">
+      <div className="sh-input-wrapper sh-search-wrapper">
         <input
           ref={inputRef}
           type="text"
@@ -47,7 +47,7 @@ export function SearchSlide({ query, onQueryChange, onClose }) {
         />
         <button
           type="button"
-          className="icon-btn input-action-btn"
+          className="sh-icon-btn sh-input-action-btn"
           title="Clear & Close"
           aria-label="Clear search and close"
           onClick={onClose}

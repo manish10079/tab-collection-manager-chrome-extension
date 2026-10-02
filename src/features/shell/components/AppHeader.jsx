@@ -15,7 +15,7 @@
  */
 export function AppHeader({ manifest, onOpenSettings, onClose }) {
   return (
-    <header className="header">
+    <header className="sh-header">
       <h1>
         <i className="fas fa-layer-group" aria-hidden="true" />{' '}
         <span id="app-name">{manifest.name}</span>
@@ -24,10 +24,10 @@ export function AppHeader({ manifest, onOpenSettings, onClose }) {
         </sub>
       </h1>
 
-      <div className="header-actions">
+      <div className="sh-header-actions">
         <button
           type="button"
-          className="icon-btn"
+          className="sh-icon-btn"
           id="settingsBtn"
           title="Settings"
           aria-label="Settings"
@@ -37,7 +37,7 @@ export function AppHeader({ manifest, onOpenSettings, onClose }) {
         </button>
         <button
           type="button"
-          className="icon-btn"
+          className="sh-icon-btn"
           id="closePanelBtn"
           title="Close Panel"
           aria-label="Close panel"
@@ -47,7 +47,7 @@ export function AppHeader({ manifest, onOpenSettings, onClose }) {
         </button>
       </div>
 
-      <p className="subtitle">Autosave &amp; organize your browsing sessions</p>
+      <p className="sh-subtitle">Autosave &amp; organize your browsing sessions</p>
     </header>
   );
 }

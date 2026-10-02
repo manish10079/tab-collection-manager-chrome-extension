@@ -139,7 +139,7 @@ export function TabRow({ tab, number, collection, actions }) {
         {isCurrentSession ? null : (
           <button
             type="button"
-            className={`icon-btn tab-pin-tab-btn${tab.pinned ? ' ut-pinned' : ''}`}
+            className={`sh-icon-btn tab-pin-tab-btn${tab.pinned ? ' ut-pinned' : ''}`}
             title={tab.pinned ? 'Unpin Tab' : 'Pin Tab'}
             aria-pressed={!!tab.pinned}
             onClick={() => actions.pinTab(collection.id, tab.id)}
@@ -150,7 +150,7 @@ export function TabRow({ tab, number, collection, actions }) {
 
         <button
           type="button"
-          className="icon-btn tab-menu-btn"
+          className="sh-icon-btn tab-menu-btn"
           title="Tab options"
           aria-haspopup="menu"
           aria-expanded={menuOpen}
@@ -162,7 +162,7 @@ export function TabRow({ tab, number, collection, actions }) {
         <div className={`tab-dropdown-menu${menuOpen ? '' : ' ut-hidden'}`}>
           <button
             type="button"
-            className="dropdown-option tab-edit-tab-btn"
+            className="sh-dropdown-option tab-edit-tab-btn"
             title="Edit tab title"
             onClick={choose(() => setDraftTitle(tab.title))}
           >
@@ -170,7 +170,7 @@ export function TabRow({ tab, number, collection, actions }) {
           </button>
           <button
             type="button"
-            className="dropdown-option tab-open-tab-btn"
+            className="sh-dropdown-option tab-open-tab-btn"
             title="Open tab in background"
             onClick={choose(() => actions.openTab(toOpenableUrl(tab.url), { active: false }))}
           >
@@ -178,7 +178,7 @@ export function TabRow({ tab, number, collection, actions }) {
           </button>
           <button
             type="button"
-            className="dropdown-option copy-tab-link-btn"
+            className="sh-dropdown-option copy-tab-link-btn"
             title="Copy tab link"
             onClick={choose(() => actions.copyTabUrl(tab.url))}
           >
@@ -186,7 +186,7 @@ export function TabRow({ tab, number, collection, actions }) {
           </button>
           <button
             type="button"
-            className="dropdown-option tab-remove-tab-btn"
+            className="sh-dropdown-option tab-remove-tab-btn"
             title="Remove tab"
             onClick={choose(() => actions.removeTab(collection.id, tab.id))}
           >

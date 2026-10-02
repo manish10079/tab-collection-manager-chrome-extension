@@ -83,7 +83,7 @@
   box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.15);
 }
 
-.tab-collection-tab-search .icon-btn {
+.tab-collection-tab-search .sh-icon-btn {
   width: 28px;
   height: 28px;
   padding: 5px;
@@ -295,7 +295,7 @@
 }
 
 /* Custom action button styles inside tab item */
-.tab-item .icon-btn.tab-menu-btn {
+.tab-item .sh-icon-btn.tab-menu-btn {
   width: 28px;
   height: 28px;
   padding: 5px;
@@ -310,7 +310,7 @@
   justify-content: center;
 }
 
-.tab-item:hover .icon-btn.tab-menu-btn {
+.tab-item:hover .sh-icon-btn.tab-menu-btn {
   opacity: 1;
   background: var(--bg-translucent-subtle);
   border-color: var(--border-card);

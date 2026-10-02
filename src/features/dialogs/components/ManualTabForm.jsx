@@ -59,7 +59,7 @@ export function ManualTabForm({ collectionId, intake, onDone }) {
           onChange={(event) => setUrl(event.target.value)}
         />
       </div>
-      <button type="submit" className="btn-secondary" disabled={busy}>
+      <button type="submit" className="sh-btn-secondary" disabled={busy}>
         <i className="fas fa-plus" /> Add Tab
       </button>
     </form>

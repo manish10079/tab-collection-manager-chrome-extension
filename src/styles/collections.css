@@ -3,7 +3,7 @@
    single stylesheet in Phase 2 without renaming a class (css-migration-plan.md). */
 
 /* No-results message inside collections container */
-.search-no-results {
+.sh-search-no-results {
   text-align: center;
   padding: 40px 20px;
   color: var(--text-secondary);
@@ -13,7 +13,7 @@
   animation: searchFadeIn 0.3s ease 0.05s forwards;
 }
 
-.search-no-results i {
+.sh-search-no-results i {
   font-size: 32px;
   margin-bottom: 12px;
   display: block;
@@ -327,7 +327,7 @@
   flex-shrink: 0;
 }
 
-.cc-collection-actions .icon-btn {
+.cc-collection-actions .sh-icon-btn {
   width: 28px;
   height: 28px;
   padding: 5px;
@@ -398,7 +398,7 @@
   z-index: 100;
 }
 
-.dropdown-option {
+.sh-dropdown-option {
   width: 100%;
   padding: 8px 12px;
   border-radius: 8px;
@@ -419,12 +419,12 @@
     border-color 0.15s ease;
 }
 
-.dropdown-option:hover {
+.sh-dropdown-option:hover {
   background: var(--bg-translucent-normal);
   color: var(--text-primary);
 }
 
-.dropdown-option i {
+.sh-dropdown-option i {
   width: 16px;
   text-align: center;
   font-size: 13px;
@@ -563,7 +563,7 @@
   gap: 4px;
 }
 
-.tab-item .icon-btn.tab-pin-tab-btn {
+.tab-item .sh-icon-btn.tab-pin-tab-btn {
   width: 28px;
   height: 28px;
   padding: 5px;
@@ -580,20 +580,20 @@
   justify-content: center;
 }
 
-.tab-item:hover .icon-btn.tab-pin-tab-btn {
+.tab-item:hover .sh-icon-btn.tab-pin-tab-btn {
   opacity: 1;
   background: var(--bg-translucent-subtle);
   border-color: var(--border-card);
 }
 
-.tab-item .icon-btn.tab-pin-tab-btn.ut-pinned {
+.tab-item .sh-icon-btn.tab-pin-tab-btn.ut-pinned {
   color: var(--warning); /* Premium Amber */
   opacity: 1;
   background: color-mix(in srgb, var(--warning) 15%, transparent);
   border-color: color-mix(in srgb, var(--warning) 30%, transparent);
 }
 
-.tab-item .icon-btn.tab-pin-tab-btn.ut-pinned:hover {
+.tab-item .sh-icon-btn.tab-pin-tab-btn.ut-pinned:hover {
   color: var(--warning-accent);
   background: color-mix(in srgb, var(--warning) 25%, transparent);
 }

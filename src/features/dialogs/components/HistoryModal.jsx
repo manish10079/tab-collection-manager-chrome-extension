@@ -59,7 +59,7 @@ function SessionCard({ session, label, position, onOpenDetails, onOpenAll }) {
         </div>
         <button
           type="button"
-          className="btn-success open-all-session-btn"
+          className="sh-btn-success open-all-session-btn"
           style={{ padding: '6px 12px', fontSize: '11px', zIndex: 10 }}
           onClick={(event) => {
             event.stopPropagation();
