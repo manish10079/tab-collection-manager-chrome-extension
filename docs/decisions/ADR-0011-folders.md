@@ -60,10 +60,14 @@ Two constraints shaped the design:
   collection on another collection reorders it and adopts the target's folder, which is how the
   existing reorder gesture keeps working across folders.
 
-### Deleting a folder keeps its collections
+### Deleting a folder keeps its collections (superseded by ADR-0012)
 
 - `deleteFolder` deletes only the container and re-roots its collections; it never deletes what it
   held. That is the least-surprising rule and it is unit-tested.
+- **Reversed in ADR-0012 (bulk delete):** once several items could be removed at once, a folder whose
+  contents survived its own deletion became inconsistent with the rest of the selection, so
+  `deleteFolder` now cascades behind a confirmation. The reasoning below is kept as the record of
+  what was decided at 1.17.0.
 - Folders travel with backups: the global export/import payload gained a `folders` field (a legacy
   file without it still imports, as all-root) and the Drive backup/restore carries them too.
 
@@ -90,5 +94,7 @@ Two constraints shaped the design:
 - **Render folders as a separate container element.** Rejected: extras and indentation are cosmetic;
   keeping root `.collection` elements as direct children preserves the keyboard jump and the E2E
   selectors for free.
-- **Deleting a folder deletes its collections.** Rejected: destructive and surprising; re-rooting is
-  reversible and matches "a container must never delete what it contained".
+- **Deleting a folder deletes its collections.** Rejected at the time: destructive and surprising;
+  re-rooting is reversible and matches "a container must never delete what it contained". Revisited
+  and adopted in ADR-0012 once bulk deletion made the re-rooting rule the odd one out — the prompt
+  now names the cascade, so it is destructive but never surprising.

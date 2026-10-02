@@ -41,12 +41,12 @@ function makeActions() {
   };
 }
 
-/** @param {Record<string, unknown>} storage */
-async function renderList(storage) {
+/** @param {Record<string, unknown>} storage @param {Record<string, unknown>} [overrides] */
+async function renderList(storage, overrides = {}) {
   installChromeMock(storage);
   await hydrate();
   const actions = makeActions();
-  const view = render(<CollectionList actions={actions} />);
+  const view = render(<CollectionList actions={actions} {...overrides} />);
   return { actions, ...view };
 }
 
@@ -187,5 +187,59 @@ describe('CollectionList folders', () => {
     fireEvent.drop(zone);
 
     expect(actions.moveCollectionToFolder).toHaveBeenCalledWith('nested1', null);
+  });
+});
+
+/**
+ * Bulk selection: the checkboxes only exist in selection mode, and each one reports its kind and
+ * id so the caller can keep one selection across folders and collections.
+ */
+describe('CollectionList bulk selection', () => {
+  it('hides the checkboxes until selection mode is on', async () => {
+    const { container } = await renderList(NESTED_STORAGE);
+
+    expect(container.querySelector('.select-checkbox')).toBeNull();
+  });
+
+  it('marks the selected folder and collection and reports every toggle', async () => {
+    const onToggleSelect = vi.fn();
+    const { container } = await renderList(NESTED_STORAGE, {
+      selectionMode: true,
+      selectedFolderIds: new Set(['f1']),
+      selectedCollectionIds: new Set(),
+      onToggleSelect,
+    });
+
+    const folder = container.querySelector('.folder[data-folder-id="f1"]');
+    const rootCard = container.querySelector('.collection[data-id="root1"]');
+    expect(folder.querySelector('.select-checkbox input')).toBeTruthy();
+    expect(rootCard.querySelector('.select-checkbox input')).toBeTruthy();
+    expect(folder.classList.contains('selected')).toBe(true);
+    expect(rootCard.classList.contains('selected')).toBe(false);
+
+    fireEvent.click(rootCard.querySelector('.select-checkbox input'));
+    expect(onToggleSelect).toHaveBeenCalledWith('collection', 'root1');
+
+    fireEvent.click(folder.querySelector('.select-checkbox input'));
+    expect(onToggleSelect).toHaveBeenCalledWith('folder', 'f1');
+  });
+
+  it('lets a collection inside a folder be selected on its own', async () => {
+    const onToggleSelect = vi.fn();
+    const { container } = await renderList(NESTED_STORAGE, {
+      selectionMode: true,
+      selectedFolderIds: new Set(),
+      selectedCollectionIds: new Set(['nested1']),
+      onToggleSelect,
+    });
+
+    const nestedBox = container.querySelector(
+      '.folder[data-folder-id="f1"] .folder-body .collection[data-id="nested1"] .select-checkbox input'
+    );
+    expect(nestedBox).toBeTruthy();
+    expect(nestedBox.checked).toBe(true);
+
+    fireEvent.click(nestedBox);
+    expect(onToggleSelect).toHaveBeenCalledWith('collection', 'nested1');
   });
 });

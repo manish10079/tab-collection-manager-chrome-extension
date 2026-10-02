@@ -26,6 +26,7 @@ import {
   renameFolder,
   setFolderExpanded,
 } from '../lib/folderDraft.js';
+import { deleteSelection, describeSelection, summarizeSelection } from '../lib/bulkDelete.js';
 
 /**
  * @typedef {object} CollectionActions
@@ -35,6 +36,7 @@ import {
  * @property {(name: string) => Promise<'created'|'empty'|'too-long'|'too-many'|'duplicate'>} createFolder
  * @property {(id: string, name: string) => Promise<boolean>} renameFolder
  * @property {(id: string) => Promise<void>} deleteFolder
+ * @property {(selection: import('../lib/bulkDelete.js').Selection) => Promise<boolean>} deleteMany
  * @property {(collectionId: string, folderId: string|null) => Promise<void>} moveCollectionToFolder
  * @property {(id: string) => void} pinCollection
  * @property {(collectionId: string, tabId: string) => void} pinTab
@@ -261,13 +263,50 @@ export function useCollectionActions({ toast, addTabs, importTabs }) {
     },
 
     deleteFolder: async (id) => {
-      if (!window.confirm('Remove this folder? Its collections are kept in the list.')) return;
-      let moved = 0;
+      const folder = getSnapshot().folders.find((entry) => entry.id === id);
+      if (!folder) return;
+      const nested = getSnapshot().collections.filter((entry) => entry.folderId === id).length;
+      const warning =
+        nested > 0
+          ? `Delete "${folder.name}" and the ${nested} collection${nested === 1 ? '' : 's'} inside it? This cannot be undone.`
+          : `Delete the folder "${folder.name}"?`;
+      if (!window.confirm(warning)) return;
+
+      let removed = 0;
       await mutate((draft) => {
-        moved = deleteFolder(draft, id).movedCollections;
+        removed = deleteFolder(draft, id).removedCollections;
       });
-      if (moved > 0)
-        toast(`Folder removed — ${moved} collection${moved === 1 ? '' : 's'} moved out.`);
+      toast(
+        removed > 0
+          ? `Folder deleted — ${removed} collection${removed === 1 ? '' : 's'} removed with it.`
+          : 'Folder deleted'
+      );
+    },
+
+    /**
+     * Delete everything the user checked in selection mode, in one write. A folder takes its
+     * collections with it; the confirm names exactly what will go.
+     *
+     * @returns {Promise<boolean>} Whether anything was deleted.
+     */
+    deleteMany: async ({ folderIds = [], collectionIds = [] } = {}) => {
+      const summary = summarizeSelection(getSnapshot(), { folderIds, collectionIds });
+      if (summary.folders + summary.collections === 0) return false;
+      if (!window.confirm(describeSelection(summary))) return false;
+
+      let result = { removedFolders: 0, removedCollections: 0 };
+      await mutate((draft) => {
+        result = deleteSelection(draft, { folderIds, collectionIds });
+      });
+      const bits = [];
+      if (result.removedFolders > 0)
+        bits.push(`${result.removedFolders} folder${result.removedFolders === 1 ? '' : 's'}`);
+      if (result.removedCollections > 0)
+        bits.push(
+          `${result.removedCollections} collection${result.removedCollections === 1 ? '' : 's'}`
+        );
+      toast(bits.length > 0 ? `Deleted ${bits.join(' and ')}` : 'Nothing to delete');
+      return true;
     },
 
     moveCollectionToFolder: (collectionId, folderId) =>

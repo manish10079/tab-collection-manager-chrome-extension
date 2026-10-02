@@ -230,3 +230,61 @@ describe('useCollectionActions administration actions', () => {
     expect(store.collections[0].tabs).toEqual([]);
   });
 });
+
+/**
+ * Bulk deletion asks once, cascades folders into their collections, and refuses to take the live
+ * Current Session with it. The confirmation is asserted through `window.confirm` so a cancel is
+ * covered as well as an accept.
+ */
+describe('useCollectionActions deleteMany', () => {
+  it('removes the folders with their collections and the selected collections after one prompt', async () => {
+    const { store, legacy, actions } = setup({
+      collections: [
+        { id: 'a', name: 'A', tabs: [makeTab('t1')], folderId: 'f1' },
+        { id: 'b', name: 'B', tabs: [] },
+        { id: 'c', name: 'C', tabs: [] },
+      ],
+      folders: [{ id: 'f1', name: 'Work' }],
+    });
+    await hydrate();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    const done = await actions.deleteMany({ folderIds: ['f1'], collectionIds: ['c'] });
+
+    expect(done).toBe(true);
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    // The folder's own collection is counted alongside the separately selected one.
+    expect(confirmSpy.mock.calls[0][0]).toContain('1 folder and 2 collections');
+    expect(store.collections.map((collection) => collection.id)).toEqual(['b']);
+    expect(store.folders).toEqual([]);
+    expect(legacy.toast).toHaveBeenCalledTimes(1);
+    confirmSpy.mockRestore();
+  });
+
+  it('changes nothing when the prompt is dismissed', async () => {
+    const { store, legacy, actions } = setup({
+      collections: [{ id: 'a', name: 'A', tabs: [] }],
+    });
+    await hydrate();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+    const done = await actions.deleteMany({ collectionIds: ['a'] });
+
+    expect(done).toBe(false);
+    expect(store.collections).toHaveLength(1);
+    expect(legacy.toast).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
+  });
+
+  it('does nothing at all for an empty selection', async () => {
+    const { legacy, actions } = setup({ collections: [{ id: 'a', name: 'A', tabs: [] }] });
+    await hydrate();
+    const confirmSpy = vi.spyOn(window, 'confirm');
+
+    await actions.deleteMany({});
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(legacy.toast).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
+  });
+});

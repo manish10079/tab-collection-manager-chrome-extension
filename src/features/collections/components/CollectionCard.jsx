@@ -13,6 +13,9 @@ import { TabPanel } from './TabPanel.jsx';
  * @property {boolean} isGrid           Grid view moves the tab panel into a modal
  * @property {import('../../../store/schema.js').Folder[]} [folders] Every folder, for the move menu
  * @property {import('../hooks/useCollectionActions.js').CollectionActions} actions
+ * @property {boolean} [selectionMode]  Show the bulk-delete checkbox
+ * @property {boolean} [isSelected]
+ * @property {(kind: 'folder'|'collection', id: string) => void} [onToggleSelect]
  */
 
 /**
@@ -22,7 +25,16 @@ import { TabPanel } from './TabPanel.jsx';
  * @param {CollectionCardProps} props
  * @returns {import('react').ReactElement}
  */
-export function CollectionCard({ collection, isAutoSaveTarget, isGrid, actions, folders = [] }) {
+export function CollectionCard({
+  collection,
+  isAutoSaveTarget,
+  isGrid,
+  actions,
+  folders = [],
+  selectionMode = false,
+  isSelected = false,
+  onToggleSelect,
+}) {
   const isCurrentSession = collection.id === CURRENT_SESSION_ID;
   const [menuOpen, setMenuOpen] = useState(false);
   /** Draft name while editing; null means "not editing". */
@@ -63,6 +75,7 @@ export function CollectionCard({ collection, isAutoSaveTarget, isGrid, actions, 
   if (isAutoSaveTarget) classNames.push('auto-save-target');
   if (isDragging) classNames.push('dragging');
   if (isDragOver) classNames.push('drag-over');
+  if (isSelected) classNames.push('selected');
 
   function toggleExpanded() {
     actions.setExpanded(collection.id, !collection.isExpanded);
@@ -104,6 +117,17 @@ export function CollectionCard({ collection, isAutoSaveTarget, isGrid, actions, 
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div className="collection-header" onClick={handleHeaderClick}>
         <div className="collection-left-section">
+          {selectionMode ? (
+            <label className="select-checkbox" title={`Select ${collection.name}`}>
+              <input
+                type="checkbox"
+                checked={isSelected}
+                disabled={isCurrentSession}
+                aria-label={`Select ${collection.name}`}
+                onChange={() => onToggleSelect?.('collection', collection.id)}
+              />
+            </label>
+          ) : null}
           <div
             className="collection-drag-handle drag-handle"
             title="Drag to reorder collection"

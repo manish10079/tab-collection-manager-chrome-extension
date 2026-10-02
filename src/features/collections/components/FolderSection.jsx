@@ -12,6 +12,11 @@ import { CollectionCard } from './CollectionCard.jsx';
  * @property {boolean} isGrid
  * @property {string|null} autoSaveCollectionId
  * @property {import('../hooks/useCollectionActions.js').CollectionActions} actions
+ * @property {boolean} [selectionMode]  Show the bulk-delete checkbox
+ * @property {boolean} [isSelected]     Whether this folder itself is selected
+ * @property {Set<string>} [selectedCollectionIds] The nested cards' selection, so a collection
+ *   inside a folder can be checked on its own rather than only through its folder
+ * @property {(kind: 'folder'|'collection', id: string) => void} [onToggleSelect]
  */
 
 /**
@@ -31,6 +36,10 @@ export function FolderSection({
   isGrid,
   autoSaveCollectionId,
   actions,
+  selectionMode = false,
+  isSelected = false,
+  selectedCollectionIds,
+  onToggleSelect,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   /** Draft name while editing; null means "not editing". */
@@ -92,12 +101,23 @@ export function FolderSection({
 
   const classNames = ['folder'];
   if (isDragOver) classNames.push('drag-over');
+  if (isSelected) classNames.push('selected');
 
   return (
     <div className={classNames.join(' ')} data-folder-id={folder.id} {...dropProps}>
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div className="folder-header" onClick={handleHeaderClick}>
         <div className="folder-left-section">
+          {selectionMode ? (
+            <label className="select-checkbox" title={`Select ${folder.name}`}>
+              <input
+                type="checkbox"
+                checked={isSelected}
+                aria-label={`Select ${folder.name}`}
+                onChange={() => onToggleSelect?.('folder', folder.id)}
+              />
+            </label>
+          ) : null}
           <button
             type="button"
             className={`expand-btn${folder.isExpanded ? ' rotated' : ''}`}
@@ -154,7 +174,7 @@ export function FolderSection({
               <button
                 type="button"
                 className="dropdown-option delete-folder-btn"
-                title="Delete folder, keeping its collections"
+                title="Delete folder and the collections inside it"
                 onClick={choose(() => actions.deleteFolder(folder.id))}
               >
                 <i className="fas fa-trash" /> Remove folder
@@ -187,6 +207,9 @@ export function FolderSection({
                   isGrid={isGrid}
                   isAutoSaveTarget={collection.id === autoSaveCollectionId}
                   actions={actions}
+                  selectionMode={selectionMode}
+                  isSelected={selectedCollectionIds?.has(collection.id) ?? false}
+                  onToggleSelect={onToggleSelect}
                 />
               ))}
             </>

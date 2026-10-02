@@ -46,7 +46,39 @@ export function App() {
   const manifest = useManifestInfo();
   const search = useGlobalSearch(controller.query);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Bulk-delete selection. It is UI state shared by two features (the controls-bar toggle and the
+  // checkboxes on the folders/collections), so the composition root owns it and passes it down.
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedFolders, setSelectedFolders] = useState(() => new Set());
+  const [selectedCollections, setSelectedCollections] = useState(() => new Set());
+  const selectedCount = selectedFolders.size + selectedCollections.size;
   const { openHistory, openShortcuts } = dialogs.actions;
+
+  const exitSelection = () => {
+    setSelectionMode(false);
+    setSelectedFolders(new Set());
+    setSelectedCollections(new Set());
+  };
+
+  /** @param {'folder'|'collection'} kind @param {string} id */
+  const toggleSelected = (kind, id) => {
+    const setter = kind === 'folder' ? setSelectedFolders : setSelectedCollections;
+    setter((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const deleteSelected = async () => {
+    const done = await actions.deleteMany({
+      folderIds: [...selectedFolders],
+      collectionIds: [...selectedCollections],
+    });
+    if (done) exitSelection();
+  };
 
   useGlobalShortcuts({ controller, onOpenShortcuts: openShortcuts });
 
@@ -79,6 +111,11 @@ export function App() {
           isGrid={isGrid}
           backup={lastSessionBackup}
           onOpenHistory={openHistory}
+          selectionMode={selectionMode}
+          selectedCount={selectedCount}
+          onToggleSelectionMode={() => (selectionMode ? exitSelection() : setSelectionMode(true))}
+          onDeleteSelected={deleteSelected}
+          onCancelSelection={exitSelection}
         />
 
         {search.isEmpty ? (
@@ -88,7 +125,15 @@ export function App() {
                 Could not read extension storage: {error}
               </p>
             ) : null}
-            {ready ? <CollectionList actions={actions} /> : null}
+            {ready ? (
+              <CollectionList
+                actions={actions}
+                selectionMode={selectionMode}
+                selectedFolderIds={selectedFolders}
+                selectedCollectionIds={selectedCollections}
+                onToggleSelect={toggleSelected}
+              />
+            ) : null}
           </div>
         ) : (
           <GlobalSearchResults

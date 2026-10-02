@@ -21,9 +21,11 @@ Legend: 🔴 major · 🟡 medium · ⚪ minor
 - **Us:** implemented. A `folders` array plus a per-collection `folderId` (one level deep);
   `FolderSection` renders the header (expand/collapse, inline rename, counts, options menu)
   with its collections nested inside; drag a collection onto a folder to move it in, drag a
-  nested collection onto the root drop zone to move it out, and delete keeps the
-  collections. Folders travel through global export/import and the Drive backup, and the
-  persisted shape is upgraded by a versioned migration (`schemaVersion: 1`).
+  nested collection onto the root drop zone to move it out, and deleting asks once and then
+  removes the folder's collections with it. Folders travel through global export/import and
+  the Drive backup, and the persisted shape is upgraded by a versioned migration
+  (`schemaVersion: 1`). A separate Select mode bulk-deletes several folders and collections
+  at once from both sections.
 - **Still missing:** folder colors.
 
 ### 2. Chrome Tab Groups capture & restore — ✅ implemented

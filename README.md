@@ -11,6 +11,7 @@
 - **🚀 Instant Sessions**: Save your entire multi-window browser session with a single click or dynamic multi-select mode.
 - **📁 Custom Spaces**: Organize tabs into named collections with unique metadata tracking (creation time, modified time, and drag-and-drop custom order).
 - **🗂️ Nested Folders**: Group collections into one-level folders — expand/collapse them, drag collections in and out, and see per-folder tab counts. Folders are migration-safe (a versioned storage upgrade) and travel with your backups.
+- **🧹 Bulk Delete**: Turn on **Select** to get a checkbox on every folder and collection, pick as many as you like across both sections, and remove them together behind a single confirmation that names what will go.
 - **🔄 Auto-Save Engine**: Background service worker automatically tracks window changes, tab closures, and URL shifts inside a dedicated, debounced (500ms) **Current Session** collection.
 - **⚡ RAM Saver Mode**: Restores collections gracefully by leveraging background tab discarding (`api.tabs.discard`), preventing performance stutter or memory spikes.
 - **📌 Pinned Workspaces & Tabs**: Keep critical collections locked at the top of your layout and enforce maximum pinned tab thresholds within individual folders.
@@ -187,7 +188,7 @@ See [`react-migration-plan.md`](./react-migration-plan.md) for the migration roa
 ## 📖 How to Use
 
 ### 1. Organizing Your Layout
-Click the extension action item or trigger the side panel. Enter a unique title into the create box to start an empty collection (duplicate names are flagged case-insensitively). Use the folder button to add a folder, then drag a collection onto it — or pick **Move to folder** in the collection's menu — to file it away. Deleting a folder keeps its collections and returns them to the root.
+Click the extension action item or trigger the side panel. Enter a unique title into the create box to start an empty collection (duplicate names are flagged case-insensitively). Use the folder button to add a folder, then drag a collection onto it — or pick **Move to folder** in the collection's menu — to file it away. To clear out several things at once, click the **Select** button in the toolbar and tick the folders and collections you want, then **Delete selected** — one confirmation, and deleting a folder takes the collections inside it with it. Deleting a single folder does the same.
 
 ### 2. Live Automation
 Head into settings to toggle the background **Auto-Save Engine**. The background engine monitors system layout changes, applying specialized startup stabilization boundaries to isolate active workspaces perfectly.

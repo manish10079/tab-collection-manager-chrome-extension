@@ -12,6 +12,10 @@ import { SectionToggle } from './SectionToggle.jsx';
 /**
  * @typedef {object} CollectionListProps
  * @property {import('../hooks/useCollectionActions.js').CollectionActions} actions
+ * @property {boolean} [selectionMode]          Show a delete checkbox on every folder/collection
+ * @property {Set<string>} [selectedFolderIds]
+ * @property {Set<string>} [selectedCollectionIds]
+ * @property {(kind: 'folder'|'collection', id: string) => void} [onToggleSelect]
  */
 
 /**
@@ -28,7 +32,13 @@ import { SectionToggle } from './SectionToggle.jsx';
  * @param {CollectionListProps} props
  * @returns {import('react').ReactElement}
  */
-export function CollectionList({ actions }) {
+export function CollectionList({
+  actions,
+  selectionMode = false,
+  selectedFolderIds,
+  selectedCollectionIds,
+  onToggleSelect,
+}) {
   const { collections, folders, settings } = useAppState();
   const { root, groups } = useGroupedCollections();
   const isGrid = settings.layoutViewMode === 'grid';
@@ -72,6 +82,10 @@ export function CollectionList({ actions }) {
                   isGrid={isGrid}
                   autoSaveCollectionId={settings.autoSaveCollectionId}
                   actions={actions}
+                  selectionMode={selectionMode}
+                  isSelected={selectedFolderIds?.has(group.folder.id) ?? false}
+                  selectedCollectionIds={selectedCollectionIds}
+                  onToggleSelect={onToggleSelect}
                 />
               ))}
 
@@ -99,6 +113,9 @@ export function CollectionList({ actions }) {
                   isGrid={isGrid}
                   isAutoSaveTarget={collection.id === settings.autoSaveCollectionId}
                   actions={actions}
+                  selectionMode={selectionMode}
+                  isSelected={selectedCollectionIds?.has(collection.id) ?? false}
+                  onToggleSelect={onToggleSelect}
                 />
               ))}
         </>

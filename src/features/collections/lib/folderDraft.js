@@ -3,6 +3,7 @@
 // Folders are one level deep — a collection points at one via `folderId`, and `null` is the root.
 import { LIMITS } from '../../../shared/constants.js';
 import { CURRENT_SESSION_ID } from '../../../shared/storage-keys.js';
+import { partitionCollections } from '../../../lib/sort.js';
 import { normalizeName } from './collectionAdmin.js';
 
 /**
@@ -98,27 +99,37 @@ export function renameFolder(draft, folderId, newName) {
 }
 
 /**
- * Delete a folder. Its collections are kept and returned to the root — deleting a container must
- * never delete what it contained.
+ * Delete a folder **and the collections inside it**. A folder is a container the user asked to
+ * remove, so its contents go with it — the confirm dialog says so before anything is lost.
+ *
+ * Auto-Save is pointed at nothing when its target was inside the folder.
  *
  * @param {import('../../../store/schema.js').AppState} draft
  * @param {string} folderId
- * @returns {{deleted: boolean, movedCollections: number}}
+ * @returns {{deleted: boolean, removedCollections: number}}
  */
 export function deleteFolder(draft, folderId) {
   const index = draft.folders.findIndex((entry) => entry.id === folderId);
-  if (index === -1) return { deleted: false, movedCollections: 0 };
+  if (index === -1) return { deleted: false, removedCollections: 0 };
 
   draft.folders.splice(index, 1);
-  let movedCollections = 0;
-  for (const collection of draft.collections) {
-    if (collection.folderId === folderId) {
-      collection.folderId = null;
-      collection.updatedAt = Date.now();
-      movedCollections += 1;
-    }
+
+  const removedCollections = [];
+  draft.collections = draft.collections.filter((collection) => {
+    if ((collection.folderId ?? null) !== folderId) return true;
+    removedCollections.push(collection);
+    return false;
+  });
+  draft.collections = partitionCollections(draft.collections);
+
+  if (
+    draft.settings.autoSaveCollectionId &&
+    removedCollections.some((collection) => collection.id === draft.settings.autoSaveCollectionId)
+  ) {
+    draft.settings.autoSaveCollectionId = null;
   }
-  return { deleted: true, movedCollections };
+
+  return { deleted: true, removedCollections: removedCollections.length };
 }
 
 /**

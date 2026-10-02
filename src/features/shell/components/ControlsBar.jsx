@@ -9,6 +9,11 @@ import { SortMenu } from './SortMenu.jsx';
  * @property {boolean} isGrid
  * @property {import('../../../store/schema.js').SessionBackup|null} backup
  * @property {() => void} onOpenHistory
+ * @property {boolean} selectionMode
+ * @property {number} selectedCount
+ * @property {() => void} onToggleSelectionMode
+ * @property {() => void} onDeleteSelected
+ * @property {() => void} onCancelSelection
  */
 
 /**
@@ -19,7 +24,18 @@ import { SortMenu } from './SortMenu.jsx';
  * @param {ControlsBarProps} props
  * @returns {import('react').ReactElement}
  */
-export function ControlsBar({ controller, collectionSortType, isGrid, backup, onOpenHistory }) {
+export function ControlsBar({
+  controller,
+  collectionSortType,
+  isGrid,
+  backup,
+  onOpenHistory,
+  selectionMode,
+  selectedCount,
+  onToggleSelectionMode,
+  onDeleteSelected,
+  onCancelSelection,
+}) {
   const { slide } = controller;
   const hasBackup = Boolean(backup && Array.isArray(backup.tabs) && backup.tabs.length > 0);
   const restoreTitle = hasBackup
@@ -33,7 +49,10 @@ export function ControlsBar({ controller, collectionSortType, isGrid, backup, on
       <div className="compact-controls-row">
         {/* The default row stays mounted and is hidden while a slide is open, so the slide's
             mount/unmount animation matches the legacy show/hide. */}
-        <div className={`actions-bar-default${slide ? ' hidden' : ''}`} id="actionsBarDefault">
+        <div
+          className={`actions-bar-default${slide || selectionMode ? ' hidden' : ''}`}
+          id="actionsBarDefault"
+        >
           <button
             type="button"
             className="icon-btn"
@@ -63,6 +82,16 @@ export function ControlsBar({ controller, collectionSortType, isGrid, backup, on
             onClick={controller.createFolder}
           >
             <i className="fas fa-folder-plus" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            id="toggleSelectBtn"
+            title="Select folders or collections to delete"
+            aria-label="Select items to delete"
+            onClick={onToggleSelectionMode}
+          >
+            <i className="fas fa-check-double" aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -120,6 +149,31 @@ export function ControlsBar({ controller, collectionSortType, isGrid, backup, on
             <i className="fas fa-history" aria-hidden="true" />
           </button>
         </div>
+
+        {selectionMode ? (
+          <div className="selection-bar" id="selectionBar">
+            <span className="selection-count">{selectedCount} selected</span>
+            <button
+              type="button"
+              className="selection-delete"
+              id="deleteSelectedBtn"
+              disabled={selectedCount === 0}
+              onClick={onDeleteSelected}
+            >
+              <i className="fas fa-trash" aria-hidden="true" /> Delete selected
+            </button>
+            <button
+              type="button"
+              className="icon-btn"
+              id="cancelSelectionBtn"
+              title="Cancel selection"
+              aria-label="Cancel selection"
+              onClick={onCancelSelection}
+            >
+              <i className="fas fa-times" aria-hidden="true" />
+            </button>
+          </div>
+        ) : null}
 
         {slide === 'search' ? (
           <SearchSlide

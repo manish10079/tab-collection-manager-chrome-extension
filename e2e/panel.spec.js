@@ -436,3 +436,76 @@ test('keeps a folder’s collections in list layout in grid view', async ({ pane
   });
   expect(spansBothColumns).toBe(true);
 });
+
+test('bulk-deletes a folder with its contents, a nested collection and a root collection', async ({
+  panel,
+}) => {
+  await createCollection(panel, 'E2E Keep');
+  await createCollection(panel, 'E2E Bulk');
+  await createCollection(panel, 'E2E Inner');
+  await panel.locator('#createFolderBtn').click();
+  const doomedFolder = panel.locator('#collectionsContainer > .folder').nth(0);
+  await expect(doomedFolder).toBeVisible();
+
+  // Two folders, each holding one collection, moved in through each card's menu. The menu lists
+  // the folders in order, so nth(0) is the first folder and nth(1) the second.
+  const bulkCard = await cardFor(panel, 'E2E Bulk');
+  await bulkCard.locator('.collection-menu-btn').click();
+  await bulkCard.locator('.move-to-folder-btn').nth(0).click();
+  await expect(doomedFolder.locator('.folder-body .collection-name')).toHaveValue('E2E Bulk');
+
+  await panel.locator('#createFolderBtn').click();
+  const keptFolder = panel.locator('#collectionsContainer > .folder').nth(1);
+  const innerCard = await cardFor(panel, 'E2E Inner');
+  await innerCard.locator('.collection-menu-btn').click();
+  await innerCard.locator('.move-to-folder-btn').nth(1).click();
+  await expect(keptFolder.locator('.folder-body .collection-name')).toHaveValue('E2E Inner');
+
+  // Selection mode swaps the actions row for a selection bar with a live count.
+  await panel.locator('#toggleSelectBtn').click();
+  const bar = panel.locator('#selectionBar');
+  await expect(bar).toBeVisible();
+  await expect(bar.locator('.selection-count')).toHaveText('0 selected');
+  await expect(bar.locator('#deleteSelectedBtn')).toBeDisabled();
+
+  // The live Current Session can never be deleted, so its box is disabled rather than deletable.
+  await expect(
+    panel.locator(
+      '#collectionsContainer > .collection.current-session-collection .select-checkbox input'
+    )
+  ).toBeDisabled();
+
+  // Three different selections, each with a checkbox of its own: a whole folder (which cascades to
+  // its collection), a collection nested inside another folder, and a root collection.
+  // The folder's own box is the header one; the cards nested in its body have their own.
+  await doomedFolder.locator('.folder-header .select-checkbox input').check();
+  await expect(bar.locator('.selection-count')).toHaveText('1 selected');
+  await keptFolder.locator('.folder-body .collection .select-checkbox input').check();
+  await expect(bar.locator('.selection-count')).toHaveText('2 selected');
+  await (await cardFor(panel, 'E2E Keep')).locator('.select-checkbox input').check();
+  await expect(bar.locator('.selection-count')).toHaveText('3 selected');
+
+  // Deleting asks once; Playwright has to accept the dialog (it auto-dismisses otherwise).
+  panel.once('dialog', (dialog) => dialog.accept());
+  await bar.locator('#deleteSelectedBtn').click();
+
+  // The selected folder and its collection went with it, and so did the nested collection and the
+  // root one — but the *unselected* second folder survives, now empty.
+  await expect(panel.locator('#collectionsContainer > .folder')).toHaveCount(1);
+  // The survivor is the only folder left, so re-resolve it rather than reuse the pre-delete index.
+  const survivor = panel.locator('#collectionsContainer > .folder').first();
+  await expect(survivor.locator('.folder-empty')).toBeVisible();
+  await expect.poll(() => storedNames(panel)).not.toContain('E2E Keep');
+  await expect.poll(() => storedNames(panel)).not.toContain('E2E Bulk');
+  await expect.poll(() => storedNames(panel)).not.toContain('E2E Inner');
+  await expect
+    .poll(() =>
+      panel.evaluate(async () => {
+        const { folders = [] } = await chrome.storage.local.get('folders');
+        return folders.map((folder) => folder.name);
+      })
+    )
+    .toEqual([await survivor.locator('.folder-name').inputValue()]);
+  await expect(bar).toBeHidden();
+  await expect(panel.locator('#actionsBarDefault')).not.toHaveClass(/hidden/);
+});

@@ -85,20 +85,33 @@ describe('setFolderExpanded', () => {
 });
 
 describe('deleteFolder', () => {
-  it('removes the folder but keeps and re-roots its collections', () => {
+  it('removes the folder and the collections inside it', () => {
     const state = draft({
       folders: [folder('f1', 'Work')],
       collections: [collection('a', 'A', 'f1'), collection('b', 'B', 'f1'), collection('c', 'C')],
     });
 
-    expect(deleteFolder(state, 'f1')).toEqual({ deleted: true, movedCollections: 2 });
+    expect(deleteFolder(state, 'f1')).toEqual({ deleted: true, removedCollections: 2 });
     expect(state.folders).toEqual([]);
-    expect(state.collections.map((entry) => entry.folderId)).toEqual([null, null, null]);
+    // The two nested collections go with the folder; the root one stays.
+    expect(state.collections.map((entry) => entry.id)).toEqual(['c']);
+  });
+
+  it('clears Auto-Save when its target was inside the folder', () => {
+    const state = draft({
+      folders: [folder('f1', 'Work')],
+      collections: [collection('a', 'A', 'f1')],
+    });
+    state.settings.autoSaveCollectionId = 'a';
+
+    deleteFolder(state, 'f1');
+
+    expect(state.settings.autoSaveCollectionId).toBeNull();
   });
 
   it('reports a missing folder without touching anything', () => {
     const state = draft({ folders: [folder('f1', 'Work')] });
-    expect(deleteFolder(state, 'ghost')).toEqual({ deleted: false, movedCollections: 0 });
+    expect(deleteFolder(state, 'ghost')).toEqual({ deleted: false, removedCollections: 0 });
     expect(state.folders).toHaveLength(1);
   });
 });

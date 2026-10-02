@@ -240,3 +240,65 @@
 .collections-container.grid-view .section-heading {
   grid-column: 1 / -1;
 }
+
+/* Bulk selection (delete several folders/collections). The checkbox appears on each folder and
+   collection once the controls-bar Select toggle is on; `.selected` mirrors the drag-over accent. */
+.select-checkbox {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.select-checkbox input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.collection.selected,
+.folder.selected {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px var(--accent),
+    var(--shadow-card);
+}
+
+.selection-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 2px;
+}
+
+.selection-count {
+  margin-right: auto;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.selection-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 9px;
+  /* Derived from the `--danger` token rather than a second hard-coded red (skill.md §5.3). */
+  border: 1px solid color-mix(in srgb, var(--danger) 50%, transparent);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.selection-delete:hover:not([disabled]) {
+  background: color-mix(in srgb, var(--danger) 20%, transparent);
+}
+
+.selection-delete[disabled] {
+  cursor: default;
+  opacity: 0.5;
+}

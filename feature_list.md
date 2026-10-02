@@ -181,6 +181,22 @@ A lightweight session restoration system for large collections.
 
 ---
 
+## Bulk Delete 🧹 ✅ Implemented
+
+Select several folders and collections across both sections and remove them in one action.
+
+### Implemented
+
+* A **Select** toggle in the controls bar turns on a checkbox on every folder and collection
+* One shared selection spans both sections, with a live "N selected" count
+* **Delete selected** asks for one confirmation that names what will go, then removes it all
+* Deleting a selected folder cascades to the collections inside it, and the prompt says so
+* A collection inside a folder can be checked on its own, without selecting its folder
+* Current Session is never deletable, so its checkbox is disabled
+* Selection mode exits on delete or cancel, and the live state is UI-only (no storage key changes)
+
+---
+
 ## Duplicate Detection System
 
 * Detect duplicate URLs across collections
@@ -336,7 +352,7 @@ Work
 * Per-folder tab count and collection count
 * Drag collections into a folder, and back out to the root
 * Move to folder from the collection menu (and remove from folder)
-* Deleting a folder keeps its collections and returns them to the root
+* Deleting a folder confirms first, then removes the collections inside it with it
 * Folder hierarchy travels with global export/import and Google Drive backup
 * Dangling folder references are dropped on load (a collection can never be orphaned)
 * Migration-safe storage: `schemaVersion` + a `folders` array applied by a versioned migration
@@ -507,9 +523,9 @@ Legend: 🔴 major · 🟡 medium · ⚪ minor · Status: ✅ implemented · �
   collections stay direct children of the list. Drag a collection onto a folder to move it
   in, drop it on another collection to adopt that collection's folder, or drop it on the
   root drop zone (shown only while a nested collection is dragged) to move it back out.
-  Create via the controls bar, rename/delete from the folder menu — deleting keeps the
-  collections and returns them to the root. Folders ride along in global export/import and
-  the Google Drive backup; a dangling `folderId` is dropped on load.
+  Create via the controls bar, rename/delete from the folder menu; deleting asks once and then
+  removes the collections inside the folder with it. Folders ride along in global
+  export/import and the Google Drive backup; a dangling `folderId` is dropped on load.
 * **Migration-safe:** the persisted shape moved to `schemaVersion: 1` through a versioned
   migration (`src/store/migrations/`), so an existing profile upgrades in place.
 * **Not built:** folder colors.
