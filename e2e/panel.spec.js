@@ -372,6 +372,18 @@ test('keeps a folder’s collections in list layout in grid view', async ({ pane
   await card.locator('.move-to-folder-btn').first().click();
   await expect(folder.locator('.folder-body .collection-name')).toHaveValue('E2E Foldered');
 
+  // Two stacked sections, folders first, each marked by its heading.
+  await expect(panel.locator('#collectionsContainer .folders-heading')).toHaveText('Folders');
+  await expect(panel.locator('#collectionsContainer .collections-heading')).toHaveText(
+    'Collections'
+  );
+  const sectionOrder = await panel.evaluate(() =>
+    [...document.querySelectorAll('#collectionsContainer .section-heading')].map(
+      (heading) => heading.textContent
+    )
+  );
+  expect(sectionOrder).toEqual(['Folders', 'Collections']);
+
   await panel.locator('#toggleLayoutBtn').click();
   await expect(panel.locator('#collectionsContainer')).toHaveClass(/grid-view/);
 

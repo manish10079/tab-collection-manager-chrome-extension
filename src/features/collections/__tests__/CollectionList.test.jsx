@@ -76,6 +76,30 @@ describe('CollectionList folders', () => {
     expect(nested.dataset.id).toBe('nested1');
     // The nested card is not also a direct child of the list.
     expect(container.querySelector(':scope > .collection[data-id="nested1"]')).toBeNull();
+
+    // Two stacked sections: Folders first, then Collections.
+    const foldersHeading = container.querySelector('.folders-heading');
+    const collectionsHeading = container.querySelector('.collections-heading');
+    expect(foldersHeading.textContent).toBe('Folders');
+    expect(collectionsHeading.textContent).toBe('Collections');
+    expect(
+      foldersHeading.compareDocumentPosition(collectionsHeading) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    // The root collection renders inside (after) the Collections heading.
+    expect(
+      collectionsHeading.compareDocumentPosition(rootCards[0]) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
+  it('shows no section headings until there is a folder', async () => {
+    const { container } = await renderList({
+      collections: [{ id: 'a', name: 'Only', tabs: [] }],
+      folders: [],
+    });
+
+    expect(container.querySelector('.section-heading')).toBeNull();
+    // The root collection is still a direct child of the list.
+    expect(container.querySelector(':scope > .collection[data-id="a"]')).toBeTruthy();
   });
 
   it('shows the empty state only when both collections and folders are empty', async () => {

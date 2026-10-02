@@ -172,3 +172,18 @@
   cursor: default;
   opacity: 0.5;
 }
+
+/* The two list sections — Folders, then Collections. The heading is a sibling of the cards rather
+   than a wrapper, so the root `.collection` elements stay direct children of the container. */
+.section-heading {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.collections-container.grid-view .section-heading {
+  grid-column: 1 / -1;
+}
