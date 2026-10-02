@@ -129,7 +129,7 @@ export function HistoryModal({ onClose, onOpenDetails, onOpenAll }) {
       bodyClassName="dl-history-modal-body"
       onClose={onClose}
     >
-      <div className="tabs-list">
+      <div className="tab-tabs-list">
         {!loading && history.length === 0 ? (
           <div className="ut-empty-state">
             <i className="fas fa-clock" />

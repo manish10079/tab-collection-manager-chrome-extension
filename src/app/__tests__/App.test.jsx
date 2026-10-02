@@ -63,7 +63,7 @@ describe('App', () => {
 
     expect(document.querySelector('.dl-modal-overlay .dl-view-collection-modal')).toBeTruthy();
     // In grid view the card itself renders no tab panel.
-    expect(document.querySelector('.collection[data-id="c1"] .collection-tabs')).toBeNull();
+    expect(document.querySelector('.collection[data-id="c1"] .tab-collection-tabs')).toBeNull();
   });
 
   it('applies the persisted theme to the document', async () => {

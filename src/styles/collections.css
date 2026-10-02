@@ -91,8 +91,8 @@
 
 /* Phase 4 removed sixteen never-matched rules here: grid view has no inline tab panel, because
    expanding a card opens `GridCollectionModal`, which the modal portals into `#tcm-modal-root` —
-   outside `.collections-container`. So `.collections-container.ut-grid-view .collection-tabs`,
-   `.collection-tab-search` and their `.tab-item` descendants could not match any element the panel
+   outside `.collections-container`. So `.collections-container.ut-grid-view .tab-collection-tabs`,
+   `.tab-collection-tab-search` and their `.tab-item` descendants could not match any element the panel
    renders; the coverage walk listed every one of them as never-matched. The rest of the grid rules
    above stay — they target the card itself, which is reachable (css-migration-plan.md, Phase 4). */
 
@@ -563,7 +563,7 @@
   gap: 4px;
 }
 
-.tab-item .icon-btn.pin-tab-btn {
+.tab-item .icon-btn.tab-pin-tab-btn {
   width: 28px;
   height: 28px;
   padding: 5px;
@@ -580,20 +580,20 @@
   justify-content: center;
 }
 
-.tab-item:hover .icon-btn.pin-tab-btn {
+.tab-item:hover .icon-btn.tab-pin-tab-btn {
   opacity: 1;
   background: var(--bg-translucent-subtle);
   border-color: var(--border-card);
 }
 
-.tab-item .icon-btn.pin-tab-btn.ut-pinned {
+.tab-item .icon-btn.tab-pin-tab-btn.ut-pinned {
   color: var(--warning); /* Premium Amber */
   opacity: 1;
   background: color-mix(in srgb, var(--warning) 15%, transparent);
   border-color: color-mix(in srgb, var(--warning) 30%, transparent);
 }
 
-.tab-item .icon-btn.pin-tab-btn.ut-pinned:hover {
+.tab-item .icon-btn.tab-pin-tab-btn.ut-pinned:hover {
   color: var(--warning-accent);
   background: color-mix(in srgb, var(--warning) 25%, transparent);
 }

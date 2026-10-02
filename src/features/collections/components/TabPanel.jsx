@@ -45,11 +45,11 @@ export function TabPanel({ collection, actions, forceExpanded = false }) {
   const expanded = forceExpanded || !!collection.isExpanded;
 
   return (
-    <div className={`collection-tabs${expanded ? ' ut-expanded' : ''}`}>
-      <div className="collection-tab-search">
+    <div className={`tab-collection-tabs${expanded ? ' ut-expanded' : ''}`}>
+      <div className="tab-collection-tab-search">
         <input
           type="text"
-          className="collection-tab-search-input"
+          className="tab-collection-tab-search-input"
           placeholder="Search tabs…"
           autoComplete="off"
           spellCheck="false"
@@ -63,7 +63,7 @@ export function TabPanel({ collection, actions, forceExpanded = false }) {
         {isCurrentSession ? null : (
           <button
             type="button"
-            className="icon-btn import-tabs-btn"
+            className="icon-btn tab-import-tabs-btn"
             title="Import tabs (JSON)"
             onClick={() => actions.importTabs(collection.id)}
           >
@@ -73,7 +73,7 @@ export function TabPanel({ collection, actions, forceExpanded = false }) {
 
         <button
           type="button"
-          className="icon-btn export-tabs-btn"
+          className="icon-btn tab-export-tabs-btn"
           title="Export tabs (JSON)"
           onClick={() => actions.exportCollection(collection)}
         >

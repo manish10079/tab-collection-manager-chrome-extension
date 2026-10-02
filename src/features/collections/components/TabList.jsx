@@ -23,7 +23,7 @@ export function TabList({ collection, query, actions }) {
 
   return (
     <>
-      <div className={`tabs-list${sorted ? ' ut-sort-active' : ''}`}>
+      <div className={`tab-tabs-list${sorted ? ' ut-sort-active' : ''}`}>
         {tabs.length === 0 ? (
           <div className="empty-tabs-message">
             <i className="fas fa-info-circle" /> No tabs in this collection
@@ -41,7 +41,7 @@ export function TabList({ collection, query, actions }) {
         )}
       </div>
       {tabs.length > 0 && visibleTabs.length === 0 ? (
-        <div className="collection-tabs-no-results">No tabs match your search.</div>
+        <div className="tab-collection-tabs-no-results">No tabs match your search.</div>
       ) : null}
     </>
   );

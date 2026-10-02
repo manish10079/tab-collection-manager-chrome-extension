@@ -74,14 +74,14 @@ describe('CollectionCard', () => {
 
   it('renders the tab panel collapsed until the collection is expanded', () => {
     const collapsed = renderCard(makeCollection());
-    expect(collapsed.container.querySelector('.collection-tabs')?.className).toBe(
-      'collection-tabs'
+    expect(collapsed.container.querySelector('.tab-collection-tabs')?.className).toBe(
+      'tab-collection-tabs'
     );
     collapsed.unmount();
 
     const expanded = renderCard(makeCollection({ isExpanded: true }));
-    expect(expanded.container.querySelector('.collection-tabs')?.className).toBe(
-      'collection-tabs ut-expanded'
+    expect(expanded.container.querySelector('.tab-collection-tabs')?.className).toBe(
+      'tab-collection-tabs ut-expanded'
     );
   });
 

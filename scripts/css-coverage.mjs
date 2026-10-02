@@ -259,7 +259,7 @@ async function walkPanel(page, coverage) {
     await card.locator('.expand-btn').click();
     await card.locator('.tab-item').first().waitFor({ state: 'visible', timeout: 5000 });
     await card.locator('.pin-collection-btn').click();
-    await card.locator('.pin-tab-btn').first().click();
+    await card.locator('.tab-pin-tab-btn').first().click();
     await card.locator('.tab-actions .icon-btn, .tab-item .icon-btn').last().click();
   });
   await record(page, coverage);
@@ -277,7 +277,7 @@ async function walkPanel(page, coverage) {
 
     await card.locator('.tab-menu-btn').first().click();
     await hoverSweep(page, coverage, { quiet: true });
-    await card.locator('.edit-tab-btn').first().click();
+    await card.locator('.tab-edit-tab-btn').first().click();
     await card.locator('.tab-title').first().fill('Coverage renamed tab');
     await card.locator('.tab-title').first().focus();
     await record(page, coverage);
@@ -297,7 +297,7 @@ async function walkPanel(page, coverage) {
 
   // ── The per-collection tab search, including its empty-result state ──
   await step('collection tab search', async () => {
-    const search = card.locator('.collection-tab-search-input');
+    const search = card.locator('.tab-collection-tab-search-input');
     await search.focus();
     await search.fill('no-such-tab-xyz');
     await record(page, coverage);
@@ -390,7 +390,7 @@ async function walkPanel(page, coverage) {
     await page.locator('#collectionsContainer > .folder .expand-btn').first().click();
     await card.locator('.expand-btn').click();
     await card
-      .locator('.collection-tabs.ut-expanded')
+      .locator('.tab-collection-tabs.ut-expanded')
       .waitFor({ state: 'detached', timeout: 3000 });
   });
   await record(page, coverage);

@@ -44,7 +44,7 @@ export function SessionDetailsModal({ session, label, onClose }) {
       zIndex={2000}
       onClose={onClose}
     >
-      <div className="tabs-list">
+      <div className="tab-tabs-list">
         {tabs.map((tab, index) => (
           <div
             className="tab-item"

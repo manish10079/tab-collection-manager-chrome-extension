@@ -387,11 +387,11 @@
   overflow-y: auto;
 }
 
-.dl-view-collection-modal .collection-tabs {
+.dl-view-collection-modal .tab-collection-tabs {
   border-top: none;
 }
 
-.dl-view-collection-modal .collection-tabs.ut-expanded {
+.dl-view-collection-modal .tab-collection-tabs.ut-expanded {
   padding: 0;
   max-height: none;
   opacity: 1;

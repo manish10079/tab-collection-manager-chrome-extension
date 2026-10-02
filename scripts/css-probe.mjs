@@ -114,9 +114,9 @@ const PROBES = [
   '.tab-item',
   '.tab-title',
   '.tab-url',
-  '.tabs-list',
-  '.collection-tabs',
-  '.collection-tab-search-input',
+  '.tab-tabs-list',
+  '.tab-collection-tabs',
+  '.tab-collection-tab-search-input',
   '.selection-bar',
   '.selection-count',
   '.search-results-container',
@@ -493,7 +493,7 @@ async function walkPanel(page, capture) {
   // the panel, which would intercept every later click (the same trap `css-coverage.mjs` documents).
   await step('collapse the collection before grid', async () => {
     await page.keyboard.press('Escape');
-    const expanded = card().locator('.collection-tabs.ut-expanded');
+    const expanded = card().locator('.tab-collection-tabs.ut-expanded');
     if ((await expanded.count()) > 0) {
       await card().locator('.expand-btn').click();
       await expanded.first().waitFor({ state: 'detached', timeout: 3000 });

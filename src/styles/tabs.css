@@ -3,7 +3,7 @@
    in Phase 2 without renaming a class (css-migration-plan.md). */
 
 /* Tabs inside collection */
-.collection-tabs {
+.tab-collection-tabs {
   padding: 0 20px 0;
   border-top: 1px solid var(--border);
   /* Collapsed state — hidden but animatable */
@@ -21,7 +21,7 @@
 }
 
 /* Expanded state */
-.collection-tabs.ut-expanded {
+.tab-collection-tabs.ut-expanded {
   padding: 0 20px 20px;
   max-height: none;
   overflow: visible;
@@ -31,7 +31,7 @@
 }
 
 /* Per-collection tab search */
-.collection-tab-search {
+.tab-collection-tab-search {
   position: relative;
   margin: 12px 0 4px;
   display: flex;
@@ -39,7 +39,7 @@
   gap: 8px;
 }
 
-.collection-tab-search::before {
+.tab-collection-tab-search::before {
   content: '\f002';
   font-family: 'Font Awesome 5 Free';
   font-weight: 900;
@@ -54,11 +54,11 @@
   z-index: 1;
 }
 
-.collection-tab-search:focus-within::before {
+.tab-collection-tab-search:focus-within::before {
   color: var(--accent);
 }
 
-.collection-tab-search-input {
+.tab-collection-tab-search-input {
   flex: 1;
   min-width: 0;
   padding: 8px 14px 8px 32px;
@@ -71,19 +71,19 @@
   transition: var(--transition);
 }
 
-.collection-tab-search-input::placeholder {
+.tab-collection-tab-search-input::placeholder {
   color: var(--text-secondary);
   opacity: 0.6;
 }
 
-.collection-tab-search-input:focus {
+.tab-collection-tab-search-input:focus {
   outline: none;
   border-color: var(--accent);
   background: var(--border-card);
   box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.15);
 }
 
-.collection-tab-search .icon-btn {
+.tab-collection-tab-search .icon-btn {
   width: 28px;
   height: 28px;
   padding: 5px;
@@ -98,20 +98,20 @@
   justify-content: center;
 }
 
-.collection-tab-search .import-tabs-btn:hover {
+.tab-collection-tab-search .tab-import-tabs-btn:hover {
   background: rgba(78, 205, 196, 0.15);
   border-color: rgba(78, 205, 196, 0.3);
   color: var(--success);
 }
 
-.collection-tab-search .export-tabs-btn:hover {
+.tab-collection-tab-search .tab-export-tabs-btn:hover {
   background: rgba(108, 99, 255, 0.15);
   border-color: rgba(108, 99, 255, 0.3);
   color: var(--accent);
 }
 
 /* No-results inside a collection */
-.collection-tabs-no-results {
+.tab-collection-tabs-no-results {
   text-align: center;
   padding: 16px 8px;
   color: var(--text-secondary);
@@ -120,7 +120,7 @@
   animation: searchFadeIn 0.25s ease 0.05s forwards;
 }
 
-.tabs-list {
+.tab-tabs-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -317,19 +317,19 @@
 }
 
 /* Hover effects for options in tab dropdown */
-.tab-dropdown-menu .edit-tab-btn:hover {
+.tab-dropdown-menu .tab-edit-tab-btn:hover {
   background: var(--bg-translucent-hover);
   color: var(--text-primary);
   border-color: var(--bg-translucent-strong);
 }
 
-.tab-dropdown-menu .open-tab-btn:hover {
+.tab-dropdown-menu .tab-open-tab-btn:hover {
   background: rgba(108, 99, 255, 0.1);
   color: var(--accent);
   border-color: rgba(108, 99, 255, 0.2);
 }
 
-.tab-dropdown-menu .remove-tab-btn:hover {
+.tab-dropdown-menu .tab-remove-tab-btn:hover {
   background: rgba(255, 107, 139, 0.1);
   color: var(--danger);
   border-color: rgba(255, 107, 139, 0.2);

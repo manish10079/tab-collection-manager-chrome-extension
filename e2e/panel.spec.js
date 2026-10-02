@@ -140,7 +140,7 @@ test('adds tabs, then edits, pins and removes through the card menus', async ({ 
   const card = await cardFor(panel, 'E2E Tabs');
 
   await card.locator('.expand-btn').click();
-  await expect(card.locator('.collection-tabs')).toHaveClass(/ut-expanded/);
+  await expect(card.locator('.tab-collection-tabs')).toHaveClass(/ut-expanded/);
 
   // Manual tab through the collection menu.
   await card.locator('.collection-menu-btn').click();
@@ -179,7 +179,7 @@ test('adds tabs, then edits, pins and removes through the card menus', async ({ 
   await expect(card.locator('.tab-title').first()).toHaveValue('Renamed docs');
 
   // Pin the tab, then remove it from the same menu.
-  await card.locator('.pin-tab-btn').first().click();
+  await card.locator('.tab-pin-tab-btn').first().click();
   await expect(card.locator('.tab-item').first()).toHaveClass(/ut-pinned/);
 
   await card.locator('.tab-menu-btn').first().click();
