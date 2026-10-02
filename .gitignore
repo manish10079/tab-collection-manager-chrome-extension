@@ -36,6 +36,10 @@ dist/
 test-results/
 playwright-report/
 
+# Agent/tool metadata
+# Freebuff's local project marker; never part of the extension
+.freebuff/
+
 # Local issue files
 issue.txt
 
