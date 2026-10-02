@@ -1,5 +1,10 @@
 // Central chrome API mock (skill.md §6). Every test file uses this one — never hand-roll a
 // mock locally, so a chrome API change only has to be modelled once.
+//
+// The manifest is imported rather than copied, so `runtime.getManifest()` reports the real extension
+// name and version. A hard-coded pair here was one of several places the version lived, and it
+// drifted from `manifest.json` silently; `tests/version-alignment.test.js` guards the rest.
+import manifest from '../../manifest.json';
 
 /**
  * Install a chrome mock on globalThis.
@@ -17,7 +22,7 @@ export function installChromeMock(initial = {}) {
   const chrome = {
     runtime: {
       id: 'test-extension-id',
-      getManifest: () => ({ name: 'Tab Collection Manager', version: '2.0.0' }),
+      getManifest: () => ({ name: manifest.name, version: manifest.version }),
       sendMessage: async () => ({ success: true }),
       // Registration-only in tests unless a listener set is needed; the worker imports its
       // modules for their pure exports, and a module-level addListener must not throw.

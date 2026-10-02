@@ -8,7 +8,7 @@
 // packaged extension raw. `dist/` is mostly font files, so a stray new asset shows up in the total
 // even when the bundles are unchanged.
 //
-// Baselines measured at plan v1.15.0 (2026-10-02), with the budgets below already in place. Sizes
+// Baselines measured at plan v1.16.0 (2026-10-02), with the budgets below already in place. Sizes
 // are printed as binary multiples (1024), and Vite's own reporter lists the same files in decimal
 // kB — the numbers differ by ~2.5%, not by a real change.
 //   assets/*.js   293 kB raw / 89.7 kB gzip  (budget 100 kB gzip → 10% headroom)

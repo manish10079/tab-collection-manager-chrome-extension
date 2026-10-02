@@ -151,7 +151,7 @@ The end-to-end suite is not part of it — it needs a browser download, so it st
 
 `npm run check:size` measures the built output and fails when the panel outgrows its budget:
 
-| Metric | Budget | At plan 1.15.0 |
+| Metric | Budget | At plan 1.16.0 |
 | --- | --- | --- |
 | Panel JS, gzipped | 100 kB | 89.7 kB |
 | Panel CSS, gzipped | 36 kB | 31.1 kB |

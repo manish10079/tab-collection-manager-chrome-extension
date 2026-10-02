@@ -1,4 +1,4 @@
-// ESLint flat config — JavaScript only (skill.md 2.0.0, §5.1).
+// ESLint flat config — JavaScript only (skill.md §5.1).
 // Lint scope is the React UI, the service worker (`background/`) and the tooling. Everything the
 // old vanilla shell owned is gone (react-migration-plan.md §8).
 import js from '@eslint/js';
