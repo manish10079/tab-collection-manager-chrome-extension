@@ -58,6 +58,7 @@ export function SortMenu({ active, onSelect }) {
           className={`fa-solid ${SORT_ICONS[active] || 'fa-arrow-up-wide-short'}`}
           aria-hidden="true"
         />
+        <span className="sh-action-label">Sort</span>
       </button>
 
       <div

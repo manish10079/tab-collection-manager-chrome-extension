@@ -62,6 +62,7 @@ export function ControlsBar({
             onClick={controller.toggleSearch}
           >
             <i className="fas fa-search" aria-hidden="true" />
+            <span className="sh-action-label">Search</span>
           </button>
           <button
             type="button"
@@ -72,6 +73,7 @@ export function ControlsBar({
             onClick={controller.toggleCreate}
           >
             <i className="fas fa-plus" aria-hidden="true" />
+            <span className="sh-action-label">New</span>
           </button>
           <button
             type="button"
@@ -82,6 +84,7 @@ export function ControlsBar({
             onClick={controller.createFolder}
           >
             <i className="fas fa-folder-plus" aria-hidden="true" />
+            <span className="sh-action-label">Folder</span>
           </button>
           <button
             type="button"
@@ -92,6 +95,7 @@ export function ControlsBar({
             onClick={onToggleSelectionMode}
           >
             <i className="fas fa-check-double" aria-hidden="true" />
+            <span className="sh-action-label">Select</span>
           </button>
           <button
             type="button"
@@ -102,6 +106,7 @@ export function ControlsBar({
             onClick={controller.importAll}
           >
             <i className="fas fa-file-import" aria-hidden="true" />
+            <span className="sh-action-label">Import</span>
           </button>
           <button
             type="button"
@@ -112,6 +117,7 @@ export function ControlsBar({
             onClick={controller.exportAll}
           >
             <i className="fas fa-file-export" aria-hidden="true" />
+            <span className="sh-action-label">Export</span>
           </button>
           <button
             type="button"
@@ -122,6 +128,7 @@ export function ControlsBar({
             onClick={controller.toggleLayout}
           >
             <i className={isGrid ? 'fas fa-list' : 'fas fa-th-large'} aria-hidden="true" />
+            <span className="sh-action-label">{isGrid ? 'List' : 'Grid'}</span>
           </button>
 
           {/* Visible only when the worker has recorded a restorable backup. */}
@@ -134,6 +141,7 @@ export function ControlsBar({
             onClick={controller.restoreBackup}
           >
             <i className="fas fa-undo" aria-hidden="true" />
+            <span className="sh-action-label">Restore</span>
           </button>
 
           <SortMenu active={collectionSortType} onSelect={controller.setCollectionSort} />
@@ -147,6 +155,7 @@ export function ControlsBar({
             onClick={onOpenHistory}
           >
             <i className="fas fa-history" aria-hidden="true" />
+            <span className="sh-action-label">History</span>
           </button>
         </div>
 

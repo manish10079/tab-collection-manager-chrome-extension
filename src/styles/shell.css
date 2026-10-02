@@ -47,29 +47,56 @@
   flex-shrink: 0;
 }
 
+/* Two rows of five controls, each showing its icon above a short label. The side panel is the
+   narrowest surface in the extension, so `minmax(0, 1fr)` lets a long label ellipsise rather than
+   widen its column, and each cell stacks icon over label instead of sitting side by side. A hidden
+   control (the restore button with no backup) is removed from the grid, so the second row simply
+   ends early rather than leaving a hole. */
 .actions-bar-default {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px 8px;
   width: 100%;
 }
 
 .actions-bar-default .icon-btn {
-  flex: 1; /* Stretch buttons to fill the row evenly and look very premium */
   width: auto;
-  height: 36px;
-  padding: 5px;
+  height: auto;
+  min-height: 46px;
+  flex-direction: column;
+  gap: 3px;
+  padding: 7px 4px;
   border-radius: 12px;
   background: var(--bg-translucent-subtle);
   border: 1px solid var(--border);
   color: var(--text-secondary);
   font-size: 15px;
   transition: all 0.25s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   cursor: pointer;
   box-sizing: border-box;
+  /* No `display` here: `.icon-btn` already sets `flex`/`center`, and repeating it at this
+     specificity would out-rank the `.hidden` utility (which is only a doubled class) whenever the
+     restore button is hidden (css-migration-plan.md, Phase 5). */
+}
+
+/* `.icon-btn i` is `width/height: 100%` for the square icon-only buttons; in this stacked cell that
+   would stretch the glyph over the label, so it goes back to its natural size. */
+.actions-bar-default .icon-btn i {
+  width: auto;
+  height: auto;
+  font-size: 14px;
+}
+
+/* The visible label under each control icon. It inherits the button's `color`, so every per-button
+   hover tint below carries the label with it. */
+.sh-action-label {
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.1;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Hover colors for each button type */

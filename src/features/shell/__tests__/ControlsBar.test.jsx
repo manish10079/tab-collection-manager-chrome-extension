@@ -57,6 +57,29 @@ describe('ControlsBar', () => {
     expect(document.getElementById('historyBtn')).toBeTruthy();
   });
 
+  it('labels every default control, so the two-row bar stays readable', () => {
+    renderBar({ backup: BACKUP });
+
+    // The bar lays out as two rows of five in CSS, which jsdom cannot measure; the labels are the
+    // part a unit test can pin down, and the E2E walk proves the buttons still work.
+    const labels = [...document.querySelectorAll('#actionsBarDefault .sh-action-label')].map(
+      (node) => node.textContent
+    );
+
+    expect(labels).toEqual([
+      'Search',
+      'New',
+      'Folder',
+      'Select',
+      'Import',
+      'Export',
+      'Grid',
+      'Restore',
+      'Sort',
+      'History',
+    ]);
+  });
+
   it('toggles search and create from the default row', () => {
     const { controller } = renderBar();
 
