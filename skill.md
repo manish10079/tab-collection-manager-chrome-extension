@@ -5,7 +5,7 @@
 
 | Field | Value |
 | --- | --- |
-| Document version | 2.5.0 |
+| Document version | 2.6.0 |
 | Status | Active |
 | Last updated | 2026-10-02 |
 | Owner | Maintainer (`@mkn`) |
@@ -331,8 +331,22 @@ Allowed types: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `build`, `ci`,
 
 - Design tokens (colors, spacing, radii, shadows) live in `styles/tokens.css` as CSS variables.
   Never hard-code a color that exists as a token.
-- One stylesheet per component; classes prefixed by feature (`cc-` collections,
-  `tab-` tabs, `set-` settings) to avoid global collisions.
+- One stylesheet per family; every class carries that family's prefix, so a class name says which
+  sheet owns it and two features can never collide over the same word. The map is closed — a new
+  control belongs to an existing family, or it earns a new prefix by amendment (§11):
+
+  | Prefix | Owns | Example |
+  | --- | --- | --- |
+  | `cc-` | collections list, cards, folders, sections, drag/drop | `.cc-collection`, `.cc-folder-body` |
+  | `tab-` | tab rows and everything inside a collection | `.tab-item`, `.tab-title` |
+  | `sh-` | header, controls bar, slides, sort menu, empty/error state | `.sh-header`, `.sh-icon-btn` |
+  | `dl-` | every modal and dialog, plus the `Modal` primitive | `.dl-overlay`, `.dl-header` |
+  | `set-` | settings screens | `.set-toggle-track`, `.set-shortcut-row` |
+  | `ts-` | toasts | `.ts-container`, `.ts-toast` |
+  | `ut-` | shared utilities that belong to no feature | `.ut-hidden`, `.ut-drag-over` |
+
+  The prefix is a naming rule, not a scoping mechanism: it is convention, and the family sheet it
+  lives in is still the only place its rules may be written.
 - No `!important`, no descendant selectors deeper than 3 levels, no styling by element tag.
 - Dark theme is the default; light theme overrides via tokens only.
 
@@ -543,3 +557,4 @@ export { useCollectionActions } from './hooks/useCollectionActions.js';
 | 2.3.0 | 2026-10-02 | §2.3's storage contract gains the `folders` row and notes the per-collection `folderId`, both introduced by the folder hierarchy (Phase 8) under `schemaVersion` 1. No rule changed. |
 | 2.5.0 | 2026-10-02 | §3.1's stylesheet description follows Phase 2 of the CSS migration: `panel.css` is gone, split into `tokens.css` (Phase 1) plus the `base`/`shell`/`collections`/`tabs`/`dialogs`/`settings`/`toast` family sheets, with `index.css` as the single entry. The repository is no longer Prettier-excluded anywhere. No rule changed. |
 | 2.4.0 | 2026-10-02 | §2.3's snapshot rows gain `chromeGroups`: a session snapshot's tabs reference their Chrome group by number, so the map has to be stored with them or the id resolves to nothing and no restore path can rebuild the group. Landed with migration 0002 and `schemaVersion` 2. No rule changed. |
+| 2.6.0 | 2026-10-02 | §5.3's naming rule becomes the closed prefix map: the three prefixes it named grow to the seven the panel needs (`cc-` collections, `tab-` tab rows, `sh-` shell, `dl-` dialogs, `set-` settings, `ts-` toasts, `ut-` shared utilities), each with the family sheet that owns it and an example class. The panel is larger than three features, so the rule has to say which prefix a new class takes before the CSS migration's Phase 3 renames family by family. This also retires `rs-`, the prefix `shell.css` invented for itself, in favour of `sh-`. Classes keep their current names until their family's rename commit. |

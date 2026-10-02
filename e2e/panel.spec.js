@@ -281,7 +281,9 @@ test('toggles layout and sort, exports the collections, and answers the keyboard
     panel.locator('#globalExportBtn').click(),
   ]);
   expect(download.suggestedFilename()).toMatch(/^tab_collections_backup_.*\.json$/);
-  await expect(panel.locator('.toast').filter({ hasText: 'exported successfully' })).toBeVisible();
+  await expect(
+    panel.locator('.ts-toast').filter({ hasText: 'exported successfully' })
+  ).toBeVisible();
 
   // Ctrl+E expands every collection (focus is on the export button, so combos still apply).
   await panel.keyboard.press('Control+e');

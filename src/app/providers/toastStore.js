@@ -22,7 +22,7 @@ const listeners = new Set();
 const timers = new Map();
 
 // How long the hide animation runs before the entry is dropped (`src/styles/toast.css`
-// `.toast.hide`).
+// `.ts-toast.hide`).
 const HIDE_MS = 400;
 
 function emit() {

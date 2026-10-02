@@ -1,5 +1,5 @@
 {
-  "note": "CSS migration ratchet (css-migration-plan.md). These numbers may only go DOWN. A rise is a regression; a fall means this file is stale and must be lowered in the same commit — the intention is that progress can never be spent silently. `info` is context and is not compared: a legitimate feature adds rules and lines, so those are not ratcheted. One deliberate raise is recorded here: Phase 2 split `panel.css` into the family sheets, which made the legacy classes part of the owned sheets, so `unprefixedClasses` jumped from 35 to 180 in that commit — they come down in Phase 3's rename. `panelCssLines` is now 0 because `panel.css` no longer exists.",
+  "note": "CSS migration ratchet (css-migration-plan.md). These numbers may only go DOWN. A rise is a regression; a fall means this file is stale and must be lowered in the same commit — the intention is that progress can never be spent silently. `info` is context and is not compared: a legitimate feature adds rules and lines, so those are not ratcheted. One deliberate raise is recorded here: Phase 2 split `panel.css` into the family sheets, which made the legacy classes part of the owned sheets, so `unprefixedClasses` jumped from 35 to 180 in that commit — Phase 3 brings it back down. `panelCssLines` is now 0 because `panel.css` no longer exists, and Phase 3 has begun: the toast family renamed to `ts-` in this commit, so `unprefixedClasses` is 178.",
   "measuredAt": "2026-10-02",
   "version": 1,
   "panelCssLines": 0,
@@ -8,7 +8,7 @@
   "deepSelectors": 1,
   "tagSelectors": 3,
   "hasSelectors": 7,
-  "unprefixedClasses": 180,
+  "unprefixedClasses": 178,
   "info": {
     "stylesheets": [
       "base.css",

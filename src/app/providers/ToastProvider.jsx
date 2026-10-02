@@ -29,7 +29,7 @@ function Toast({ toast }) {
   }, [toast.duration]);
 
   return (
-    <div className={`toast ${phase}`.trim()}>
+    <div className={`ts-toast ${phase}`.trim()}>
       <i className="fas fa-check-circle" /> {toast.message}
     </div>
   );
@@ -37,7 +37,7 @@ function Toast({ toast }) {
 
 /**
  * Renders the toast queue into the body-level portal root, the same one the dialogs use: the
- * panel's layout lives inside a scroll container, and `.toast-container` is `position: fixed` so
+ * panel's layout lives inside a scroll container, and `.ts-container` is `position: fixed` so
  * it must not be nested under it.
  *
  * @param {ToastProviderProps} props
@@ -50,7 +50,7 @@ export function ToastProvider({ children }) {
     <>
       {children}
       {createPortal(
-        <div className="toast-container">
+        <div className="ts-container">
           {toasts.map((toast) => (
             <Toast key={toast.id} toast={toast} />
           ))}

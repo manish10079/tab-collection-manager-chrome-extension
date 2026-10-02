@@ -16,7 +16,7 @@ describe('ToastProvider', () => {
     );
 
     expect(screen.getByText('panel body')).toBeTruthy();
-    expect(document.querySelector('#tcm-modal-root .toast-container')).toBeTruthy();
+    expect(document.querySelector('#tcm-modal-root .ts-container')).toBeTruthy();
   });
 
   it('shows a queued toast and removes it once dismissed', () => {

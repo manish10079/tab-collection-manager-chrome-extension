@@ -1,8 +1,8 @@
-/* Toast family. Split out of `panel.css` in Phase 2 without renaming a class
-   (css-migration-plan.md). */
+/* Toast family, prefixed `ts-` (skill.md §5.3). Split out of `panel.css` in Phase 2 without
+   renaming a class; Phase 3 renamed the family in one commit (css-migration-plan.md). */
 
 /* Toast Notifications */
-.toast-container {
+.ts-container {
   position: fixed;
   bottom: 24px;
   left: 50%;
@@ -14,7 +14,7 @@
   pointer-events: none;
 }
 
-.toast {
+.ts-toast {
   background: var(--bg-glass);
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
@@ -33,16 +33,16 @@
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.toast i {
+.ts-toast i {
   color: var(--success);
 }
 
-.toast.show {
+.ts-toast.show {
   opacity: 1;
   transform: translateY(0);
 }
 
-.toast.hide {
+.ts-toast.hide {
   opacity: 0;
   transform: scale(0.9);
 }
