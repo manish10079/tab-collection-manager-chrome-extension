@@ -106,10 +106,13 @@ export async function saveSession() {
       maxPinnedTabs: next.maxPinnedTabs,
     });
 
-    // Keep one restore point before overwriting a populated collection.
+    // Keep one restore point before overwriting a populated collection. The group metadata travels
+    // with the tabs: the snapshot's tabs carry `chromeGroupId`s, and without the map those ids point
+    // at nothing, so "Restore Previous Session" could not rebuild the groups it recorded.
     if (collection.tabs && collection.tabs.length > 0) {
       next.lastSessionBackup = {
         tabs: collection.tabs,
+        chromeGroups: collection.chromeGroups || {},
         timestamp: Date.now(),
         collectionId: autoSaveCollectionId,
         name: collection.name,
@@ -128,6 +131,9 @@ export async function saveSession() {
       id: crypto.randomUUID(),
       timestamp: Date.now(),
       tabs: finalTabs,
+      // Same reason as the restore point above: a history entry that records `chromeGroupId`s
+      // without their metadata can never put the groups back.
+      chromeGroups,
     });
     if (next.sessionHistory.length > LIMITS.MAX_SESSION_HISTORY) {
       next.sessionHistory = next.sessionHistory.slice(0, LIMITS.MAX_SESSION_HISTORY);

@@ -93,6 +93,52 @@ describe('restoreSession', () => {
     expect(group).toHaveBeenCalledWith({ tabIds: [10, 11], createProperties: { windowId: 1 } });
   });
 
+  it('rebuilds the groups of a session snapshot (Restore Previous Session)', async () => {
+    const { chrome } = installChromeMock();
+    let nextId = 20;
+    const create = vi.fn(async () => ({ id: nextId++ }));
+    const group = vi.fn(async () => 77);
+    const update = vi.fn(async () => {});
+    chrome.tabs.create = create;
+    chrome.tabs.group = group;
+    chrome.tabGroups.update = update;
+
+    // Exactly the shape `autosave.js` writes as `lastSessionBackup`: tabs plus the group map their
+    // `chromeGroupId`s point at. The worker treats it as the collection to restore.
+    const snapshot = {
+      tabs: [
+        { url: 'https://a.test', pinned: false, chromeGroupId: 2 },
+        { url: 'https://b.test', pinned: false, chromeGroupId: 2 },
+      ],
+      chromeGroups: { 2: { title: 'Reading', color: 'green', collapsed: false } },
+      name: 'Previous',
+    };
+
+    await restoreSession(undefined, snapshot);
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(group).toHaveBeenCalledWith({ tabIds: [20, 21], createProperties: { windowId: 1 } });
+    expect(update).toHaveBeenCalledWith(77, {
+      title: 'Reading',
+      color: 'green',
+      collapsed: false,
+    });
+  });
+
+  it('still opens the tabs of a snapshot taken before groups were carried', async () => {
+    const { chrome } = installChromeMock();
+    const create = vi.fn(async () => ({ id: 1 }));
+    const group = vi.fn(async () => 99);
+    chrome.tabs.create = create;
+    chrome.tabs.group = group;
+
+    await restoreSession(undefined, { tabs: [{ url: 'https://a.test', chromeGroupId: 3 }] });
+
+    expect(create).toHaveBeenCalledTimes(1);
+    // No metadata, so there is nothing to rebuild — but the tab is not lost either.
+    expect(group).not.toHaveBeenCalled();
+  });
+
   it('does nothing for an empty collection', async () => {
     const { chrome } = installChromeMock();
     chrome.tabs.create = vi.fn();

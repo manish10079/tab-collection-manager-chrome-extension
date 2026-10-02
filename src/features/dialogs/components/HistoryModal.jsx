@@ -10,7 +10,7 @@ import { useSessionHistory } from '../hooks/useSessionHistory.js';
  * @property {string} label Pre-formatted timestamp
  * @property {number} position Snapshot number, counting from the newest
  * @property {(session: object, label: string) => void} onOpenDetails
- * @property {(tabs: object[]) => void} onOpenAll
+ * @property {(session: object) => void} onOpenAll
  */
 
 /**
@@ -63,7 +63,8 @@ function SessionCard({ session, label, position, onOpenDetails, onOpenAll }) {
           style={{ padding: '6px 12px', fontSize: '11px', zIndex: 10 }}
           onClick={(event) => {
             event.stopPropagation();
-            onOpenAll(tabs);
+            // The whole entry, so the caller can rebuild its Chrome tab groups too.
+            onOpenAll(session);
           }}
         >
           <i className="fas fa-external-link-alt" /> Open All
@@ -102,7 +103,7 @@ function SessionCard({ session, label, position, onOpenDetails, onOpenAll }) {
  * @typedef {object} HistoryModalProps
  * @property {() => void} onClose
  * @property {(session: object, label: string) => void} onOpenDetails
- * @property {(tabs: object[], ramSaverEnabled: boolean) => void} onOpenAll
+ * @property {(session: object, ramSaverEnabled: boolean) => void} onOpenAll
  */
 
 /**
@@ -110,6 +111,9 @@ function SessionCard({ session, label, position, onOpenDetails, onOpenAll }) {
  * `sessionHistory` is worker-owned (ADR-0004), so this reads it directly instead of through the
  * store's write queue; `ramSaverEnabled` travels with the Open All click so a restored batch can
  * be discarded once loaded.
+ *
+ * Open All hands the **whole entry** to the caller, not just its tabs: the entry also carries the
+ * Chrome tab-group metadata its tabs point at, and only the worker can rebuild those groups.
  *
  * @param {HistoryModalProps} props
  * @returns {import('react').ReactElement}
@@ -142,7 +146,7 @@ export function HistoryModal({ onClose, onOpenDetails, onOpenAll }) {
               label={label}
               position={history.length - index}
               onOpenDetails={onOpenDetails}
-              onOpenAll={(tabs) => onOpenAll(tabs, ramSaverEnabled)}
+              onOpenAll={(session) => onOpenAll(session, ramSaverEnabled)}
             />
           );
         })}

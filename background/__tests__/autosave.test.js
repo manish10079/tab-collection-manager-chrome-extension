@@ -71,6 +71,59 @@ describe('saveSession', () => {
     expect(store.sessionHistory[0].tabs).toHaveLength(2);
   });
 
+  it('records the captured Chrome tab-group metadata in the history entry', async () => {
+    const { store, chrome } = installChromeMock({
+      collections: [{ id: 'auto', name: 'Auto', tabs: [{ id: 'old', url: 'https://old.test' }] }],
+      autoSaveCollectionId: 'auto',
+      sessionHistory: [],
+    });
+    chrome.tabs.query = async () => [
+      tab({ url: 'https://a.test', groupId: 5 }),
+      tab({ url: 'https://b.test', index: 1, groupId: 5 }),
+    ];
+
+    await saveSession();
+
+    // Every tab points at its group by number, so a snapshot without this map holds ids that
+    // resolve to nothing and the group cannot be rebuilt on restore.
+    const groups = { 5: { title: 'Group', color: 'blue', collapsed: false } };
+    const collection = store.collections.find((c) => c.id === 'auto');
+    expect(collection.tabs.map((t) => t.chromeGroupId)).toEqual([5, 5]);
+    expect(collection.chromeGroups).toEqual(groups);
+    expect(store.sessionHistory[0].chromeGroups).toEqual(groups);
+  });
+
+  it("pairs the restore point's preserved tabs with the groups they belonged to", async () => {
+    // The restore point holds the tabs that are about to be overwritten, so it has to hold the map
+    // *those* tabs reference — not the freshly captured one, which describes the new tabs.
+    const previousGroups = { 9: { title: 'Old', color: 'red', collapsed: true } };
+    const { store, chrome } = installChromeMock({
+      collections: [
+        {
+          id: 'auto',
+          name: 'Auto',
+          tabs: [{ id: 'old', url: 'https://old.test', chromeGroupId: 9 }],
+          chromeGroups: previousGroups,
+        },
+      ],
+      autoSaveCollectionId: 'auto',
+      sessionHistory: [],
+    });
+    chrome.tabs.query = async () => [tab({ url: 'https://new.test', groupId: 5 })];
+
+    await saveSession();
+
+    expect(store.lastSessionBackup.tabs.map((t) => t.url)).toEqual(['https://old.test']);
+    expect(store.lastSessionBackup.chromeGroups).toEqual(previousGroups);
+    // …while the live collection and the new history entry describe the new state.
+    expect(store.collections[0].chromeGroups).toEqual({
+      5: { title: 'Group', color: 'blue', collapsed: false },
+    });
+    expect(store.sessionHistory[0].chromeGroups).toEqual({
+      5: { title: 'Group', color: 'blue', collapsed: false },
+    });
+  });
+
   it('does nothing when auto-save is off', async () => {
     const { store, chrome } = installChromeMock({ collections: [], autoSaveCollectionId: null });
     chrome.tabs.query = async () => [tab()];

@@ -51,6 +51,9 @@ import { DEFAULT_SETTINGS, SCHEMA_VERSION } from '../shared/constants.js';
 /**
  * @typedef {object} SessionBackup
  * @property {TabItem[]} tabs
+ * @property {Record<string, ChromeGroupMeta>} [chromeGroups] The groups those tabs' `chromeGroupId`s
+ *   point at. Written by the worker with the tabs, so every restore path can rebuild the groups
+ *   rather than opening a flat list.
  * @property {number} [timestamp]
  * @property {string} [collectionId]
  * @property {string} [name]

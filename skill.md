@@ -5,7 +5,7 @@
 
 | Field | Value |
 | --- | --- |
-| Document version | 2.3.0 |
+| Document version | 2.4.0 |
 | Status | Active |
 | Last updated | 2026-10-02 |
 | Owner | Maintainer (`@mkn`) |
@@ -100,15 +100,19 @@ Both contracts below are **versioned and frozen** unless a migration is shipped 
 | `collections` | `Collection[]` (with `CURRENT_SESSION_ID` first; each carries `folderId`) | store + background |
 | `folders` | `Folder[]` (top-level containers; a collection points at one via `folderId`) | store + background |
 | `autoSaveCollectionId` | `string \| null` | settings |
-| `lastSessionBackup` | `{ tabs, timestamp, collectionId, name } \| null` | background |
+| `lastSessionBackup` | `{ tabs, chromeGroups, timestamp, collectionId, name } \| null` | background |
 | `ramSaverEnabled`, `theme`, `layoutViewMode`, `collectionSortType` | primitives | settings |
 | `enforceMaxPinnedTabs`, `maxPinnedTabs`, `enforceMaxPinnedCollections`, `maxPinnedCollections` | primitives | settings |
-| `sessionHistory` | `Array<{ id, timestamp, tabs }>` (cap 100) | background + history feature |
+| `sessionHistory` | `Array<{ id, timestamp, tabs, chromeGroups }>` (cap 100) | background + history feature |
 | `gdriveBackupEnabled`, `gdriveAutoBackupEnabled`, `lastGDriveBackup*` | primitives | gdrive feature + background |
 | `schemaVersion` | `number` | store (see §7) |
 
 Per-collection fields include `chromeGroups` (group metadata map), `folderId` (owning folder or
 `null`) and per-tab `chromeGroupId`.
+
+A **session snapshot** — either key above — carries `chromeGroups` alongside its `tabs`, because a
+saved tab references its Chrome group by number and that id resolves against the snapshot's own map
+(`schemaVersion` 2). A snapshot without it still restores; its tabs simply arrive ungrouped.
 
 **Message protocol** (`chrome.runtime.sendMessage`) — request `{ command, ...payload }`,
 response `{ success, ...data }`:
@@ -536,3 +540,4 @@ export { useCollectionActions } from './hooks/useCollectionActions.js';
 | 2.1.1 | 2026-10-02 | Phase 6/7 landed, so §1 and §3.1 name the service worker as ES modules under `background/` (bundled to `dist/background.js`) rather than "vanilla JS today", §5.4's permission table drops the `downloads` row its only caller (the dormant local daily backup) lost, and §10's anti-pattern names the new path. No rule changed. |
 | 2.2.0 | 2026-10-02 | §2.1 allows the service worker to import `lib/` as well as `shared/`. The modular worker needs one pure helper (`normalizeGroupId`) that already has a canonical home; the diagram always placed `store/`, `lib/` and `shared/` in one chrome-free foundations layer, so the stricter wording barring the `lib/` edge only forced a duplicate. UI imports stay forbidden. |
 | 2.3.0 | 2026-10-02 | §2.3's storage contract gains the `folders` row and notes the per-collection `folderId`, both introduced by the folder hierarchy (Phase 8) under `schemaVersion` 1. No rule changed. |
+| 2.4.0 | 2026-10-02 | §2.3's snapshot rows gain `chromeGroups`: a session snapshot's tabs reference their Chrome group by number, so the map has to be stored with them or the id resolves to nothing and no restore path can rebuild the group. Landed with migration 0002 and `schemaVersion` 2. No rule changed. |

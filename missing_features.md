@@ -36,6 +36,10 @@ Legend: 🔴 major · 🟡 medium · ⚪ minor
   group's `title/color/collapsed` on save (`collection.chromeGroups` + per-tab
   `chromeGroupId`), and `background/restore.js` re-groups the unpinned tabs via
   `chrome.tabs.group()` then applies the metadata with `chrome.tabGroups.update()`.
+  Every restore path rebuilds them: a session snapshot (`lastSessionBackup`, session history)
+  and an exported file now carry `chromeGroups` beside their tabs, and the history dialog's
+  Open All is routed through the worker, so groups survive a restore point, a history entry,
+  a JSON import and a Drive restore — not just a live collection.
 
 ### 3. Sharing & collaboration (requires a backend)
 - **Ta Box (Pro, server-backed):** shared folders with members and roles

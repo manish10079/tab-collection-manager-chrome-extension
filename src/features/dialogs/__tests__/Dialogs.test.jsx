@@ -125,7 +125,8 @@ describe('HistoryModal', () => {
       sessionHistory: [
         {
           timestamp: 1_700_000_000_000,
-          tabs: [{ id: 't1', title: 'Alpha', url: 'https://a.test' }],
+          tabs: [{ id: 't1', title: 'Alpha', url: 'https://a.test', chromeGroupId: 4 }],
+          chromeGroups: { 4: { title: 'Docs', color: 'blue', collapsed: false } },
         },
       ],
       ramSaverEnabled: true,
@@ -138,8 +139,13 @@ describe('HistoryModal', () => {
     await screen.findByText('Snapshot #1');
     await user.click(screen.getByRole('button', { name: 'Open All' }));
 
+    // The whole entry is handed over, not just its tabs: the group metadata has to travel with it
+    // so the restore can rebuild the group the tab belonged to.
     expect(onOpenAll).toHaveBeenCalledWith(
-      [{ id: 't1', title: 'Alpha', url: 'https://a.test' }],
+      expect.objectContaining({
+        tabs: [{ id: 't1', title: 'Alpha', url: 'https://a.test', chromeGroupId: 4 }],
+        chromeGroups: { 4: { title: 'Docs', color: 'blue', collapsed: false } },
+      }),
       true
     );
     expect(onOpenDetails).not.toHaveBeenCalled();

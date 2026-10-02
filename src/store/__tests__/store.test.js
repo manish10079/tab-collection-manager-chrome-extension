@@ -62,7 +62,9 @@ describe('store mutations', () => {
     });
 
     expect(store.collections[0].name).toBe('Renamed');
-    expect(store.lastSessionBackup).toEqual(backup);
+    // Carried through untouched apart from the migration's group map, which is additive: a snapshot
+    // that predates it gains an empty one so its tabs still restore (ungrouped) as before.
+    expect(store.lastSessionBackup).toEqual({ ...backup, chromeGroups: {} });
     // The service worker owns sessionHistory — a UI write must not touch it.
     expect(store.sessionHistory).toEqual([{ id: 'h1' }]);
     expect(Object.keys(store).sort()).toEqual([...WRITABLE_KEYS, 'sessionHistory'].sort());

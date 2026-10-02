@@ -539,6 +539,12 @@ Legend: 🔴 major · 🟡 medium · ⚪ minor · Status: ✅ implemented · �
   fallback path) rebuild the groups via `chrome.tabs.group()` + `chrome.tabGroups.update()`.
 * **Notes:** pinned tabs are skipped when grouping (Chrome cannot group them); groups
   whose metadata was lost are restored as ungrouped tabs.
+* **Every restore path:** a saved tab references its group by number, so the snapshot has to
+  carry the map that id resolves against. Session snapshots (`lastSessionBackup`, each
+  `sessionHistory` entry) and the export/import payload now store `chromeGroups` with their
+  tabs, and the history dialog's Open All goes through the worker like the other restores,
+  so groups come back from a collection, a restore point, a history entry, a JSON backup
+  and a Google Drive backup — not only from a live collection.
 
 ### 3. Sharing & collaboration (requires a backend) — ❌ Not implemented
 * **Ta Box (Pro, server-backed):** shared folders with members and roles

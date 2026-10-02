@@ -140,11 +140,12 @@ describe('useShellController chrome actions', () => {
     // 100ms timer, so deleting them here makes that timer throw into an empty global.
   });
 
-  it('restores the backup through the worker', async () => {
+  it('restores the backup through the worker, carrying its tab groups', async () => {
     const backup = {
       collectionId: 'a',
       name: 'Alpha',
-      tabs: [{ id: 't1', url: 'https://a.test' }],
+      tabs: [{ id: 't1', url: 'https://a.test', chromeGroupId: 6 }],
+      chromeGroups: { 6: { title: 'Docs', color: 'blue', collapsed: false } },
     };
     const { chrome, toast, controller } = setup({
       [STORAGE_KEYS.lastSessionBackup]: backup,
@@ -157,6 +158,8 @@ describe('useShellController chrome actions', () => {
       await controller.current.restoreBackup();
     });
 
+    // The whole snapshot goes to the worker — tabs *and* the group map they reference — because
+    // only the worker can rebuild the groups.
     expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({
       command: 'restoreSession',
       collectionId: 'a',

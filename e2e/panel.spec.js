@@ -437,6 +437,43 @@ test('keeps a folder’s collections in list layout in grid view', async ({ pane
   expect(spansBothColumns).toBe(true);
 });
 
+test('rebuilds real Chrome tab groups when a session snapshot is restored', async ({
+  panel,
+  tabServer,
+}) => {
+  // Restoring a session snapshot is what the history dialog's Open All and "Restore Previous
+  // Session" both do: they hand the worker the tabs plus the group metadata those tabs reference.
+  // Only a real browser can prove the groups come back, which is why this cannot be a unit test.
+  const sent = await panel.evaluate(
+    async ({ alpha, beta }) => {
+      const { success } = await chrome.runtime.sendMessage({
+        command: 'restoreSession',
+        backupData: {
+          tabs: [
+            { title: 'Alpha page', url: alpha, pinned: false, chromeGroupId: 1 },
+            { title: 'Beta page', url: beta, pinned: false, chromeGroupId: 1 },
+          ],
+          chromeGroups: { 1: { title: 'E2E Snapshot Group', color: 'purple', collapsed: false } },
+          name: 'E2E snapshot',
+        },
+      });
+      return success;
+    },
+    { alpha: tabServer.url('alpha'), beta: tabServer.url('beta') }
+  );
+  expect(sent).toBe(true);
+
+  // The restore is fire-and-forget, so poll until Chrome reports the group with the saved metadata.
+  await expect
+    .poll(() =>
+      panel.evaluate(async () => {
+        const groups = await chrome.tabGroups.query({});
+        return groups.map((group) => ({ title: group.title, color: group.color }));
+      })
+    )
+    .toContainEqual({ title: 'E2E Snapshot Group', color: 'purple' });
+});
+
 test('bulk-deletes a folder with its contents, a nested collection and a root collection', async ({
   panel,
 }) => {

@@ -6,13 +6,17 @@
 // write-back failed is readable even before the migration succeeds.
 import { SCHEMA_VERSION } from '../../shared/constants.js';
 import { up as foldersUp } from './0001-folders.js';
+import { up as sessionGroupsUp } from './0002-session-groups.js';
 
 /**
  * @typedef {{version: number, name: string, up: (data: Record<string, unknown>) => Record<string, unknown>}} Migration
  */
 
 /** @type {Migration[]} */
-export const MIGRATIONS = Object.freeze([{ version: 1, name: 'folders', up: foldersUp }]);
+export const MIGRATIONS = Object.freeze([
+  { version: 1, name: 'folders', up: foldersUp },
+  { version: 2, name: 'session-groups', up: sessionGroupsUp },
+]);
 
 export { SCHEMA_VERSION };
 

@@ -86,9 +86,10 @@ function normalizeUrl(url) {
  * @param {{title?: string, url?: string, addedAt?: number}} tab
  * @param {boolean} pinned
  * @param {number} index
+ * @param {number|null} [chromeGroupId] Group the tab belonged to, or null when ungrouped
  * @returns {import('../../../store/schema.js').TabItem}
  */
-function makeTab(tab, pinned, index) {
+function makeTab(tab, pinned, index, chromeGroupId = null) {
   return {
     id: crypto.randomUUID(),
     title: String(tab.title ?? '').trim() || 'Untitled',
@@ -99,8 +100,109 @@ function makeTab(tab, pinned, index) {
     active: false,
     discarded: false,
     highlighted: false,
+    // Carried through the import so a restored collection can rebuild its Chrome tab groups. The
+    // importer used to drop this field, which silently flattened every group in a backup.
+    chromeGroupId,
     addedAt: tab.addedAt || Date.now(),
   };
+}
+
+/**
+ * One group's presentation, defaulted the way the worker's `captureGroupMeta` writes it. Anything
+ * that is not a usable object is dropped rather than trusted.
+ *
+ * @param {unknown} value
+ * @returns {import('../../../store/schema.js').ChromeGroupMeta|null}
+ */
+function sanitizeGroupMeta(value) {
+  if (!value || typeof value !== 'object') return null;
+  const meta = /** @type {{title?: unknown, color?: unknown, collapsed?: unknown}} */ (value);
+  return {
+    title: typeof meta.title === 'string' ? meta.title : '',
+    color: typeof meta.color === 'string' && meta.color ? meta.color : 'grey',
+    collapsed: Boolean(meta.collapsed),
+  };
+}
+
+/**
+ * A collection's `chromeGroups` map from an imported file, with every entry sanitized. A malformed
+ * field imports as no groups, which is the same outcome as a backup taken before groups were
+ * carried — the tabs still arrive, they just arrive ungrouped.
+ *
+ * @param {unknown} value
+ * @returns {Record<string, import('../../../store/schema.js').ChromeGroupMeta>}
+ */
+function sanitizeGroups(value) {
+  const groups = {};
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return groups;
+  for (const [key, meta] of Object.entries(value)) {
+    // Only a non-negative integer key is reachable: a tab points at its group by number, and the
+    // worker looks the map up with that number stringified.
+    if (!/^\d+$/.test(key)) continue;
+    const clean = sanitizeGroupMeta(meta);
+    if (clean !== null) groups[key] = clean;
+  }
+  return groups;
+}
+
+/**
+ * Resolve one tab's group into a group id that exists in `targetGroups`, adding the metadata when
+ * it is not there yet.
+ *
+ * The remap exists because group ids only have to be unique **within a collection**, and a merge
+ * adds imported tabs to a collection that already has its own. Reusing an identical group keeps a
+ * re-import idempotent; otherwise the imported group takes the next free integer, so it can never
+ * overwrite a group the collection already had.
+ *
+ * @param {unknown} rawGroupId        The imported tab's `chromeGroupId`
+ * @param {Record<string, import('../../../store/schema.js').ChromeGroupMeta>} importedGroups
+ * @param {Record<string, import('../../../store/schema.js').ChromeGroupMeta>} targetGroups
+ * @param {Map<string, number>} remap  Imported group key -> target group id
+ * @returns {number|null}
+ */
+function mapGroupId(rawGroupId, importedGroups, targetGroups, remap) {
+  const sourceKey = rawGroupId === null || rawGroupId === undefined ? null : String(rawGroupId);
+  if (sourceKey === null || !/^\d+$/.test(sourceKey)) return null;
+
+  const meta = importedGroups[sourceKey];
+  if (!meta) return null; // The tab pointed at a group the file did not carry.
+  if (remap.has(sourceKey)) return remap.get(sourceKey) ?? null;
+
+  for (const [key, existing] of Object.entries(targetGroups)) {
+    if (
+      existing.title === meta.title &&
+      existing.color === meta.color &&
+      existing.collapsed === meta.collapsed
+    ) {
+      remap.set(sourceKey, Number(key));
+      return Number(key);
+    }
+  }
+
+  // Prefer the file's own key when it is still free, so importing into a fresh collection round
+  // trips unchanged. On a merge the key may already mean something else, and then — and only then —
+  // the imported group takes the next free integer.
+  const targetKey =
+    sourceKey in targetGroups ? nextGroupKey(new Set(Object.keys(targetGroups))) : sourceKey;
+  targetGroups[targetKey] = meta;
+  remap.set(sourceKey, Number(targetKey));
+  return Number(targetKey);
+}
+
+/**
+ * A group key that is free in `taken`. Chrome's own ids are small integers, so the next integer
+ * above the highest one in use keeps the imported shape familiar and the result deterministic.
+ *
+ * @param {Set<string>} taken
+ * @returns {string}
+ */
+function nextGroupKey(taken) {
+  let candidate = 1;
+  for (const key of taken) {
+    const numeric = Number(key);
+    if (Number.isInteger(numeric) && numeric >= candidate) candidate = numeric + 1;
+  }
+  return String(candidate);
 }
 
 /**
@@ -119,6 +221,11 @@ function makeTab(tab, pinned, index) {
  * Folders are restored too: an imported folder reuses a same-named draft folder (or is created),
  * and an imported collection's `folderId` is remapped onto it. A collection pointing at a folder
  * the file did not carry stays at the root, so an import can never orphan a collection.
+ *
+ * Chrome tab groups come back with the tabs: each tab keeps its `chromeGroupId` and the groups
+ * those ids reference are carried into `chromeGroups`. On a merge the ids are remapped onto keys
+ * that are free in the target collection, so an import can never overwrite a group the existing
+ * tabs still point at; an identical group is reused instead, which keeps a re-import idempotent.
  *
  * @param {import('../../../store/schema.js').AppState} draft
  * @param {unknown[]} importedCollections
@@ -170,7 +277,9 @@ export function mergeImportedCollections(draft, importedCollections = [], import
     }
 
     const imported =
-      /** @type {{name: string, tabs: any[], pinned?: boolean, folderId?: string|null}} */ (raw);
+      /** @type {{name: string, tabs: any[], pinned?: boolean, folderId?: string|null, chromeGroups?: unknown}} */ (
+        raw
+      );
     const existing = draft.collections.find(
       (collection) => String(collection.name).toLowerCase() === String(imported.name).toLowerCase()
     );
@@ -178,6 +287,13 @@ export function mergeImportedCollections(draft, importedCollections = [], import
     if (existing) {
       const before = existing.tabs.length;
       let pinnedTabs = existing.tabs.filter((tab) => tab.pinned).length;
+
+      // Groups the incoming tabs reference are merged into the collection's own map, so a tab
+      // appended here can still rebuild the group it came from.
+      const importedGroups = sanitizeGroups(/** @type {any} */ (imported).chromeGroups);
+      const targetGroups = { ...(existing.chromeGroups || {}) };
+      /** @type {Map<string, number>} */
+      const remap = new Map();
 
       for (const tab of imported.tabs) {
         if (!isValidUrl(tab?.url)) continue;
@@ -189,9 +305,11 @@ export function mergeImportedCollections(draft, importedCollections = [], import
         if (pinned && pinnedTabs >= maxPinnedTabs) pinned = false;
         if (pinned) pinnedTabs += 1;
 
-        existing.tabs.push(makeTab(tab, pinned, existing.tabs.length));
+        const groupId = mapGroupId(tab.chromeGroupId, importedGroups, targetGroups, remap);
+        existing.tabs.push(makeTab(tab, pinned, existing.tabs.length, groupId));
       }
 
+      if (Object.keys(targetGroups).length > 0) existing.chromeGroups = targetGroups;
       existing.tabs = partitionTabs(existing.tabs);
       if (existing.tabs.length > before) {
         existing.updatedAt = Date.now();
@@ -208,14 +326,25 @@ export function mergeImportedCollections(draft, importedCollections = [], import
       if (pinnedCollections >= maxPinnedCollections) pinned = false;
     }
 
+    // Only the groups a surviving tab still references are kept, under the same integer keys, so
+    // this new collection is self-contained and an export of it looks like the file it came from.
+    const importedGroups = sanitizeGroups(/** @type {any} */ (imported).chromeGroups);
+    /** @type {Record<string, import('../../../store/schema.js').ChromeGroupMeta>} */
+    const chromeGroups = {};
+    /** @type {Map<string, number>} */
+    const remap = new Map();
+
     let pinnedTabs = 0;
     const tabs = imported.tabs
       .filter((tab) => isValidUrl(tab?.url))
-      .map((tab) => {
+      .map((tab, index) => {
         let tabPinned = Boolean(tab.pinned);
         if (tabPinned && pinnedTabs >= maxPinnedTabs) tabPinned = false;
         if (tabPinned) pinnedTabs += 1;
-        return makeTab(tab, tabPinned, 0);
+        const groupId = mapGroupId(tab.chromeGroupId, importedGroups, chromeGroups, remap);
+        // The tab's own position, not a constant: a stored `index` of 0 for every tab was a lie
+        // that any future consumer of the field would have inherited.
+        return makeTab(tab, tabPinned, index, groupId);
       })
       .slice(0, LIMITS.MAX_TABS_PER_COLLECTION);
 
@@ -230,6 +359,9 @@ export function mergeImportedCollections(draft, importedCollections = [], import
       name: imported.name,
       pinned,
       tabs: partitionTabs(tabs),
+      // Restored with the tabs, so "Open All Tabs" rebuilds the Chrome tab groups the backup was
+      // taken with rather than opening a flat list of pages.
+      chromeGroups,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       isExpanded: false,

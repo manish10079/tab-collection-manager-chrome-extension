@@ -1,6 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
 import { useCollections } from '../../../store/hooks.js';
-import { openSessionTabs } from '../lib/openSessionTabs.js';
 import { useTabIntake } from './useTabIntake.js';
 
 /**
@@ -23,7 +22,7 @@ import { useTabIntake } from './useTabIntake.js';
  * @property {() => void} closeShortcuts
  * @property {(session: object, label: string) => void} openDetails
  * @property {() => void} closeDetails
- * @property {(tabs: object[], ramSaverEnabled: boolean) => Promise<void>} openAllFromHistory
+ * @property {(session: object) => Promise<void>} openAllFromHistory
  */
 
 /**
@@ -74,10 +73,40 @@ export function useDialogs({ toast }) {
 
   const intake = useTabIntake({ collections, confirmDuplicates, toast });
 
+  /**
+   * Re-open a history snapshot through the worker, the same path "Open All Tabs" on a collection
+   * uses. Routing it here rather than creating the tabs from the panel is what lets the snapshot's
+   * Chrome tab groups be rebuilt: only the worker owns `restoreSession` (ADR-0004), and it is the
+   * single implementation of the group rebuild, so no restore path can silently lose groups.
+   *
+   * `ramSaverEnabled` is read by the worker from storage, which is where this flag lives.
+   */
   const openAllFromHistory = useCallback(
-    async (tabs, ramSaverEnabled) => {
-      const opened = await openSessionTabs(tabs, { ramSaverEnabled });
-      if (opened > 0) toast(`Opened ${opened} tabs in the background`, 1500);
+    async (session) => {
+      const tabs = Array.isArray(session?.tabs) ? session.tabs : [];
+      const restorable = tabs.filter((tab) => {
+        const url = String(tab?.url ?? '').trim();
+        return url && url !== 'about:blank';
+      }).length;
+      if (restorable === 0) {
+        toast('Nothing to restore in that session.', 1500);
+        return;
+      }
+
+      try {
+        await chrome.runtime.sendMessage({
+          command: 'restoreSession',
+          backupData: {
+            tabs,
+            chromeGroups: session?.chromeGroups ?? {},
+            name: session?.name || 'Session History',
+          },
+        });
+        toast(`Restoring ${restorable} tabs…`, 1500);
+      } catch (error) {
+        console.error('[dialogs] failed to restore a history snapshot:', error);
+        toast('Could not restore that session.', 1500);
+      }
     },
     [toast]
   );

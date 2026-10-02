@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SCHEMA_VERSION } from '../../shared/constants.js';
 import { up as foldersUp } from '../migrations/0001-folders.js';
+import { up as sessionGroupsUp } from '../migrations/0002-session-groups.js';
 import { runMigrations } from '../migrations/index.js';
 import { normalizeState } from '../schema.js';
 
@@ -32,6 +33,61 @@ describe('migration 0001 — folders', () => {
   });
 });
 
+describe('migration 0002 — session snapshot tab groups', () => {
+  it('gives a pre-migration restore point and history entries an empty group map', () => {
+    // A real pre-2.3 fixture: the worker wrote these before it carried the metadata its own tabs
+    // reference, which is why their groups could never be rebuilt.
+    const migrated = sessionGroupsUp({
+      schemaVersion: 1,
+      lastSessionBackup: {
+        tabs: [{ id: 't1', url: 'https://a.test', chromeGroupId: 4 }],
+        timestamp: 1,
+        collectionId: 'auto',
+        name: 'Auto',
+      },
+      sessionHistory: [
+        { id: 'h1', timestamp: 2, tabs: [{ id: 't2', url: 'https://b.test', chromeGroupId: 4 }] },
+        'not-an-object',
+      ],
+    });
+
+    expect(migrated.lastSessionBackup.chromeGroups).toEqual({});
+    expect(migrated.lastSessionBackup.tabs).toHaveLength(1);
+    expect(migrated.sessionHistory[0].chromeGroups).toEqual({});
+    // The junk entry is passed through rather than crashing the migration.
+    expect(migrated.sessionHistory[1]).toBe('not-an-object');
+  });
+
+  it('leaves a snapshot that already has groups alone, and is idempotent', () => {
+    const groups = { 4: { title: 'Docs', color: 'blue', collapsed: false } };
+    const once = sessionGroupsUp({
+      lastSessionBackup: { tabs: [], chromeGroups: groups },
+      sessionHistory: [{ id: 'h1', tabs: [], chromeGroups: groups }],
+    });
+    const twice = sessionGroupsUp(once);
+
+    expect(once.lastSessionBackup.chromeGroups).toEqual(groups);
+    expect(twice).toEqual(once);
+  });
+
+  it('replaces a malformed map instead of trusting it', () => {
+    const migrated = sessionGroupsUp({
+      lastSessionBackup: { tabs: [], chromeGroups: ['nope'] },
+      sessionHistory: [{ id: 'h1', tabs: [], chromeGroups: 'nope' }],
+    });
+
+    expect(migrated.lastSessionBackup.chromeGroups).toEqual({});
+    expect(migrated.sessionHistory[0].chromeGroups).toEqual({});
+  });
+
+  it('tolerates storage with no snapshots at all', () => {
+    const migrated = sessionGroupsUp({ collections: [] });
+
+    expect(migrated.lastSessionBackup).toBeUndefined();
+    expect(migrated.sessionHistory).toBeUndefined();
+  });
+});
+
 describe('runMigrations', () => {
   it('migrates a pre-folders profile and stamps the current version', () => {
     const { data, from, changed } = runMigrations({ collections: [{ id: 'a', name: 'A' }] });
@@ -41,6 +97,23 @@ describe('runMigrations', () => {
     expect(data.schemaVersion).toBe(SCHEMA_VERSION);
     expect(data.folders).toEqual([]);
     expect(data.collections[0].folderId).toBeNull();
+  });
+
+  it('brings a folders-era profile up to the current version too', () => {
+    // The realistic upgrade path for an existing user: schemaVersion 1, snapshots without groups.
+    const { data, from, changed } = runMigrations({
+      schemaVersion: 1,
+      collections: [{ id: 'a', name: 'A', tabs: [] }],
+      folders: [],
+      lastSessionBackup: { tabs: [{ id: 't1', url: 'https://a.test', chromeGroupId: 9 }] },
+    });
+
+    expect(changed).toBe(true);
+    expect(from).toBe(1);
+    expect(data.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(data.lastSessionBackup.chromeGroups).toEqual({});
+    // The folders migration is not re-applied to data that already has folders.
+    expect(data.folders).toEqual([]);
   });
 
   it('is a no-op once storage is current', () => {

@@ -228,3 +228,114 @@ describe('mergeImportedCollections', () => {
     expect(target.collections[0].id).toBe(CURRENT_SESSION_ID);
   });
 });
+
+/**
+ * Chrome tab groups through export/import. A saved tab references its group by number, so the
+ * group's metadata has to travel with the collection — the importer used to drop both, which
+ * silently flattened every group in a backup and left the tabs pointing at ids that resolved to
+ * nothing.
+ */
+describe('mergeImportedCollections tab groups', () => {
+  const docs = { title: 'Docs', color: 'blue', collapsed: false };
+  const research = { title: 'Research', color: 'green', collapsed: true };
+
+  /** A tab that belongs to a group. @param {string} id @param {number} groupId */
+  function groupedTab(id, groupId) {
+    return { ...importedTab(id), chromeGroupId: groupId };
+  }
+
+  it('restores the groups of an imported collection', () => {
+    const target = draft();
+    mergeImportedCollections(target, [
+      {
+        name: 'Work',
+        tabs: [groupedTab('t1', 7), groupedTab('t2', 7), importedTab('t3')],
+        chromeGroups: { 7: docs },
+      },
+    ]);
+
+    const collection = target.collections[0];
+    expect(collection.chromeGroups).toEqual({ 7: docs });
+    expect(collection.tabs.map((tab) => tab.chromeGroupId)).toEqual([7, 7, null]);
+  });
+
+  it('drops a group reference the file did not carry, keeping the tab', () => {
+    const target = draft();
+    mergeImportedCollections(target, [
+      { name: 'Work', tabs: [groupedTab('t1', 3)], chromeGroups: { 8: docs } },
+    ]);
+
+    expect(target.collections[0].tabs).toHaveLength(1);
+    expect(target.collections[0].tabs[0].chromeGroupId).toBeNull();
+    expect(target.collections[0].chromeGroups).toEqual({});
+  });
+
+  it('ignores a malformed group map instead of failing the import', () => {
+    const target = draft();
+    mergeImportedCollections(target, [
+      { name: 'Work', tabs: [groupedTab('t1', 1)], chromeGroups: 'not-a-map' },
+    ]);
+    mergeImportedCollections(target, [
+      {
+        name: 'Other',
+        tabs: [groupedTab('t2', 2)],
+        // Only integer keys are reachable by a tab's numeric `chromeGroupId`.
+        chromeGroups: { 2: research, nonsense: docs, 3: { title: 5 } },
+      },
+    ]);
+
+    expect(target.collections[0].chromeGroups).toEqual({});
+    expect(target.collections[1].chromeGroups).toEqual({ 2: research });
+    expect(target.collections[1].tabs[0].chromeGroupId).toBe(2);
+  });
+
+  it('keeps an appended tab in its group when merging into an existing collection', () => {
+    const target = draft([
+      {
+        id: 'a',
+        name: 'Alpha',
+        tabs: [{ id: 'old', title: 'old', url: 'https://old.test', chromeGroupId: 1 }],
+        chromeGroups: { 1: research },
+      },
+    ]);
+
+    mergeImportedCollections(target, [
+      { name: 'Alpha', tabs: [groupedTab('t1', 1)], chromeGroups: { 1: docs } },
+    ]);
+
+    const collection = target.collections[0];
+    // The file's group 1 differs from the collection's group 1, so it takes a free key rather than
+    // overwriting the group the existing tab still points at.
+    expect(collection.chromeGroups).toEqual({ 1: research, 2: docs });
+    expect(collection.tabs.map((tab) => tab.chromeGroupId)).toEqual([1, 2]);
+  });
+
+  it('reuses an identical group rather than duplicating it on a re-import', () => {
+    const target = draft([
+      {
+        id: 'a',
+        name: 'Alpha',
+        tabs: [{ id: 'old', title: 'old', url: 'https://old.test', chromeGroupId: 1 }],
+        chromeGroups: { 1: docs },
+      },
+    ]);
+
+    mergeImportedCollections(target, [
+      { name: 'Alpha', tabs: [groupedTab('t1', 1)], chromeGroups: { 1: docs } },
+    ]);
+
+    const collection = target.collections[0];
+    expect(collection.chromeGroups).toEqual({ 1: docs });
+    expect(collection.tabs.map((tab) => tab.chromeGroupId)).toEqual([1, 1]);
+  });
+
+  it("numbers an imported collection's tabs sequentially", () => {
+    const target = draft();
+    mergeImportedCollections(target, [
+      { name: 'Work', tabs: [importedTab('t1'), importedTab('t2'), importedTab('t3')] },
+    ]);
+
+    // `index` is the tab's position; a constant 0 for every tab was metadata that lied.
+    expect(target.collections[0].tabs.map((tab) => tab.index)).toEqual([0, 1, 2]);
+  });
+});
