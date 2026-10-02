@@ -1,81 +1,5 @@
-/* ==========================================================================
-   THEME STYLING SYSTEM
-   ========================================================================== */
-
-/* 1. DARK THEME VARIABLES (DEFAULT) */
-:root {
-  color-scheme: dark;
-  --bg-primary: #202124;
-  --bg-secondary: #202124;
-  --bg-glass: rgba(13, 13, 13, 0.95);
-  --bg-gradient: #202124;
-  --bg-card: #202124;
-  --bg-card-hover: #161616;
-  --bg-dropdown: #202124;
-  --text-primary: #f2f2f2;
-  --text-secondary: #9090a8;
-  --border: rgba(255, 255, 255, 0.07);
-  --border-card: rgba(255, 255, 255, 0.06);
-  --border-item: rgba(255, 255, 255, 0.05);
-  --bg-translucent-subtle: rgba(255, 255, 255, 0.03);
-  --bg-translucent-normal: rgba(255, 255, 255, 0.05);
-  --bg-translucent-hover: rgba(255, 255, 255, 0.08);
-  --bg-translucent-active: rgba(255, 255, 255, 0.1);
-  --bg-translucent-strong: rgba(255, 255, 255, 0.15);
-  --shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
-  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
-  --shadow-card-hover: 0 12px 30px rgba(0, 0, 0, 0.5);
-  --shadow-item-hover: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(124, 111, 255, 0.12), 0 4px 16px rgba(0, 0, 0, 0.5);
-  --modal-overlay-bg: rgba(10, 10, 18, 0.55);
-  --modal-glass-border: rgba(124, 111, 255, 0.18);
-  --modal-header-bg: rgba(124, 111, 255, 0.06);
-}
-
-/* 2. LIGHT THEME VARIABLES */
-[data-theme="light"] {
-  color-scheme: light;
-  --bg-primary: #e4e0e0;
-  --bg-secondary: #f4f4f6;
-  --bg-glass: rgba(244, 244, 246, 0.95);
-  --bg-gradient: #ffffff;
-  --bg-card: #eaeaea;
-  --bg-card-hover: #dfdfe3;
-  --bg-dropdown: #ffffff;
-  --text-primary: #1a1a24;
-  --text-secondary: #6e6e80;
-  --border: rgba(0, 0, 0, 0.08);
-  --border-card: rgba(0, 0, 0, 0.06);
-  --border-item: rgba(0, 0, 0, 0.05);
-  --bg-translucent-subtle: rgba(0, 0, 0, 0.02);
-  --bg-translucent-normal: rgba(0, 0, 0, 0.04);
-  --bg-translucent-hover: rgba(0, 0, 0, 0.06);
-  --bg-translucent-active: rgba(0, 0, 0, 0.08);
-  --bg-translucent-strong: rgba(0, 0, 0, 0.12);
-  --shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
-  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.05);
-  --shadow-card-hover: 0 12px 24px rgba(0, 0, 0, 0.08);
-  --shadow-item-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(124, 111, 255, 0.1);
-  --modal-overlay-bg: rgba(100, 90, 140, 0.22);
-  --modal-glass-border: rgba(124, 111, 255, 0.15);
-  --modal-header-bg: rgba(124, 111, 255, 0.05);
-}
-
-/* 3. COMMON VARIABLES (SAME FOR BOTH LIGHT & DARK) */
-:root, [data-theme="light"] {
-  --accent: #7c6fff;
-  --accent-hover: #9d93ff;
-  --danger: #ff5c7a;
-  --success: #3ddbd9;
-  --radius: 16px;
-  --transition: all 0.2s ease;
-  --blur: blur(12px);
-  /* Warning / Amber status colors */
-  --warning: #f59e0b;
-  --warning-hover: #d97706;
-  --warning-accent: #fbbf24;
-}
+/* The design tokens this sheet consumes now live in `tokens.css`, imported first by `index.css`
+   (css-migration-plan.md, Phase 1). Everything below still references them through `var(--…)`. */
 
 * {
   margin: 0;
@@ -795,22 +719,22 @@ body.panel-closing {
 }
 
 .collection:hover {
-  border-color: rgba(124, 111, 255, 0.4);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
   background: var(--bg-card-hover);
-  box-shadow: var(--shadow-card-hover), 0 0 20px rgba(124, 111, 255, 0.15);
+  box-shadow: var(--shadow-card-hover), 0 0 20px color-mix(in srgb, var(--accent) 15%, transparent);
   /* Removed translateY(-2px) — it shifts the card up and causes dropdown flicker */
 }
 
 .current-session-collection {
   border-left: 4px solid var(--success) !important;
-  background: linear-gradient(135deg, rgba(61, 219, 217, 0.07) 0%, var(--bg-card) 100%) !important;
-  border-color: rgba(61, 219, 217, 0.2);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--success) 7%, transparent) 0%, var(--bg-card) 100%) !important;
+  border-color: color-mix(in srgb, var(--success) 20%, transparent);
 }
 
 .current-session-collection:hover {
-  background: linear-gradient(135deg, rgba(61, 219, 217, 0.12) 0%, var(--bg-card-hover) 100%) !important;
-  border-color: rgba(61, 219, 217, 0.45);
-  box-shadow: var(--shadow-card-hover), 0 0 20px rgba(61, 219, 217, 0.15);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--success) 12%, transparent) 0%, var(--bg-card-hover) 100%) !important;
+  border-color: color-mix(in srgb, var(--success) 45%, transparent);
+  box-shadow: var(--shadow-card-hover), 0 0 20px color-mix(in srgb, var(--success) 15%, transparent);
 }
 
 .current-session-collection .collection-name {
@@ -826,14 +750,14 @@ body.panel-closing {
 
 .auto-save-target {
   border-left: 4px solid var(--accent) !important;
-  background: linear-gradient(135deg, rgba(124, 111, 255, 0.08) 0%, var(--bg-card) 100%);
-  border-color: rgba(124, 111, 255, 0.25);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 8%, transparent) 0%, var(--bg-card) 100%);
+  border-color: color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .auto-save-target:hover {
-  background: linear-gradient(135deg, rgba(124, 111, 255, 0.13) 0%, var(--bg-card-hover) 100%);
-  border-color: rgba(124, 111, 255, 0.5);
-  box-shadow: var(--shadow-card-hover), 0 0 20px rgba(124, 111, 255, 0.2);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 13%, transparent) 0%, var(--bg-card-hover) 100%);
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  box-shadow: var(--shadow-card-hover), 0 0 20px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .collection-header {
@@ -913,7 +837,7 @@ body.panel-closing {
   cursor: text;
   pointer-events: auto;
   background: var(--bg-translucent-normal);
-  border-color: rgba(124, 111, 255, 0.4);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
   color: var(--text-primary);
 }
 
@@ -1115,7 +1039,7 @@ body.panel-closing {
 
 .tab-item:hover {
   background: var(--bg-card-hover);
-  border-color: rgba(124, 111, 255, 0.3);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
   box-shadow: var(--shadow-item-hover);
 }
 
@@ -1123,8 +1047,8 @@ body.panel-closing {
   width: 26px;
   height: 26px;
   border-radius: 6px;
-  background: linear-gradient(135deg, rgba(124, 111, 255, 0.18) 0%, rgba(124, 111, 255, 0.05) 100%);
-  border: 1px solid rgba(124, 111, 255, 0.2);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 18%, transparent) 0%, color-mix(in srgb, var(--accent) 5%, transparent) 100%);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
   color: var(--accent);
   display: flex;
   align-items: center;
@@ -1497,8 +1421,8 @@ body.panel-closing {
 }
 
 .close-modal:hover {
-  background: rgba(255, 92, 122, 0.15);
-  border-color: rgba(255, 92, 122, 0.3);
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 30%, transparent);
   color: var(--danger);
   transform: scale(1.1);
 }
@@ -1848,8 +1772,8 @@ body.panel-closing {
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  background: color-mix(in srgb, var(--warning) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 20%, transparent);
   border-radius: 8px;
   font-size: 13px;
   color: var(--text-primary);
@@ -2243,20 +2167,20 @@ mark.search-hl {
 
 .collection-actions .pin-collection-btn.pinned {
   color: var(--danger); /* Premium Amber */
-  background: rgba(245, 158, 11, 0.15);
-  border-color: rgba(245, 158, 11, 0.35);
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  border-color: color-mix(in srgb, var(--warning) 35%, transparent);
   opacity: 1;
 }
 
 .collection-actions .pin-collection-btn.pinned:hover {
   color: var(--danger);
-  background: rgba(245, 158, 11, 0.25);
-  border-color: rgba(245, 158, 11, 0.5);
+  background: color-mix(in srgb, var(--warning) 25%, transparent);
+  border-color: color-mix(in srgb, var(--warning) 50%, transparent);
 }
 
 .collection.pinned {
-  border-color: rgba(245, 158, 11, 0.25);
-  background: linear-gradient(to right, rgba(245, 158, 11, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+  border-color: color-mix(in srgb, var(--warning) 25%, transparent);
+  background: linear-gradient(to right, color-mix(in srgb, var(--warning) 3%, transparent) 0%, rgba(255, 255, 255, 0.01) 100%);
 }
 
 .tab-menu-container {
@@ -2291,18 +2215,18 @@ mark.search-hl {
 .tab-item .icon-btn.pin-tab-btn.pinned {
   color: var(--warning); /* Premium Amber */
   opacity: 1;
-  background: rgba(245, 158, 11, 0.15);
-  border-color: rgba(245, 158, 11, 0.3);
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  border-color: color-mix(in srgb, var(--warning) 30%, transparent);
 }
 
 .tab-item .icon-btn.pin-tab-btn.pinned:hover {
   color: var(--warning-accent);
-  background: rgba(245, 158, 11, 0.25);
+  background: color-mix(in srgb, var(--warning) 25%, transparent);
 }
 
 .tab-item.pinned {
-  border-color: rgba(245, 158, 11, 0.2);
-  background: rgba(245, 158, 11, 0.02);
+  border-color: color-mix(in srgb, var(--warning) 20%, transparent);
+  background: color-mix(in srgb, var(--warning) 2%, transparent);
 }
 
 /* ===== Settings UI Styles ===== */
@@ -2334,7 +2258,7 @@ mark.search-hl {
 }
 
 .settings-card:hover {
-  border-color: rgba(124, 111, 255, 0.15);
+  border-color: color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 .settings-card-header {
@@ -2442,8 +2366,8 @@ mark.search-hl {
 
 /* ── Jump-to-collection highlight (1-9 shortcut) ─────────── */
 .collection.shortcut-jump-highlight {
-  border-color: rgba(124, 111, 255, 0.55);
-  box-shadow: 0 0 0 2px rgba(124, 111, 255, 0.25), var(--shadow-card-hover);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent), var(--shadow-card-hover);
   animation: jumpPulse 1.2s ease;
 }
 
@@ -2493,8 +2417,8 @@ mark.search-hl {
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  background: linear-gradient(135deg, rgba(124, 111, 255, 0.15), rgba(124, 111, 255, 0.05));
-  border: 1px solid rgba(124, 111, 255, 0.12);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, transparent), color-mix(in srgb, var(--accent) 5%, transparent));
+  border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
   flex-shrink: 0;
   transition: transform 0.2s ease, background 0.2s ease;
 }
@@ -2510,7 +2434,7 @@ mark.search-hl {
 
 .settings-row:hover .settings-row-icon {
   transform: scale(1.05);
-  background: linear-gradient(135deg, rgba(124, 111, 255, 0.2), rgba(124, 111, 255, 0.08));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent) 8%, transparent));
 }
 
 .settings-row-text {
@@ -2672,7 +2596,7 @@ mark.search-hl {
 
 .limit-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(124, 111, 255, 0.2);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
   background: var(--bg-translucent-hover);
 }
 

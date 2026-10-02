@@ -11,6 +11,9 @@ import {
   measureRepository,
 } from '../scripts/css-metrics.mjs';
 
+/** The single ordered entry every stylesheet is imported from (css-migration-plan.md, §2). */
+const ENTRY_STYLESHEET = 'index.css';
+
 /**
  * The Phase 0 ratchet of the CSS migration (css-migration-plan.md §5).
  *
@@ -67,22 +70,41 @@ describe('css ratchet', () => {
     }
   });
 
+  it('imports every stylesheet exactly once, in the documented cascade order', async () => {
+    // §6's layer 2: `index.css` is the single place cascade order is decided, so the order is
+    // asserted here rather than left to whoever edits the entry next. A sheet that exists on disk
+    // but is not imported would silently drop its rules.
+    const entry = readFileSync(path.join(STYLES, 'index.css'), 'utf8');
+    const imports = [...entry.matchAll(/@import\s+['"]\.\/([\w.-]+)['"]\s*;/g)].map(
+      (match) => match[1]
+    );
+    expect(imports).toEqual([TOKEN_STYLESHEET, LEGACY_STYLESHEET, 'shell.css']);
+
+    const present = (await listStylesheets())
+      .map((sheet) => sheet.file)
+      .filter((f) => f !== ENTRY_STYLESHEET);
+    expect([...imports].sort()).toEqual([...present].sort());
+  });
+
   it('keeps the legacy stylesheet loaded while it still exists', () => {
-    // Phase 6 deletes `panel.css` and this assertion flips to "must not exist". Until then, a
-    // `panel.css` that nothing loads would silently drop every rule the panel still depends on —
+    // Phase 6 deletes `panel.css` and the cascade assertion above drops it. Until then, a
+    // `panel.css` that nothing imports would silently drop every rule the panel still depends on —
     // which is a worse outcome than not starting the migration, so it is guarded either way.
     const legacy = path.join(STYLES, LEGACY_STYLESHEET);
     if (!existsSync(legacy)) return;
 
-    const entry = readFileSync(path.join(ROOT, 'src', 'sidepanel.html'), 'utf8');
+    const entry = readFileSync(path.join(STYLES, ENTRY_STYLESHEET), 'utf8');
     expect(entry).toContain(LEGACY_STYLESHEET);
   });
 
-  it('keeps colour literals in the token file once it exists', async () => {
-    // Forward-looking: Phase 1 creates `src/styles/tokens.css`, and from that commit on no other
-    // stylesheet may hold a literal. Until it exists, `colourLiterals` is ratcheted instead.
+  it('keeps colour literals in the token file once the legacy sheet is gone', async () => {
+    // Phase 6 turns this on. Until `panel.css` — the bulk of the remaining literals — is deleted,
+    // the ratchet's `colourLiterals` count is the guard; a binary "no literal anywhere else"
+    // assertion would fire on the legitimate intermediate states of the migration.
     const sheets = await listStylesheets();
-    if (!sheets.some((sheet) => sheet.file === TOKEN_STYLESHEET)) return;
+    const hasTokens = sheets.some((sheet) => sheet.file === TOKEN_STYLESHEET);
+    const hasLegacy = sheets.some((sheet) => sheet.file === LEGACY_STYLESHEET);
+    if (!hasTokens || hasLegacy) return;
 
     const offenders = sheets
       .filter((sheet) => sheet.file !== TOKEN_STYLESHEET)

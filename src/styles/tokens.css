@@ -1,0 +1,90 @@
+/* Design tokens — the one stylesheet allowed to declare a raw colour (css-migration-plan.md, §2).
+ *
+ * Phase 1 moved these three blocks verbatim out of `panel.css`: the dark `:root`, the light
+ * `[data-theme="light"]` override, and the values both themes share. The names are unchanged — this
+ * phase renames nothing — so every other sheet keeps consuming `var(--…)` and the cascade is
+ * unaffected as long as `index.css` imports this file first. Panel.css's own literal colours are
+ * being retired family by family on top of this.
+ */
+
+/* ==========================================================================
+   THEME STYLING SYSTEM
+   ========================================================================== */
+
+/* 1. DARK THEME VARIABLES (DEFAULT) */
+:root {
+  color-scheme: dark;
+  --bg-primary: #202124;
+  --bg-secondary: #202124;
+  --bg-glass: rgba(13, 13, 13, 0.95);
+  --bg-gradient: #202124;
+  --bg-card: #202124;
+  --bg-card-hover: #161616;
+  --bg-dropdown: #202124;
+  --text-primary: #f2f2f2;
+  --text-secondary: #9090a8;
+  --border: rgba(255, 255, 255, 0.07);
+  --border-card: rgba(255, 255, 255, 0.06);
+  --border-item: rgba(255, 255, 255, 0.05);
+  --bg-translucent-subtle: rgba(255, 255, 255, 0.03);
+  --bg-translucent-normal: rgba(255, 255, 255, 0.05);
+  --bg-translucent-hover: rgba(255, 255, 255, 0.08);
+  --bg-translucent-active: rgba(255, 255, 255, 0.1);
+  --bg-translucent-strong: rgba(255, 255, 255, 0.15);
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow-card-hover: 0 12px 30px rgba(0, 0, 0, 0.5);
+  --shadow-item-hover: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-modal:
+    0 24px 64px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(124, 111, 255, 0.12),
+    0 4px 16px rgba(0, 0, 0, 0.5);
+  --modal-overlay-bg: rgba(10, 10, 18, 0.55);
+  --modal-glass-border: rgba(124, 111, 255, 0.18);
+  --modal-header-bg: rgba(124, 111, 255, 0.06);
+}
+
+/* 2. LIGHT THEME VARIABLES */
+[data-theme='light'] {
+  color-scheme: light;
+  --bg-primary: #e4e0e0;
+  --bg-secondary: #f4f4f6;
+  --bg-glass: rgba(244, 244, 246, 0.95);
+  --bg-gradient: #ffffff;
+  --bg-card: #eaeaea;
+  --bg-card-hover: #dfdfe3;
+  --bg-dropdown: #ffffff;
+  --text-primary: #1a1a24;
+  --text-secondary: #6e6e80;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-card: rgba(0, 0, 0, 0.06);
+  --border-item: rgba(0, 0, 0, 0.05);
+  --bg-translucent-subtle: rgba(0, 0, 0, 0.02);
+  --bg-translucent-normal: rgba(0, 0, 0, 0.04);
+  --bg-translucent-hover: rgba(0, 0, 0, 0.06);
+  --bg-translucent-active: rgba(0, 0, 0, 0.08);
+  --bg-translucent-strong: rgba(0, 0, 0, 0.12);
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-card-hover: 0 12px 24px rgba(0, 0, 0, 0.08);
+  --shadow-item-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(124, 111, 255, 0.1);
+  --modal-overlay-bg: rgba(100, 90, 140, 0.22);
+  --modal-glass-border: rgba(124, 111, 255, 0.15);
+  --modal-header-bg: rgba(124, 111, 255, 0.05);
+}
+
+/* 3. COMMON VARIABLES (SAME FOR BOTH LIGHT & DARK) */
+:root,
+[data-theme='light'] {
+  --accent: #7c6fff;
+  --accent-hover: #9d93ff;
+  --danger: #ff5c7a;
+  --success: #3ddbd9;
+  --radius: 16px;
+  --transition: all 0.2s ease;
+  --blur: blur(12px);
+  /* Warning / Amber status colors */
+  --warning: #f59e0b;
+  --warning-hover: #d97706;
+  --warning-accent: #fbbf24;
+}

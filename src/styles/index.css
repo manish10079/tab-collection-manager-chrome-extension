@@ -1,0 +1,12 @@
+/* The single stylesheet entry for the side panel (css-migration-plan.md, §2).
+ *
+ * Vite bundles these into one hashed asset, so the order below *is* the cascade order — and it is
+ * asserted by `tests/styles.test.js`, so a later import cannot silently reorder it. `tokens.css`
+ * comes first so every later sheet resolves its `var(--…)`; `panel.css` is the migrated pre-React
+ * sheet, and `shell.css` layers the React-owned rules on top. That is the same order the two were
+ * loaded in before this file existed (the HTML `<link>` for `panel.css`, then `main.jsx`'s import of
+ * `shell.css`), which is why moving them here changes no rendering.
+ */
+@import './tokens.css';
+@import './panel.css';
+@import './shell.css';

@@ -114,9 +114,11 @@ drops any folder reference that no longer resolves. See
 
 [`docs/decisions/ADR-0011-folders.md`](./docs/decisions/ADR-0011-folders.md).
 
-Styling lives in `src/styles/`: `panel.css` is the migrated pre-React stylesheet (still global, class
-names unchanged) and `shell.css` adds the rules the React shell owns. Both are bundled by Vite from
-the `src/sidepanel.html` entry, so the renamed file is not a separate build input.
+Styling lives in `src/styles/`. `index.css` is the single entry: it imports `tokens.css` (the design
+values, and the only file allowed a raw colour), then `panel.css` (the migrated pre-React stylesheet,
+still global, class names unchanged), then `shell.css` (the rules the React shell owns). `src/main.jsx`
+imports that one entry, so Vite emits a single hashed stylesheet and the cascade order is decided in
+one place rather than split between the page and the JS.
 
 ### Dev browser helper
 

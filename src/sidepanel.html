@@ -8,9 +8,9 @@
     <!-- No remote assets: Font Awesome and Inter are self-hosted and bundled by Vite (Phase 5.4).
        See the vendor imports in src/main.jsx. -->
 
-    <!-- The panel stylesheet. Vite bundles it into a hashed asset alongside the React bundle;
-       `src/styles/shell.css` is imported by `src/main.jsx` and layers React-owned rules on top. -->
-    <link rel="stylesheet" href="./styles/panel.css" />
+    <!-- No source stylesheet link: `src/main.jsx` imports `src/styles/index.css`, so Vite emits one
+       hashed asset and injects the <link> into the built page. The cascade order lives in that one
+       entry file (tokens → panel → shell) rather than being split between here and the JS. -->
   </head>
   <body>
     <!-- The whole panel is React-rendered; `.container` keeps the legacy stylesheet's layout box and

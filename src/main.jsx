@@ -17,7 +17,10 @@ import '@fontsource/inter/500.css';
 import '@fontsource/inter/600.css';
 import '@fontsource/inter/700.css';
 
-import './styles/shell.css';
+// The panel's single stylesheet entry — `tokens.css`, then `panel.css`, then `shell.css`. Keeping
+// the cascade in one file (rather than split between the HTML link and this import) is what the
+// CSS migration's Phase 1 established; `tests/styles.test.js` asserts the order.
+import './styles/index.css';
 
 // The single entry point of the panel. `src/sidepanel.html` is the Vite HTML entry, so this module
 // is what the built page loads; there is no legacy script and no store bridge (Phase 5.3).
