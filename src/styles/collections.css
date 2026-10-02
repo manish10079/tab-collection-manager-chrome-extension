@@ -89,85 +89,12 @@
   font-size: 12px;
 }
 
-.collections-container.grid-view .collection-tabs {
-  padding: 0 12px 0;
-}
-
-.collections-container.grid-view .collection-tabs.expanded {
-  padding: 0 12px 12px;
-}
-
-.collections-container.grid-view .collection-tab-search {
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.collections-container.grid-view .collection-tab-search-input {
-  width: 100%;
-  flex: 1 1 100%;
-  padding-left: 28px;
-}
-
-.collections-container.grid-view .collection-tab-search::before {
-  left: 10px;
-}
-
-.collections-container.grid-view .collection-tab-search .icon-btn,
-.collections-container.grid-view .collection-tab-search .sort-tabs-container {
-  flex: 1;
-}
-
-.collections-container.grid-view .collection-tab-search .sort-tabs-btn {
-  width: 100%;
-  height: 28px;
-}
-
-.collections-container.grid-view .tab-item {
-  gap: 6px;
-  padding: 6px 8px;
-}
-
-.collections-container.grid-view .tab-item .tab-drag-handle {
-  width: 10px;
-  font-size: 11px;
-}
-
-.collections-container.grid-view .tab-item .tab-number {
-  min-width: auto;
-  font-size: 10px;
-  margin-right: 2px;
-}
-
-.collections-container.grid-view .tab-item .tab-icon {
-  width: 22px;
-  height: 22px;
-}
-
-.collections-container.grid-view .tab-item .tab-favicon-img {
-  width: 12px;
-  height: 12px;
-}
-
-.collections-container.grid-view .tab-item .tab-content {
-  gap: 1px;
-}
-
-.collections-container.grid-view .tab-item .tab-title {
-  font-size: 12px;
-  padding: 1px 4px;
-}
-
-.collections-container.grid-view .tab-item .tab-url {
-  font-size: 10px;
-  padding-left: 4px;
-}
-
-.collections-container.grid-view .tab-item .icon-btn.pin-tab-btn,
-.collections-container.grid-view .tab-item .icon-btn.tab-menu-btn {
-  width: 24px;
-  height: 24px;
-  font-size: 10px;
-}
+/* Phase 4 removed sixteen never-matched rules here: grid view has no inline tab panel, because
+   expanding a card opens `GridCollectionModal`, which the modal portals into `#tcm-modal-root` —
+   outside `.collections-container`. So `.collections-container.grid-view .collection-tabs`,
+   `.collection-tab-search` and their `.tab-item` descendants could not match any element the panel
+   renders; the coverage walk listed every one of them as never-matched. The rest of the grid rules
+   above stay — they target the card itself, which is reachable (css-migration-plan.md, Phase 4). */
 
 .collections-container.grid-view .collection:nth-child(odd) .collection-dropdown-menu {
   left: 0;

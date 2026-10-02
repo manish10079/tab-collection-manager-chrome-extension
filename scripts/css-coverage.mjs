@@ -201,24 +201,117 @@ async function walkPanel(page, coverage) {
     const addTabs = dialog('Add Tabs');
     await addTabs.getByLabel('Title').fill('Coverage docs');
     await addTabs.getByLabel('URL').fill('https://example.test/docs');
+    // Sampled *while the modal is open*: its mode selector, form and footer exist only then, and
+    // sampling after the close is why a whole dialog's worth of rules used to read as unexercised.
+    await record(page, coverage);
+    await hoverSweep(page, coverage, { quiet: true });
     await addTabs.getByRole('button', { name: 'Add Tab' }).click();
     await addTabs.waitFor({ state: 'hidden', timeout: PANEL_TIMEOUT_MS });
   });
   await record(page, coverage);
 
-  // ── Expand the collection, then open its tab menu ──
-  await step('expand and open the tab menu', async () => {
-    await card.locator('.expand-btn').click();
-    await card.locator('.tab-item').first().waitFor({ state: 'visible', timeout: 5000 });
-    await card.locator('.tab-actions .icon-btn, .tab-item .icon-btn').last().click();
+  // ── The duplicate-URL confirm, which renders only when the same URL is added twice ──
+  await step('duplicate confirm', async () => {
+    await page.keyboard.press('Escape');
+    await card.locator('.collection-menu-btn').click();
+    await card.locator('.add-tabs-btn').click();
+    const addTabs = dialog('Add Tabs');
+    await addTabs.getByLabel('Title').fill('Coverage docs again');
+    await addTabs.getByLabel('URL').fill('https://example.test/docs');
+    await addTabs.getByRole('button', { name: 'Add Tab' }).click();
+    const duplicate = dialog(/Duplicate/i);
+    await duplicate.waitFor({ state: 'visible', timeout: 5000 });
+    await record(page, coverage);
+    await hoverSweep(page, coverage, { quiet: true });
+    await duplicate.getByRole('button', { name: /Add Anyway/i }).click();
+    await duplicate.waitFor({ state: 'hidden', timeout: 5000 });
   });
   await record(page, coverage);
 
+  // ── The Multi-Select half of the add-tabs modal ──
+  //
+  // Its rows are the window's live tabs, so the walk opens a real page first. This is the only
+  // state in which the picker's list, checkboxes and footer exist; the manual form never renders
+  // them.
+  await step('multi-select picker', async () => {
+    const other = await page.context().newPage();
+    await other.goto('about:blank');
+    await other.evaluate(() => {
+      document.title = 'Coverage other tab';
+    });
+    await page.keyboard.press('Escape');
+    await card.locator('.collection-menu-btn').click();
+    await card.locator('.add-tabs-btn').click();
+    const addTabs = dialog('Add Tabs');
+    await addTabs.locator('.mode-btn').nth(1).click();
+    await addTabs.locator('.open-tab-item').first().waitFor({ state: 'visible', timeout: 5000 });
+    await addTabs.locator('.open-tab-item .tab-checkbox').first().check();
+    await record(page, coverage);
+    await hoverSweep(page, coverage, { quiet: true });
+    await addTabs.getByRole('button', { name: 'Cancel' }).click();
+    await other.close();
+  });
+  await record(page, coverage);
+
+  // ── Expand the collection, pin it and a tab, then open the tab menu ──
+  await step('expand, pin and open the tab menu', async () => {
+    await page.keyboard.press('Escape');
+    await card.locator('.expand-btn').click();
+    await card.locator('.tab-item').first().waitFor({ state: 'visible', timeout: 5000 });
+    await card.locator('.pin-collection-btn').click();
+    await card.locator('.pin-tab-btn').first().click();
+    await card.locator('.tab-actions .icon-btn, .tab-item .icon-btn').last().click();
+  });
+  await record(page, coverage);
+  await hoverSweep(page, coverage, { quiet: true });
+
+  // ── Rename the collection and a tab, so the editable fields and their focus rules exist ──
+  await step('rename the collection and a tab', async () => {
+    await page.keyboard.press('Escape');
+    await card.locator('.collection-menu-btn').click();
+    await card.locator('.edit-collection-btn').click();
+    await card.locator('.collection-name').fill('Coverage renamed');
+    await card.locator('.collection-name').focus();
+    await record(page, coverage);
+    await card.locator('.collection-name').press('Enter');
+
+    await card.locator('.tab-menu-btn').first().click();
+    await hoverSweep(page, coverage, { quiet: true });
+    await card.locator('.edit-tab-btn').first().click();
+    await card.locator('.tab-title').first().fill('Coverage renamed tab');
+    await card.locator('.tab-title').first().focus();
+    await record(page, coverage);
+    await card.locator('.tab-title').first().press('Enter');
+  });
+  await record(page, coverage);
+
+  // Focusing the read-only fields exercises their focus rules without editing them. Each focus is
+  // sampled on its own, because focusing the next field blurs the previous one.
+  await step('focus the read-only fields', async () => {
+    await card.locator('.tab-title').first().focus();
+    await record(page, coverage);
+    await page.locator('.current-session-collection .collection-name').focus();
+    await record(page, coverage);
+  });
+  await record(page, coverage);
+
+  // ── The per-collection tab search, including its empty-result state ──
+  await step('collection tab search', async () => {
+    const search = card.locator('.collection-tab-search-input');
+    await search.focus();
+    await search.fill('no-such-tab-xyz');
+    await record(page, coverage);
+    await search.fill('');
+  });
+  await record(page, coverage);
+
+  // ── Open the collection dropdown (its own menu, sampled open) ──
   await step('open the collection menu', async () => {
     await page.keyboard.press('Escape');
     await card.locator('.collection-menu-btn').click();
   });
   await record(page, coverage);
+  await hoverSweep(page, coverage, { quiet: true });
 
   // ── Folders: create one, then file the collection into it ──
   await step('create a folder', async () => {
@@ -252,9 +345,14 @@ async function walkPanel(page, coverage) {
   // ── Selection mode (checkboxes, selection bar, selected card) ──
   await step('selection mode', async () => {
     await page.locator('#toggleSelectBtn').click();
+  });
+  await record(page, coverage);
+
+  await step('select a card', async () => {
     await page.locator('#collectionsContainer .select-checkbox input').first().check();
   });
   await record(page, coverage);
+  await hoverSweep(page, coverage, { quiet: true });
 
   await step('leave selection mode', async () => {
     await page.locator('#cancelSelectionBtn').click();
@@ -265,6 +363,13 @@ async function walkPanel(page, coverage) {
   await step('search', async () => {
     await page.locator('#toggleSearchBtn').click();
     await page.getByPlaceholder('Search collections or tabs…').fill('coverage');
+  });
+  await record(page, coverage);
+  await hoverSweep(page, coverage, { quiet: true });
+
+  // A query that matches nothing renders the empty-result state instead of the results list.
+  await step('search with no results', async () => {
+    await page.getByPlaceholder('Search collections or tabs…').fill('no-such-collection-xyz');
   });
   await record(page, coverage);
 
@@ -301,6 +406,23 @@ async function walkPanel(page, coverage) {
   });
   await record(page, coverage);
 
+  // ── Grid view's expanded collection ──
+  //
+  // In grid view there is no room for an inline tab list, so expanding a card opens the
+  // view-collection modal. The inline `.collection-tabs` never renders under
+  // `.collections-container.grid-view`, which is what makes the modal the only reachable state for
+  // those tab rules.
+  await step('expand a collection in grid view', async () => {
+    await page.keyboard.press('Escape');
+    await card.locator('.expand-btn').click();
+    await page
+      .locator('.modal-overlay .view-collection-modal')
+      .waitFor({ state: 'visible', timeout: 5000 });
+    await record(page, coverage);
+    await hoverSweep(page, coverage, { quiet: true });
+  });
+  await record(page, coverage);
+
   await step('back to list view', async () => {
     await page.keyboard.press('Escape');
     await page.locator('#toggleLayoutBtn').click();
@@ -313,6 +435,7 @@ async function walkPanel(page, coverage) {
     await page.locator('.sort-collections-btn').first().click();
   });
   await record(page, coverage);
+  await hoverSweep(page, coverage, { quiet: true });
 
   // ── Settings, including the light theme so its token overrides are genuinely covered ──
   await step('settings', async () => {
@@ -321,6 +444,7 @@ async function walkPanel(page, coverage) {
     await dialog('Settings').waitFor({ state: 'visible', timeout: PANEL_TIMEOUT_MS });
   });
   await record(page, coverage);
+  await hoverSweep(page, coverage, { quiet: true });
 
   await step('light theme', async () => {
     const settings = dialog('Settings');
@@ -332,6 +456,23 @@ async function walkPanel(page, coverage) {
   await step('back to the dark theme', async () => {
     const settings = dialog('Settings');
     await settings.locator('label.toggle-switch:has(#lightModeToggle) .toggle-track').click();
+  });
+  await record(page, coverage);
+
+  // ── The limits card: a focused number input, and the disabled state its toggle produces ──
+  await step('settings limits', async () => {
+    const settings = dialog('Settings');
+    const enforce = settings.locator(
+      'label.toggle-switch:has(#enforceMaxPinnedCollectionsToggle) .toggle-track'
+    );
+    await settings.locator('#maxPinnedCollectionsInput').focus();
+    await record(page, coverage);
+    await enforce.click();
+    // The group gets its `disabled` class once the store write round-trips, so wait for it rather
+    // than sampling the frame before the re-render.
+    await page.locator('.limit-input-group.disabled').waitFor({ state: 'attached', timeout: 3000 });
+    await record(page, coverage);
+    await enforce.click(); // Back to the default so the rest of the walk is undisturbed.
   });
   await record(page, coverage);
 
@@ -370,7 +511,17 @@ async function walkPanel(page, coverage) {
   await record(page, coverage);
 
   // ── Hover-only and focus-only rules ──
-  return hoverSweep(page, coverage);
+  const stateful = await hoverSweep(page, coverage);
+
+  // ── The panel-close state, sampled last because `x` takes the page away ──
+  await step('panel closing', async () => {
+    await page.locator('#collectionsContainer').click({ position: { x: 2, y: 2 } });
+    await page.keyboard.press('x');
+    await page.locator('body.panel-closing').waitFor({ state: 'attached', timeout: 3000 });
+    await record(page, coverage);
+  });
+
+  return stateful;
 }
 
 /**
@@ -380,9 +531,10 @@ async function walkPanel(page, coverage) {
  *
  * @param {import('@playwright/test').Page} page
  * @param {Coverage} coverage
+ * @param {{quiet?: boolean}} [options] Suppress the per-call summary when swept mid-walk
  * @returns {Promise<string[]>}
  */
-async function hoverSweep(page, coverage) {
+async function hoverSweep(page, coverage, options = {}) {
   const stateful = [...coverage.seen].filter(
     (selector) =>
       !coverage.matched.has(selector) &&
@@ -404,11 +556,19 @@ async function hoverSweep(page, coverage) {
   // a failure — the rule stays in the "walk did not reach it" bucket. Hovering is best-effort, so
   // these are silent rather than warnings; only a genuinely broken selector would matter here.
   let hovered = 0;
-  for (const base of bases.slice(0, 60)) {
-    const target = page.locator(base).first();
+  for (const base of bases.slice(0, 80)) {
     try {
-      if ((await target.count()) === 0) continue;
-      if (!(await target.isVisible())) continue;
+      // Pick the first *visible* match: a menu rule's base selector also matches every closed copy
+      // of that menu, so `locator(base).first()` keeps landing on a hidden one and skipping the
+      // rule even while the open copy sits right there.
+      let target = null;
+      for (const candidate of await page.locator(base).all()) {
+        if (await candidate.isVisible()) {
+          target = candidate;
+          break;
+        }
+      }
+      if (!target) continue;
       await target.hover({ timeout: 1000 });
       hovered += 1;
       await record(page, coverage);
@@ -417,7 +577,9 @@ async function hoverSweep(page, coverage) {
     }
   }
 
-  console.log(`[css] hovered         ${hovered} of ${bases.length} hover/focus targets`);
+  if (!options.quiet) {
+    console.log(`[css] hovered         ${hovered} of ${bases.length} hover/focus targets`);
+  }
   return stateful;
 }
 
