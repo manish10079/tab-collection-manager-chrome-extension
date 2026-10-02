@@ -5,7 +5,7 @@
 
 | Field | Value |
 | --- | --- |
-| Document version | 2.1.1 |
+| Document version | 2.2.0 |
 | Status | Active |
 | Last updated | 2026-10-02 |
 | Owner | Maintainer (`@mkn`) |
@@ -68,7 +68,7 @@ through a persistent side panel.
         ├──────────────────────────────────────────┤
         │  store/  lib/  shared/  (foundations)    │
         └──────────────────────────────────────────┘
-        background/  ← separate runtime, shares only `shared/`
+        background/  ← separate runtime, shares only `shared/` + `lib/`
 ```
 
 **The dependency rule (never break this):**
@@ -76,7 +76,7 @@ through a persistent side panel.
 - Dependencies point **downward only**. `shared` knows nothing about `features`.
 - A feature **must not import another feature**. Need shared behaviour? Move it to
   `components/`, `lib/`, or `shared/` first, then import.
-- `background/` may import `shared/` only — never UI code.
+- `background/` may import `shared/` and `lib/` — both are chrome-free foundations (the diagram above) — but never UI code (`app/`, `features/`, `components/`).
 - No cyclic imports. `dependency-cruiser` (optional) or review catches these.
 
 ### 2.2 Runtime surfaces
@@ -532,3 +532,4 @@ export { useCollectionActions } from './hooks/useCollectionActions.js';
 | 2.0.0 | 2026-10-01 | Reversed the language rule: React + JavaScript (ES2022+) with JSDoc instead of TypeScript; ESLint replaces the type-check gate |
 | 2.1.0 | 2026-10-01 | §3.1 corrected from "Current state (vanilla)" to the post-migration layout: the React migration is complete through Phase 5.3, so `popup.html` / `popup.js` / the store bridge no longer exist and the section no longer claims "no build system, no modules, no tests". |
 | 2.1.1 | 2026-10-02 | Phase 6/7 landed, so §1 and §3.1 name the service worker as ES modules under `background/` (bundled to `dist/background.js`) rather than "vanilla JS today", §5.4's permission table drops the `downloads` row its only caller (the dormant local daily backup) lost, and §10's anti-pattern names the new path. No rule changed. |
+| 2.2.0 | 2026-10-02 | §2.1 allows the service worker to import `lib/` as well as `shared/`. The modular worker needs one pure helper (`normalizeGroupId`) that already has a canonical home; the diagram always placed `store/`, `lib/` and `shared/` in one chrome-free foundations layer, so the stricter wording barring the `lib/` edge only forced a duplicate. UI imports stay forbidden. |
