@@ -8,13 +8,13 @@
 // packaged extension raw. `dist/` is mostly font files, so a stray new asset shows up in the total
 // even when the bundles are unchanged.
 //
-// Baselines measured at plan v1.14.0 (2026-10-02), with the budgets below already in place. Sizes
+// Baselines measured at plan v1.15.0 (2026-10-02), with the budgets below already in place. Sizes
 // are printed as binary multiples (1024), and Vite's own reporter lists the same files in decimal
 // kB — the numbers differ by ~2.5%, not by a real change.
 //   assets/*.js   293 kB raw / 89.7 kB gzip  (budget 100 kB gzip → 10% headroom)
 //   assets/*.css  149 kB raw / 31.1 kB gzip  (budget 36 kB gzip → 14% headroom)
-//   dist total    1.15 MB raw (32 woff2 faces, the worker, the manifest and the icons)
-//                 (budget 1.25 MB → 8% headroom)
+//   dist total    1.12 MB raw (32 woff2 faces, the bundled worker, the manifest and the icons)
+//                 (budget 1.25 MB → 10% headroom)
 // Raising a number is a deliberate act: change it here, say why in the commit, and note it in
 // `react-migration-plan.md`'s changelog.
 import { readdir, readFile, stat } from 'node:fs/promises';
@@ -92,7 +92,7 @@ async function main() {
 
   const files = await listFiles(dist);
   // The bundles are what Vite emits into `dist/assets/`. Measuring all of `dist/` would fold in
-  // the copied `background.js` and report the service worker as part of the panel bundle.
+  // the bundled `background.js` and report the service worker as part of the panel bundle.
   const bundled = files.filter((file) => file.startsWith(assets + path.sep));
   const js = await measure(bundled, '.js');
   const css = await measure(bundled, '.css');

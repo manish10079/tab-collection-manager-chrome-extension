@@ -1,4 +1,4 @@
-/** Limits shared by the UI and the service worker. Keep in sync with background.js. */
+/** Limits shared by the UI and the service worker (`background/` imports this module). */
 export const LIMITS = Object.freeze({
   MAX_TABS_PER_COLLECTION: 200,
   MAX_SESSION_HISTORY: 100,

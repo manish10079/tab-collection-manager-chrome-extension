@@ -1,6 +1,6 @@
 // ESLint flat config — JavaScript only (skill.md 2.0.0, §5.1).
-// Lint scope starts with src/ and tooling. `background.js` is the last vanilla file and stays
-// excluded until Phase 6; everything the old shell owned is gone (react-migration-plan.md §8).
+// Lint scope is the React UI, the service worker (`background/`) and the tooling. Everything the
+// old vanilla shell owned is gone (react-migration-plan.md §8).
 import js from '@eslint/js';
 import globals from 'globals';
 import jsxA11y from 'eslint-plugin-jsx-a11y';
@@ -9,14 +9,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 
 export default [
   {
-    ignores: [
-      'dist/**',
-      'node_modules/**',
-      'icons/**',
-      '.freebuff/**',
-      // The vanilla service worker — Phase 6 scope, not linted yet.
-      'background.js',
-    ],
+    ignores: ['dist/**', 'node_modules/**', 'icons/**', '.freebuff/**'],
   },
   js.configs.recommended,
   {

@@ -21,7 +21,11 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./tests/setup.js'],
-    include: ['src/**/*.{test,spec}.{js,jsx}', 'tests/**/*.{test,spec}.{js,jsx}'],
+    include: [
+      'src/**/*.{test,spec}.{js,jsx}',
+      'background/**/*.{test,spec}.{js,jsx}',
+      'tests/**/*.{test,spec}.{js,jsx}',
+    ],
     // Vitest's 5s default is too tight for the interaction tests that type a long URL through
     // userEvent while the whole suite (25 jsdom files) runs in parallel. Raised rather than
     // trimming assertions; a real hang still fails.

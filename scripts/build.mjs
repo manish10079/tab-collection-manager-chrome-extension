@@ -13,8 +13,8 @@ import { build } from 'vite';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dist = path.join(root, 'dist');
 
-/** Copied verbatim. `background.js` is still the vanilla service worker (Phase 6 scope). */
-const COPY_FILES = ['background.js', 'manifest.json'];
+/** Copied verbatim. The service worker is bundled separately (see `bundleWorker`). */
+const COPY_FILES = ['manifest.json'];
 /** Copied recursively. */
 const COPY_DIRS = ['icons'];
 /** Where the source manifest says the side panel lives. */
@@ -24,6 +24,33 @@ const ENTRY_HTML = path.join(root, 'src', 'sidepanel.html');
 /** Bundle src/sidepanel.html (and its React tree) into dist/. */
 async function bundle() {
   await build({ configFile: path.join(root, 'vite.config.js'), mode: 'production' });
+}
+
+/**
+ * Bundle the service worker into `dist/background.js`.
+ *
+ * Since Phase 6 the worker is ES modules under `background/` that import the frozen shared contract
+ * from `src/shared/`, so it can no longer be copied file-by-file. `manifest.json` still names
+ * `background.js` at the extension root, which is exactly where this emits; bundling collapses the
+ * module graph into that one file and keeps the copied extension free of `dist/src/` (the UI's
+ * emitted page directory, which is removed) and of any remote code (skill.md §5.4).
+ */
+async function bundleWorker() {
+  await build({
+    configFile: false,
+    root,
+    build: {
+      outDir: 'dist',
+      emptyOutDir: false,
+      sourcemap: false,
+      target: 'esnext',
+      minify: true,
+      rollupOptions: {
+        input: path.join(root, 'background', 'index.js'),
+        output: { entryFileNames: 'background.js', format: 'es' },
+      },
+    },
+  });
 }
 
 /**
@@ -240,6 +267,7 @@ async function main() {
   await bundle();
   const page = await relocateEntry();
 
+  await bundleWorker();
   await copyStatic();
 
   const html = await readFile(page, 'utf8');
@@ -262,6 +290,7 @@ async function main() {
   console.log(
     `[build] dropped ${trimmed.removed} non-woff2 font files (${formatSize(trimmed.bytes)}); dist is ${formatSize(size)}`
   );
+  console.log(`[build] bundled background/ -> background.js`);
   console.log(`[build] copied: ${[...COPY_FILES, ...COPY_DIRS].join(', ')}`);
   console.log('[build] Load dist/ unpacked at chrome://extensions to verify.');
 }

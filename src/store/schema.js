@@ -50,7 +50,7 @@ import { DEFAULT_SETTINGS } from '../shared/constants.js';
  * @property {string|null} error        Human-readable storage error, or null.
  * @property {Collection[]} collections
  * @property {Record<string, unknown>} settings
- * @property {SessionBackup|null} lastSessionBackup  Written by background.js; carried
+ * @property {SessionBackup|null} lastSessionBackup  Written by the service worker; carried
  *   through mutations untouched so a store write cannot drop the restore point.
  */
 

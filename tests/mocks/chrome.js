@@ -19,6 +19,11 @@ export function installChromeMock(initial = {}) {
       id: 'test-extension-id',
       getManifest: () => ({ name: 'Tab Collection Manager', version: '2.0.0' }),
       sendMessage: async () => ({ success: true }),
+      // Registration-only in tests unless a listener set is needed; the worker imports its
+      // modules for their pure exports, and a module-level addListener must not throw.
+      onInstalled: { addListener: () => {} },
+      onStartup: { addListener: () => {} },
+      onMessage: { addListener: () => {} },
     },
     storage: {
       local: {
@@ -48,6 +53,17 @@ export function installChromeMock(initial = {}) {
           );
           for (const listener of changeListeners) listener(changes, 'local');
         },
+        /** @param {string|string[]} keys */
+        remove: async (keys) => {
+          const list = Array.isArray(keys) ? keys : [keys];
+          /** @type {Record<string, {newValue: undefined}>} */
+          const changes = {};
+          for (const key of list) {
+            delete store[key];
+            changes[key] = { newValue: undefined };
+          }
+          for (const listener of changeListeners) listener(changes, 'local');
+        },
       },
       onChanged: {
         /** @param {(changes: any, area: string) => void} listener */
@@ -63,6 +79,15 @@ export function installChromeMock(initial = {}) {
     tabs: {
       create: async () => ({ id: 1 }),
       query: async () => [],
+      group: async () => 99,
+      onCreated: {
+        /** @param {() => void} listener */
+        addListener: (listener) => void listener,
+      },
+      onRemoved: {
+        /** @param {() => void} listener */
+        addListener: (listener) => void listener,
+      },
       /** @param {number} tabId */
       get: async (tabId) => ({ id: tabId, active: false, status: 'complete' }),
       /** @param {number} _tabId */
@@ -96,6 +121,41 @@ export function installChromeMock(initial = {}) {
     },
     windows: {
       getLastFocused: async () => ({ id: 1 }),
+      onRemoved: {
+        /** @param {() => void} listener */
+        addListener: (listener) => void listener,
+      },
+      onFocusChanged: {
+        /** @param {() => void} listener */
+        addListener: (listener) => void listener,
+      },
+    },
+    contextMenus: {
+      create: () => {},
+      removeAll: async () => {},
+      onClicked: {
+        /** @param {(info: any, tab: any) => void} listener */
+        addListener: (listener) => void listener,
+      },
+    },
+    action: {
+      onClicked: {
+        /** @param {(tab: any) => void} listener */
+        addListener: (listener) => void listener,
+      },
+      setBadgeBackgroundColor: async () => {},
+      setBadgeText: async () => {},
+    },
+    sidePanel: {
+      open: async () => {},
+    },
+    alarms: {
+      create: async () => {},
+      clearAlarm: async () => {},
+      onAlarm: {
+        /** @param {(alarm: any) => void} listener */
+        addListener: (listener) => void listener,
+      },
     },
   };
 

@@ -2,9 +2,6 @@
 dist/
 node_modules/
 
-# The last vanilla file — formatted only when it is migrated (skill.md §4.3)
-background.js
-
 # The panel stylesheet is deliberately left as written: reformatting 2,800 lines would bury the
 # real changes in whitespace. It is not React source.
 src/styles/panel.css

@@ -23,7 +23,7 @@ const dist = path.join(root, 'dist');
 
 const WATCHED = [
   'manifest.json',
-  'background.js',
+  'background', // the service-worker modules, bundled to dist/background.js
   'src', // the Vite entry, the stylesheets (src/styles/) and every React source
   'vite.config.js',
 ];
