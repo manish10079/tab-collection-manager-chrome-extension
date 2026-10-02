@@ -325,3 +325,37 @@ test('opens the history and settings dialogs, and returns focus when each closes
   await expect(settings).toBeHidden();
   await expect(panel.locator('#settingsBtn')).toBeFocused();
 });
+
+test('creates a folder and keeps its options menu on top of the empty card', async ({ panel }) => {
+  await panel.locator('#createFolderBtn').click();
+  const folder = panel.locator('#collectionsContainer > .folder').first();
+  await expect(folder).toBeVisible();
+  await expect(folder.locator('.folder-name')).toHaveValue(/^New folder/);
+  await expect(folder.locator('.folder-empty')).toBeVisible();
+
+  // Regression: on a short, still-empty folder the absolutely-positioned options menu used to be
+  // clipped by the folder's own `overflow: hidden`, so it never appeared. Assert it renders *and*
+  // is the topmost element at its centre (a clipped or covered menu fails `elementFromPoint`).
+  await folder.locator('.folder-menu-btn').click();
+  const menu = folder.locator('.collection-dropdown-menu');
+  await expect(menu).toBeVisible();
+  const onTop = await menu.evaluate((el) => {
+    const rect = el.getBoundingClientRect();
+    const sample = (x, y) => {
+      const hit = document.elementFromPoint(x, y);
+      return Boolean(hit) && (hit === el || el.contains(hit));
+    };
+    return {
+      center: sample(rect.left + rect.width / 2, rect.top + rect.height / 2),
+      // The bottom edge is what an ancestor's `overflow: hidden` clips first.
+      bottom: sample(rect.left + rect.width / 2, rect.bottom - 2),
+    };
+  });
+  expect(onTop).toEqual({ center: true, bottom: true });
+
+  // The folder's own actions still work from that menu. Removing a folder confirms first, so
+  // Playwright must accept the dialog (it auto-dismisses otherwise).
+  panel.once('dialog', (dialog) => dialog.accept());
+  await folder.getByRole('button', { name: 'Remove folder' }).click();
+  await expect(panel.locator('#collectionsContainer > .folder')).toHaveCount(0);
+});

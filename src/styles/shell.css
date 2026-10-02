@@ -28,11 +28,20 @@
   border-radius: var(--radius);
   border: 1px solid var(--border-card);
   box-shadow: var(--shadow-card);
-  overflow: hidden;
+  /* Must stay visible (like `.collection`): the folder's own dropdown is absolutely positioned
+     and would be clipped by `overflow: hidden` — most visibly on a short, empty folder. */
+  overflow: visible;
   transition:
     border-color 0.25s,
     box-shadow 0.25s,
     background-color 0.25s;
+}
+
+/* Lift the open folder above its siblings, the way panel.css does for `.collection`. Without this
+   the dropdown could be painted under the next card even once it is no longer clipped. */
+.folder:has(.collection-dropdown-menu:not(.hidden)) {
+  position: relative;
+  z-index: 100;
 }
 
 .folder.drag-over,
