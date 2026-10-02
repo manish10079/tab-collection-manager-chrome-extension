@@ -101,16 +101,16 @@ const PROBES = [
   '.sort-collections-btn',
   '.sort-dropdown-menu',
   '#collectionsContainer',
-  '.section-heading',
-  '.collection',
-  '.collection-header',
-  '.collection-name',
-  '.collection-menu-btn',
-  '.collection-dropdown-menu',
-  '.folder',
-  '.folder-header',
-  '.folder-name',
-  '.folder-summary',
+  '.cc-section-heading',
+  '.cc-collection',
+  '.cc-collection-header',
+  '.cc-collection-name',
+  '.cc-collection-menu-btn',
+  '.cc-collection-dropdown-menu',
+  '.cc-folder',
+  '.cc-folder-header',
+  '.cc-folder-name',
+  '.cc-folder-summary',
   '.tab-item',
   '.tab-title',
   '.tab-url',
@@ -415,7 +415,7 @@ async function walkPanel(page, capture) {
     await input.fill('Style Probe');
     await input.press('Enter');
     await page
-      .locator('#collectionsContainer > .collection')
+      .locator('#collectionsContainer > .cc-collection')
       .first()
       .waitFor({ state: 'visible', timeout: PANEL_TIMEOUT_MS });
   });
@@ -424,18 +424,20 @@ async function walkPanel(page, capture) {
   // input's `value`, which no selector can match (the same reason `e2e/panel.spec.js` has a helper).
   await step('find the created card', async () => {
     const id = await page.evaluate(() => {
-      const inputs = [...document.querySelectorAll('#collectionsContainer input.collection-name')];
-      return inputs.find((input) => input.value === 'Style Probe')?.closest('.collection')?.dataset
-        .id;
+      const inputs = [
+        ...document.querySelectorAll('#collectionsContainer input.cc-collection-name'),
+      ];
+      return inputs.find((input) => input.value === 'Style Probe')?.closest('.cc-collection')
+        ?.dataset.id;
     });
     if (!id) throw new Error('the created collection was not found');
     createdId = id;
   });
-  const card = () => page.locator(`#collectionsContainer .collection[data-id="${createdId}"]`);
+  const card = () => page.locator(`#collectionsContainer .cc-collection[data-id="${createdId}"]`);
 
   const addTab = async (title, url) => {
-    await card().locator('.collection-menu-btn').click();
-    await card().locator('.add-tabs-btn').click();
+    await card().locator('.cc-collection-menu-btn').click();
+    await card().locator('.cc-add-tabs-btn').click();
     const addTabs = dialog('Add Tabs');
     await addTabs.getByLabel('Title').fill(title);
     await addTabs.getByLabel('URL').fill(url);
@@ -450,13 +452,13 @@ async function walkPanel(page, capture) {
   });
 
   await step('expand the collection', async () => {
-    await card().locator('.expand-btn').click();
+    await card().locator('.cc-expand-btn').click();
     await card().locator('.tab-item').first().waitFor({ state: 'visible', timeout: 5000 });
   });
   await capture('populated');
 
   await step('open the collection menu', async () => {
-    await card().locator('.collection-menu-btn').click();
+    await card().locator('.cc-collection-menu-btn').click();
   });
   await capture('collection-menu-open');
   await page.keyboard.press('Escape');
@@ -483,7 +485,7 @@ async function walkPanel(page, capture) {
   await step('create a folder', async () => {
     await page.locator('#createFolderBtn').click();
     await page
-      .locator('#collectionsContainer > .folder')
+      .locator('#collectionsContainer > .cc-folder')
       .first()
       .waitFor({ state: 'visible', timeout: PANEL_TIMEOUT_MS });
   });
@@ -495,7 +497,7 @@ async function walkPanel(page, capture) {
     await page.keyboard.press('Escape');
     const expanded = card().locator('.tab-collection-tabs.ut-expanded');
     if ((await expanded.count()) > 0) {
-      await card().locator('.expand-btn').click();
+      await card().locator('.cc-expand-btn').click();
       await expanded.first().waitFor({ state: 'detached', timeout: 3000 });
     }
   });

@@ -72,7 +72,7 @@ export function FolderSection({
 
   function handleHeaderClick(event) {
     if (event.target.tagName === 'INPUT') return;
-    if (event.target.closest('.collection-actions')) return;
+    if (event.target.closest('.cc-collection-actions')) return;
     toggleExpanded();
   }
 
@@ -99,17 +99,17 @@ export function FolderSection({
     action();
   };
 
-  const classNames = ['folder'];
+  const classNames = ['cc-folder'];
   if (isDragOver) classNames.push('ut-drag-over');
   if (isSelected) classNames.push('ut-selected');
 
   return (
     <div className={classNames.join(' ')} data-folder-id={folder.id} {...dropProps}>
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-      <div className="folder-header" onClick={handleHeaderClick}>
-        <div className="folder-left-section">
+      <div className="cc-folder-header" onClick={handleHeaderClick}>
+        <div className="cc-folder-left-section">
           {selectionMode ? (
-            <label className="select-checkbox" title={`Select ${folder.name}`}>
+            <label className="cc-select-checkbox" title={`Select ${folder.name}`}>
               <input
                 type="checkbox"
                 checked={isSelected}
@@ -120,7 +120,7 @@ export function FolderSection({
           ) : null}
           <button
             type="button"
-            className={`expand-btn${folder.isExpanded ? ' ut-rotated' : ''}`}
+            className={`cc-expand-btn${folder.isExpanded ? ' ut-rotated' : ''}`}
             aria-expanded={!!folder.isExpanded}
             aria-label={folder.isExpanded ? 'Collapse folder' : 'Expand folder'}
             onClick={(event) => {
@@ -131,13 +131,13 @@ export function FolderSection({
             <i className="fas fa-chevron-right" />
           </button>
           <i
-            className={`fas ${folder.isExpanded ? 'fa-folder-open' : 'fa-folder'} folder-icon`}
+            className={`fas ${folder.isExpanded ? 'fa-folder-open' : 'fa-folder'} cc-folder-icon`}
             aria-hidden="true"
           />
           <input
             ref={nameRef}
             type="text"
-            className="collection-name folder-name"
+            className="cc-collection-name cc-folder-name"
             value={name}
             maxLength={100}
             readOnly={!isEditingName}
@@ -149,8 +149,8 @@ export function FolderSection({
           />
         </div>
 
-        <div className="folder-right-section">
-          <div className="collection-actions" ref={menuRef}>
+        <div className="cc-folder-right-section">
+          <div className="cc-collection-actions" ref={menuRef}>
             <button
               type="button"
               className="icon-btn folder-menu-btn"
@@ -162,7 +162,7 @@ export function FolderSection({
               <i className="fas fa-ellipsis-v" />
             </button>
 
-            <div className={`collection-dropdown-menu${menuOpen ? '' : ' ut-hidden'}`}>
+            <div className={`cc-collection-dropdown-menu${menuOpen ? '' : ' ut-hidden'}`}>
               <button
                 type="button"
                 className="dropdown-option edit-folder-btn"
@@ -185,18 +185,18 @@ export function FolderSection({
       </div>
 
       {folder.isExpanded ? (
-        <div className="folder-body">
+        <div className="cc-folder-body">
           {collections.length === 0 ? (
-            <p className="folder-empty">Empty folder — drag collections here.</p>
+            <p className="cc-folder-empty">Empty folder — drag collections here.</p>
           ) : (
             <>
               {/* The counts live in the body so the header stays a single row; a collapsed folder
                   hides them along with its contents. */}
-              <p className="folder-summary">
+              <p className="cc-folder-summary">
                 <span>
                   {collections.length} {collections.length === 1 ? 'collection' : 'collections'}
                 </span>
-                <span className="meta-dot">•</span>
+                <span className="cc-meta-dot">•</span>
                 <span>{formatTabCount(tabCount)}</span>
               </p>
               {collections.map((collection) => (

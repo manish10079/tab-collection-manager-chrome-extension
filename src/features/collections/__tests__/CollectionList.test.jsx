@@ -60,7 +60,7 @@ const NESTED_STORAGE = {
 
 /** Arm the handle and start the drag, the way the user begins a gesture. @param {HTMLElement} card */
 function startDrag(card) {
-  fireEvent.pointerDown(card.querySelector('.drag-handle'));
+  fireEvent.pointerDown(card.querySelector('.cc-drag-handle'));
   fireEvent.dragStart(card);
 }
 
@@ -68,14 +68,16 @@ describe('CollectionList folders', () => {
   it('keeps root collections as direct children and nests a folder’s collections', async () => {
     const { container } = await renderList(NESTED_STORAGE);
 
-    const rootCards = container.querySelectorAll(':scope > .collection');
+    const rootCards = container.querySelectorAll(':scope > .cc-collection');
     expect(rootCards).toHaveLength(1);
     expect(rootCards[0].dataset.id).toBe('root1');
 
-    const nested = container.querySelector('.folder[data-folder-id="f1"] .folder-body .collection');
+    const nested = container.querySelector(
+      '.cc-folder[data-folder-id="f1"] .cc-folder-body .cc-collection'
+    );
     expect(nested.dataset.id).toBe('nested1');
     // The nested card is not also a direct child of the list.
-    expect(container.querySelector(':scope > .collection[data-id="nested1"]')).toBeNull();
+    expect(container.querySelector(':scope > .cc-collection[data-id="nested1"]')).toBeNull();
 
     // Two stacked sections: Folders first, then Collections, each with a live count.
     const foldersHeading = container.querySelector('.folders-heading');
@@ -84,8 +86,8 @@ describe('CollectionList folders', () => {
     expect(collectionsHeading.querySelector('.section-heading-label').textContent).toBe(
       'Collections'
     );
-    expect(foldersHeading.querySelector('.section-count').textContent).toBe('1');
-    expect(collectionsHeading.querySelector('.section-count').textContent).toBe('1');
+    expect(foldersHeading.querySelector('.cc-section-count').textContent).toBe('1');
+    expect(collectionsHeading.querySelector('.cc-section-count').textContent).toBe('1');
     expect(
       foldersHeading.compareDocumentPosition(collectionsHeading) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
@@ -98,21 +100,21 @@ describe('CollectionList folders', () => {
   it('folds a whole section away from its heading and back', async () => {
     const { container } = await renderList(NESTED_STORAGE);
 
-    const toggle = container.querySelector('.folders-heading .section-toggle');
+    const toggle = container.querySelector('.folders-heading .cc-section-toggle');
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
-    expect(container.querySelector('.folder')).toBeTruthy();
+    expect(container.querySelector('.cc-folder')).toBeTruthy();
 
     fireEvent.click(toggle);
 
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
-    expect(container.querySelector('.folder')).toBeNull();
+    expect(container.querySelector('.cc-folder')).toBeNull();
     // The heading and its live count stay in place…
-    expect(container.querySelector('.folders-heading .section-count').textContent).toBe('1');
+    expect(container.querySelector('.folders-heading .cc-section-count').textContent).toBe('1');
     // …and the other section is untouched.
-    expect(container.querySelector(':scope > .collection')).toBeTruthy();
+    expect(container.querySelector(':scope > .cc-collection')).toBeTruthy();
 
     fireEvent.click(toggle);
-    expect(container.querySelector('.folder')).toBeTruthy();
+    expect(container.querySelector('.cc-folder')).toBeTruthy();
   });
 
   it('counts the folders and the root collections in each heading', async () => {
@@ -128,9 +130,9 @@ describe('CollectionList folders', () => {
       ],
     });
 
-    expect(container.querySelector('.folders-heading .section-count').textContent).toBe('2');
+    expect(container.querySelector('.folders-heading .cc-section-count').textContent).toBe('2');
     // Only the root-level collection counts; the two nested ones do not.
-    expect(container.querySelector('.collections-heading .section-count').textContent).toBe('1');
+    expect(container.querySelector('.collections-heading .cc-section-count').textContent).toBe('1');
   });
 
   it('shows no section headings until there is a folder', async () => {
@@ -139,9 +141,9 @@ describe('CollectionList folders', () => {
       folders: [],
     });
 
-    expect(container.querySelector('.section-heading')).toBeNull();
+    expect(container.querySelector('.cc-section-heading')).toBeNull();
     // The root collection is still a direct child of the list.
-    expect(container.querySelector(':scope > .collection[data-id="a"]')).toBeTruthy();
+    expect(container.querySelector(':scope > .cc-collection[data-id="a"]')).toBeTruthy();
   });
 
   it('shows the empty state only when both collections and folders are empty', async () => {
@@ -152,7 +154,7 @@ describe('CollectionList folders', () => {
 
     const withFolder = await renderList({ collections: [], folders: [{ id: 'f1', name: 'Work' }] });
     expect(screen.queryByText('No collections yet')).toBeNull();
-    expect(withFolder.container.querySelector('.folder[data-folder-id="f1"]')).toBeTruthy();
+    expect(withFolder.container.querySelector('.cc-folder[data-folder-id="f1"]')).toBeTruthy();
   });
 
   it('moves a collection into a folder when it is dropped on the folder section', async () => {
@@ -161,8 +163,8 @@ describe('CollectionList folders', () => {
       folders: [{ id: 'f1', name: 'Work', isExpanded: true }],
     });
 
-    startDrag(container.querySelector('.collection[data-id="root1"]'));
-    const folder = container.querySelector('.folder[data-folder-id="f1"]');
+    startDrag(container.querySelector('.cc-collection[data-id="root1"]'));
+    const folder = container.querySelector('.cc-folder[data-folder-id="f1"]');
     fireEvent.dragOver(folder);
     fireEvent.drop(folder);
 
@@ -171,18 +173,18 @@ describe('CollectionList folders', () => {
 
   it('reveals the root drop zone only while a nested collection is dragged', async () => {
     const { container } = await renderList(NESTED_STORAGE);
-    expect(container.querySelector('.folder-root-dropzone')).toBeNull();
+    expect(container.querySelector('.cc-folder-root-dropzone')).toBeNull();
 
-    startDrag(container.querySelector('.collection[data-id="nested1"]'));
+    startDrag(container.querySelector('.cc-collection[data-id="nested1"]'));
 
-    expect(container.querySelector('.folder-root-dropzone')).toBeTruthy();
+    expect(container.querySelector('.cc-folder-root-dropzone')).toBeTruthy();
   });
 
   it('moves a nested collection back to the root when it is dropped on the root zone', async () => {
     const { container, actions } = await renderList(NESTED_STORAGE);
 
-    startDrag(container.querySelector('.collection[data-id="nested1"]'));
-    const zone = container.querySelector('.folder-root-dropzone');
+    startDrag(container.querySelector('.cc-collection[data-id="nested1"]'));
+    const zone = container.querySelector('.cc-folder-root-dropzone');
     fireEvent.dragOver(zone);
     fireEvent.drop(zone);
 
@@ -198,7 +200,7 @@ describe('CollectionList bulk selection', () => {
   it('hides the checkboxes until selection mode is on', async () => {
     const { container } = await renderList(NESTED_STORAGE);
 
-    expect(container.querySelector('.select-checkbox')).toBeNull();
+    expect(container.querySelector('.cc-select-checkbox')).toBeNull();
   });
 
   it('marks the selected folder and collection and reports every toggle', async () => {
@@ -210,17 +212,17 @@ describe('CollectionList bulk selection', () => {
       onToggleSelect,
     });
 
-    const folder = container.querySelector('.folder[data-folder-id="f1"]');
-    const rootCard = container.querySelector('.collection[data-id="root1"]');
-    expect(folder.querySelector('.select-checkbox input')).toBeTruthy();
-    expect(rootCard.querySelector('.select-checkbox input')).toBeTruthy();
+    const folder = container.querySelector('.cc-folder[data-folder-id="f1"]');
+    const rootCard = container.querySelector('.cc-collection[data-id="root1"]');
+    expect(folder.querySelector('.cc-select-checkbox input')).toBeTruthy();
+    expect(rootCard.querySelector('.cc-select-checkbox input')).toBeTruthy();
     expect(folder.classList.contains('ut-selected')).toBe(true);
     expect(rootCard.classList.contains('ut-selected')).toBe(false);
 
-    fireEvent.click(rootCard.querySelector('.select-checkbox input'));
+    fireEvent.click(rootCard.querySelector('.cc-select-checkbox input'));
     expect(onToggleSelect).toHaveBeenCalledWith('collection', 'root1');
 
-    fireEvent.click(folder.querySelector('.select-checkbox input'));
+    fireEvent.click(folder.querySelector('.cc-select-checkbox input'));
     expect(onToggleSelect).toHaveBeenCalledWith('folder', 'f1');
   });
 
@@ -234,7 +236,7 @@ describe('CollectionList bulk selection', () => {
     });
 
     const nestedBox = container.querySelector(
-      '.folder[data-folder-id="f1"] .folder-body .collection[data-id="nested1"] .select-checkbox input'
+      '.cc-folder[data-folder-id="f1"] .cc-folder-body .cc-collection[data-id="nested1"] .cc-select-checkbox input'
     );
     expect(nestedBox).toBeTruthy();
     expect(nestedBox.checked).toBe(true);

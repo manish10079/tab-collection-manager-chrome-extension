@@ -243,7 +243,7 @@ export function useShellController({ toast }) {
 
   const jumpToCollection = useCallback(
     (n) => {
-      const cards = Array.from(document.querySelectorAll('#collectionsContainer > .collection'));
+      const cards = Array.from(document.querySelectorAll('#collectionsContainer > .cc-collection'));
       const target = cards[n - 1];
       if (!target) {
         toast(`Collection ${n} not found`);
@@ -256,7 +256,7 @@ export function useShellController({ toast }) {
       // Re-query by id when removing, so the highlight survives a re-render in between.
       setTimeout(() => {
         const el = document.querySelector(
-          `#collectionsContainer > .collection[data-id="${targetId}"]`
+          `#collectionsContainer > .cc-collection[data-id="${targetId}"]`
         );
         if (el) el.classList.remove('set-shortcut-jump-highlight');
       }, 1200);
@@ -269,7 +269,7 @@ export function useShellController({ toast }) {
     setSlide(null);
     mutate((draft) => setCollectionExpanded(draft, id, true));
     setTimeout(() => {
-      const el = document.querySelector(`#collectionsContainer > .collection[data-id="${id}"]`);
+      const el = document.querySelector(`#collectionsContainer > .cc-collection[data-id="${id}"]`);
       scrollIntoView(el, { behavior: 'smooth', block: 'center' });
     }, 60);
   }, []);

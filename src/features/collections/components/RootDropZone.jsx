@@ -34,7 +34,7 @@ export function RootDropZone({ collections, actions }) {
   if (!isNested) return null;
 
   return (
-    <div className={`folder-root-dropzone${isDragOver ? ' ut-drag-over' : ''}`} {...dropProps}>
+    <div className={`cc-folder-root-dropzone${isDragOver ? ' ut-drag-over' : ''}`} {...dropProps}>
       <i className="fas fa-folder-open" aria-hidden="true" /> Drop here to move out of the folder
     </div>
   );

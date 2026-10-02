@@ -738,7 +738,7 @@ mark.search-hl {
 }
 
 /* Hide drag handles when sorting is active */
-.collections-container.ut-sort-active .collection-drag-handle {
+.cc-collections-container.ut-sort-active .cc-collection-drag-handle {
   display: none;
 }
 
@@ -803,12 +803,12 @@ mark.search-hl {
 
 /* Folders (Phase 8). A folder reuses the collection's look and the legacy control classes, so
    only the container itself and the drop affordances are added here. */
-.folder {
+.cc-folder {
   background: var(--bg-card);
   border-radius: var(--radius);
   border: 1px solid var(--border-card);
   box-shadow: var(--shadow-card);
-  /* Must stay visible (like `.collection`): the folder's own dropdown is absolutely positioned
+  /* Must stay visible (like `.cc-collection`): the folder's own dropdown is absolutely positioned
      and would be clipped by `overflow: hidden` — most visibly on a short, empty folder. */
   overflow: visible;
   transition:
@@ -818,23 +818,23 @@ mark.search-hl {
 }
 
 /* Lift the folder above its siblings while a dropdown inside it is open, the way
-   `.collection:focus-within` does for a card (css-migration-plan.md, Phase 5): the folder is a
+   `.cc-collection:focus-within` does for a card (css-migration-plan.md, Phase 5): the folder is a
    stacking context, so the menu's `z-index` cannot escape it and a later sibling would paint over
    the menu. Opening the menu focuses its button, so focus is the signal, not `:has()`. */
-.folder:focus-within {
+.cc-folder:focus-within {
   position: relative;
   z-index: 100;
 }
 
-.folder.ut-drag-over,
-.folder-root-dropzone.ut-drag-over {
+.cc-folder.ut-drag-over,
+.cc-folder-root-dropzone.ut-drag-over {
   border-color: var(--accent);
   box-shadow:
     0 0 0 1px var(--accent),
     var(--shadow-card);
 }
 
-.folder-header {
+.cc-folder-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -844,7 +844,7 @@ mark.search-hl {
   flex-wrap: wrap;
 }
 
-.folder-left-section {
+.cc-folder-left-section {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -852,22 +852,22 @@ mark.search-hl {
   min-width: 0;
 }
 
-.folder-right-section {
+.cc-folder-right-section {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.folder-icon {
+.cc-folder-icon {
   color: var(--accent);
 }
 
-.folder-name {
+.cc-folder-name {
   flex: 1;
   min-width: 0;
 }
 
-.folder-body {
+.cc-folder-body {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -876,7 +876,7 @@ mark.search-hl {
 
 /* The folder's counts sit in the body rather than the header, which keeps the header a single
    compact row; they are only visible while the folder is expanded. */
-.folder-summary {
+.cc-folder-summary {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -886,11 +886,11 @@ mark.search-hl {
   font-size: 11px;
 }
 
-.folder-summary .meta-dot {
+.cc-folder-summary .cc-meta-dot {
   opacity: 0.6;
 }
 
-.folder-empty {
+.cc-folder-empty {
   margin: 0;
   padding: 10px;
   border: 1px dashed var(--border);
@@ -900,7 +900,7 @@ mark.search-hl {
   text-align: center;
 }
 
-.folder-root-dropzone {
+.cc-folder-root-dropzone {
   padding: 10px;
   border: 1px dashed var(--accent);
   border-radius: var(--radius);
@@ -909,51 +909,51 @@ mark.search-hl {
   text-align: center;
 }
 
-/* Grid view with folders. collections.css styles the grid cards with `.collections-container.ut-grid-view
-   .collection`, a descendant selector that also matches collections nested inside a folder, so
+/* Grid view with folders. collections.css styles the grid cards with `.cc-collections-container.ut-grid-view
+   .cc-collection`, a descendant selector that also matches collections nested inside a folder, so
    they would inherit the stacked grid-card header. A folder spans the whole grid as a section and
    the collections inside it keep the normal list appearance; these rules out-specify the grid
    ones (four classes to three), so they win regardless of stylesheet order. */
-.collections-container.ut-grid-view .folder {
+.cc-collections-container.ut-grid-view .cc-folder {
   grid-column: 1 / -1;
 }
 
-.collections-container.ut-grid-view .folder-body .collection-header {
+.cc-collections-container.ut-grid-view .cc-folder-body .cc-collection-header {
   flex-direction: row;
   align-items: center;
   padding: 8px 14px;
   gap: 12px;
 }
 
-.collections-container.ut-grid-view .folder-body .collection-left-section {
+.cc-collections-container.ut-grid-view .cc-folder-body .cc-collection-left-section {
   width: auto;
   gap: 10px;
 }
 
-.collections-container.ut-grid-view .folder-body .collection-right-section {
+.cc-collections-container.ut-grid-view .cc-folder-body .cc-collection-right-section {
   width: auto;
   border-top: none;
   padding-top: 0;
   gap: 14px;
 }
 
-.collections-container.ut-grid-view .folder-body .collection-name {
+.cc-collections-container.ut-grid-view .cc-folder-body .cc-collection-name {
   font-size: 17.5px;
   max-width: 320px;
 }
 
-.collections-container.ut-grid-view .folder-body .collection-drag-handle {
+.cc-collections-container.ut-grid-view .cc-folder-body .cc-collection-drag-handle {
   width: 18px;
 }
 
-.collections-container.ut-grid-view .folder-body .expand-btn {
+.cc-collections-container.ut-grid-view .cc-folder-body .cc-expand-btn {
   font-size: 14px;
 }
 
 /* The grid's odd/even dropdown flip counts the folder among its siblings, which would misalign a
    nested card's menu; keep it right-aligned like every other list row. */
-.collections-container.ut-grid-view .folder-body .collection-dropdown-menu,
-.collections-container.ut-grid-view .folder-body .tab-dropdown-menu {
+.cc-collections-container.ut-grid-view .cc-folder-body .cc-collection-dropdown-menu,
+.cc-collections-container.ut-grid-view .cc-folder-body .tab-dropdown-menu {
   left: auto;
   right: 0;
 }
@@ -972,14 +972,14 @@ mark.search-hl {
 }
 
 /* The two list sections — Folders, then Collections. The heading is a sibling of the cards rather
-   than a wrapper, so the root `.collection` elements stay direct children of the container. */
-.section-heading {
+   than a wrapper, so the root `.cc-collection` elements stay direct children of the container. */
+.cc-section-heading {
   margin: 0;
 }
 
 /* The heading is a button so the whole section can be folded away; it resets the button chrome
    and takes the row's full width as the click target. */
-.section-toggle {
+.cc-section-toggle {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -997,16 +997,16 @@ mark.search-hl {
   cursor: pointer;
 }
 
-.section-toggle:hover {
+.cc-section-toggle:hover {
   color: var(--text-primary);
 }
 
-.section-toggle i {
+.cc-section-toggle i {
   font-size: 9px;
 }
 
 /* Live count of the items in the section. */
-.section-count {
+.cc-section-count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1019,28 +1019,28 @@ mark.search-hl {
   letter-spacing: 0;
 }
 
-.collections-container.ut-grid-view .section-heading {
+.cc-collections-container.ut-grid-view .cc-section-heading {
   grid-column: 1 / -1;
 }
 
 /* Bulk selection (delete several folders/collections). The checkbox appears on each folder and
    collection once the controls-bar Select toggle is on; `.ut-selected` mirrors the drag-over accent. */
-.select-checkbox {
+.cc-select-checkbox {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
   cursor: pointer;
 }
 
-.select-checkbox input {
+.cc-select-checkbox input {
   width: 16px;
   height: 16px;
   cursor: pointer;
   accent-color: var(--accent);
 }
 
-.collection.ut-selected,
-.folder.ut-selected {
+.cc-collection.ut-selected,
+.cc-folder.ut-selected {
   border-color: var(--accent);
   box-shadow:
     0 0 0 1px var(--accent),

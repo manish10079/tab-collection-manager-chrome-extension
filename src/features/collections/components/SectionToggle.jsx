@@ -17,14 +17,14 @@ export function SectionToggle({ label, count, collapsed, onToggle }) {
   return (
     <button
       type="button"
-      className="section-toggle"
+      className="cc-section-toggle"
       aria-expanded={!collapsed}
       aria-label={`${collapsed ? 'Expand' : 'Collapse'} ${label} section`}
       onClick={onToggle}
     >
       <i className={`fas fa-chevron-${collapsed ? 'right' : 'down'}`} aria-hidden="true" />
       <span className="section-heading-label">{label}</span>
-      <span className="section-count">{count}</span>
+      <span className="cc-section-count">{count}</span>
     </button>
   );
 }

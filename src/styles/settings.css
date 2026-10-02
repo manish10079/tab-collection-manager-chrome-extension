@@ -140,7 +140,7 @@
 }
 
 /* ── Jump-to-collection highlight (1-9 shortcut) ─────────── */
-.collection.set-shortcut-jump-highlight {
+.cc-collection.set-shortcut-jump-highlight {
   border-color: color-mix(in srgb, var(--accent) 55%, transparent);
   box-shadow:
     0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent),

@@ -90,7 +90,7 @@ export function App() {
 
   const isGrid = settings.layoutViewMode === 'grid';
   const isSorted = (settings.collectionSortType || 'custom') !== 'custom';
-  const containerClasses = ['collections-container'];
+  const containerClasses = ['cc-collections-container'];
   if (isGrid) containerClasses.push('ut-grid-view');
   if (isSorted) containerClasses.push('ut-sort-active');
 

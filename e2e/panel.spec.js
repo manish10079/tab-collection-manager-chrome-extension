@@ -34,10 +34,11 @@ async function cardFor(panel, name) {
       async () => {
         state = await panel.evaluate((wanted) => {
           const inputs = [
-            ...document.querySelectorAll('#collectionsContainer input.collection-name'),
+            ...document.querySelectorAll('#collectionsContainer input.cc-collection-name'),
           ];
           return {
-            id: inputs.find((input) => input.value === wanted)?.closest('.collection')?.dataset.id,
+            id: inputs.find((input) => input.value === wanted)?.closest('.cc-collection')?.dataset
+              .id,
             names: inputs.map((input) => input.value),
             storageError: document.querySelector('#collectionsContainer .rs-error')?.textContent,
           };
@@ -48,7 +49,7 @@ async function cardFor(panel, name) {
     )
     .toMatchObject({ id: expect.any(String) });
 
-  return panel.locator(`#collectionsContainer > .collection[data-id="${state?.id}"]`);
+  return panel.locator(`#collectionsContainer > .cc-collection[data-id="${state?.id}"]`);
 }
 
 /**
@@ -113,7 +114,7 @@ test('loads dist/ unpacked and mounts the React panel', async ({
 
   // Either the first-run empty state or a collection the worker already auto-saved.
   await expect(
-    panel.locator('#emptyState').or(panel.locator('#collectionsContainer > .collection').first())
+    panel.locator('#emptyState').or(panel.locator('#collectionsContainer > .cc-collection').first())
   ).toBeVisible();
 });
 
@@ -139,11 +140,11 @@ test('adds tabs, then edits, pins and removes through the card menus', async ({ 
   await createCollection(panel, 'E2E Tabs');
   const card = await cardFor(panel, 'E2E Tabs');
 
-  await card.locator('.expand-btn').click();
+  await card.locator('.cc-expand-btn').click();
   await expect(card.locator('.tab-collection-tabs')).toHaveClass(/ut-expanded/);
 
   // Manual tab through the collection menu.
-  await card.locator('.collection-menu-btn').click();
+  await card.locator('.cc-collection-menu-btn').click();
   await card.getByRole('button', { name: 'Add new tab' }).click();
 
   const addTabs = panel.getByRole('dialog', { name: 'Add Tabs' });
@@ -158,7 +159,7 @@ test('adds tabs, then edits, pins and removes through the card menus', async ({ 
   await expect(card.locator('.tab-count')).toHaveText('1 tab');
 
   // The same URL again is a duplicate: it asks first, then adds on confirmation.
-  await card.locator('.collection-menu-btn').click();
+  await card.locator('.cc-collection-menu-btn').click();
   await card.getByRole('button', { name: 'Add new tab' }).click();
   await addTabs.getByLabel('Title').fill('Example docs again');
   await addTabs.getByLabel('URL').fill('https://example.com/docs');
@@ -187,13 +188,13 @@ test('adds tabs, then edits, pins and removes through the card menus', async ({ 
   await expect(card.locator('.tab-item')).toHaveCount(1);
 
   // Pin the collection, then rename it.
-  await card.locator('.pin-collection-btn').click();
+  await card.locator('.cc-pin-collection-btn').click();
   await expect(card).toHaveClass(/ut-pinned/);
 
-  await card.locator('.collection-menu-btn').click();
+  await card.locator('.cc-collection-menu-btn').click();
   await card.getByRole('button', { name: 'Edit collection name' }).click();
-  await card.locator('.collection-name').fill('E2E Renamed');
-  await card.locator('.collection-name').press('Enter');
+  await card.locator('.cc-collection-name').fill('E2E Renamed');
+  await card.locator('.cc-collection-name').press('Enter');
   await expect(await cardFor(panel, 'E2E Renamed')).toBeVisible();
 });
 
@@ -208,7 +209,7 @@ test('imports the window’s open tabs through the multi-select picker', async (
   await createCollection(panel, 'E2E Imported');
   const card = await cardFor(panel, 'E2E Imported');
 
-  await card.locator('.collection-menu-btn').click();
+  await card.locator('.cc-collection-menu-btn').click();
   await card.getByRole('button', { name: 'Add new tab' }).click();
 
   const addTabs = panel.getByRole('dialog', { name: 'Add Tabs' });
@@ -287,10 +288,12 @@ test('toggles layout and sort, exports the collections, and answers the keyboard
 
   // Ctrl+E expands every collection (focus is on the export button, so combos still apply).
   await panel.keyboard.press('Control+e');
-  await expect((await cardFor(panel, 'Alpha One')).locator('.expand-btn')).toHaveClass(
+  await expect((await cardFor(panel, 'Alpha One')).locator('.cc-expand-btn')).toHaveClass(
     /ut-rotated/
   );
-  await expect((await cardFor(panel, 'Beta Two')).locator('.expand-btn')).toHaveClass(/ut-rotated/);
+  await expect((await cardFor(panel, 'Beta Two')).locator('.cc-expand-btn')).toHaveClass(
+    /ut-rotated/
+  );
 
   // `?` opens the shortcut help; Escape closes it and leaves focus on the export button.
   await panel.keyboard.press('?');
@@ -332,16 +335,16 @@ test('opens the history and settings dialogs, and returns focus when each closes
 
 test('creates a folder and keeps its options menu on top of the empty card', async ({ panel }) => {
   await panel.locator('#createFolderBtn').click();
-  const folder = panel.locator('#collectionsContainer > .folder').first();
+  const folder = panel.locator('#collectionsContainer > .cc-folder').first();
   await expect(folder).toBeVisible();
-  await expect(folder.locator('.folder-name')).toHaveValue(/^New folder/);
-  await expect(folder.locator('.folder-empty')).toBeVisible();
+  await expect(folder.locator('.cc-folder-name')).toHaveValue(/^New folder/);
+  await expect(folder.locator('.cc-folder-empty')).toBeVisible();
 
   // Regression: on a short, still-empty folder the absolutely-positioned options menu used to be
   // clipped by the folder's own `overflow: hidden`, so it never appeared. Assert it renders *and*
   // is the topmost element at its centre (a clipped or covered menu fails `elementFromPoint`).
   await folder.locator('.folder-menu-btn').click();
-  const menu = folder.locator('.collection-dropdown-menu');
+  const menu = folder.locator('.cc-collection-dropdown-menu');
   await expect(menu).toBeVisible();
   const onTop = await menu.evaluate((el) => {
     const rect = el.getBoundingClientRect();
@@ -361,53 +364,53 @@ test('creates a folder and keeps its options menu on top of the empty card', asy
   // Playwright must accept the dialog (it auto-dismisses otherwise).
   panel.once('dialog', (dialog) => dialog.accept());
   await folder.getByRole('button', { name: 'Remove folder' }).click();
-  await expect(panel.locator('#collectionsContainer > .folder')).toHaveCount(0);
+  await expect(panel.locator('#collectionsContainer > .cc-folder')).toHaveCount(0);
 });
 
 test('folds a whole section away from its heading', async ({ panel }) => {
   await createCollection(panel, 'E2E Keep');
   await panel.locator('#createFolderBtn').click();
-  await expect(panel.locator('#collectionsContainer > .folder')).toHaveCount(1);
+  await expect(panel.locator('#collectionsContainer > .cc-folder')).toHaveCount(1);
 
-  const toggle = panel.locator('#collectionsContainer .folders-heading .section-toggle');
+  const toggle = panel.locator('#collectionsContainer .folders-heading .cc-section-toggle');
   await expect(toggle).toHaveAttribute('aria-expanded', 'true');
 
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-  await expect(panel.locator('#collectionsContainer > .folder')).toHaveCount(0);
+  await expect(panel.locator('#collectionsContainer > .cc-folder')).toHaveCount(0);
   // The heading stays, with its live count, and the other section is untouched.
-  await expect(panel.locator('#collectionsContainer .folders-heading .section-count')).toHaveText(
-    '1'
-  );
+  await expect(
+    panel.locator('#collectionsContainer .folders-heading .cc-section-count')
+  ).toHaveText('1');
   await expect(panel.locator('#collectionsContainer .collections-heading')).toBeVisible();
-  await expect(panel.locator('#collectionsContainer > .collection').first()).toBeVisible();
+  await expect(panel.locator('#collectionsContainer > .cc-collection').first()).toBeVisible();
 
   await toggle.click();
-  await expect(panel.locator('#collectionsContainer > .folder')).toHaveCount(1);
+  await expect(panel.locator('#collectionsContainer > .cc-folder')).toHaveCount(1);
 });
 
 test('keeps a folder’s collections in list layout in grid view', async ({ panel }) => {
   await createCollection(panel, 'E2E Root');
   await createCollection(panel, 'E2E Foldered');
   await panel.locator('#createFolderBtn').click();
-  const folder = panel.locator('#collectionsContainer > .folder').first();
+  const folder = panel.locator('#collectionsContainer > .cc-folder').first();
 
   // Move the collection into the folder through its card menu.
   const card = await cardFor(panel, 'E2E Foldered');
-  await card.locator('.collection-menu-btn').click();
+  await card.locator('.cc-collection-menu-btn').click();
   await card.locator('.move-to-folder-btn').first().click();
-  await expect(folder.locator('.folder-body .collection-name')).toHaveValue('E2E Foldered'); // Two stacked sections, folders first, each with its own live count badge.
+  await expect(folder.locator('.cc-folder-body .cc-collection-name')).toHaveValue('E2E Foldered'); // Two stacked sections, folders first, each with its own live count badge.
   const foldersHeading = panel.locator('#collectionsContainer .folders-heading');
   const collectionsHeading = panel.locator('#collectionsContainer .collections-heading');
   await expect(foldersHeading.locator('.section-heading-label')).toHaveText('Folders');
   await expect(collectionsHeading.locator('.section-heading-label')).toHaveText('Collections');
   // Each badge counts what its section actually holds. The worker's Current Session is a root
   // collection too, so assert against the rendered counts rather than a hard-coded number.
-  await expect(foldersHeading.locator('.section-count')).toHaveText(
-    String(await panel.locator('#collectionsContainer > .folder').count())
+  await expect(foldersHeading.locator('.cc-section-count')).toHaveText(
+    String(await panel.locator('#collectionsContainer > .cc-folder').count())
   );
-  await expect(collectionsHeading.locator('.section-count')).toHaveText(
-    String(await panel.locator('#collectionsContainer > .collection').count())
+  await expect(collectionsHeading.locator('.cc-section-count')).toHaveText(
+    String(await panel.locator('#collectionsContainer > .cc-collection').count())
   );
   const sectionOrder = await panel.evaluate(() =>
     [...document.querySelectorAll('#collectionsContainer .section-heading-label')].map(
@@ -421,20 +424,20 @@ test('keeps a folder’s collections in list layout in grid view', async ({ pane
 
   // A root card stacks its header into the grid-card shape…
   const rootDirection = await panel
-    .locator('#collectionsContainer > .collection .collection-header')
+    .locator('#collectionsContainer > .cc-collection .cc-collection-header')
     .first()
     .evaluate((el) => getComputedStyle(el).flexDirection);
   expect(rootDirection).toBe('column');
 
   // …while a collection inside a folder keeps the row layout it has in list view.
   const nestedDirection = await folder
-    .locator('.folder-body .collection-header')
+    .locator('.cc-folder-body .cc-collection-header')
     .evaluate((el) => getComputedStyle(el).flexDirection);
   expect(nestedDirection).toBe('row');
 
   // And the folder spans the whole grid rather than a single column.
   const spansBothColumns = await folder.evaluate((el) => {
-    const rootCard = el.parentElement?.querySelector(':scope > .collection');
+    const rootCard = el.parentElement?.querySelector(':scope > .cc-collection');
     if (!rootCard) return false;
     return el.getBoundingClientRect().width > rootCard.getBoundingClientRect().width + 20;
   });
@@ -485,22 +488,22 @@ test('bulk-deletes a folder with its contents, a nested collection and a root co
   await createCollection(panel, 'E2E Bulk');
   await createCollection(panel, 'E2E Inner');
   await panel.locator('#createFolderBtn').click();
-  const doomedFolder = panel.locator('#collectionsContainer > .folder').nth(0);
+  const doomedFolder = panel.locator('#collectionsContainer > .cc-folder').nth(0);
   await expect(doomedFolder).toBeVisible();
 
   // Two folders, each holding one collection, moved in through each card's menu. The menu lists
   // the folders in order, so nth(0) is the first folder and nth(1) the second.
   const bulkCard = await cardFor(panel, 'E2E Bulk');
-  await bulkCard.locator('.collection-menu-btn').click();
+  await bulkCard.locator('.cc-collection-menu-btn').click();
   await bulkCard.locator('.move-to-folder-btn').nth(0).click();
-  await expect(doomedFolder.locator('.folder-body .collection-name')).toHaveValue('E2E Bulk');
+  await expect(doomedFolder.locator('.cc-folder-body .cc-collection-name')).toHaveValue('E2E Bulk');
 
   await panel.locator('#createFolderBtn').click();
-  const keptFolder = panel.locator('#collectionsContainer > .folder').nth(1);
+  const keptFolder = panel.locator('#collectionsContainer > .cc-folder').nth(1);
   const innerCard = await cardFor(panel, 'E2E Inner');
-  await innerCard.locator('.collection-menu-btn').click();
+  await innerCard.locator('.cc-collection-menu-btn').click();
   await innerCard.locator('.move-to-folder-btn').nth(1).click();
-  await expect(keptFolder.locator('.folder-body .collection-name')).toHaveValue('E2E Inner');
+  await expect(keptFolder.locator('.cc-folder-body .cc-collection-name')).toHaveValue('E2E Inner');
 
   // Selection mode swaps the actions row for a selection bar with a live count.
   await panel.locator('#toggleSelectBtn').click();
@@ -512,18 +515,18 @@ test('bulk-deletes a folder with its contents, a nested collection and a root co
   // The live Current Session can never be deleted, so its box is disabled rather than deletable.
   await expect(
     panel.locator(
-      '#collectionsContainer > .collection.current-session-collection .select-checkbox input'
+      '#collectionsContainer > .cc-collection.cc-current-session-collection .cc-select-checkbox input'
     )
   ).toBeDisabled();
 
   // Three different selections, each with a checkbox of its own: a whole folder (which cascades to
   // its collection), a collection nested inside another folder, and a root collection.
   // The folder's own box is the header one; the cards nested in its body have their own.
-  await doomedFolder.locator('.folder-header .select-checkbox input').check();
+  await doomedFolder.locator('.cc-folder-header .cc-select-checkbox input').check();
   await expect(bar.locator('.selection-count')).toHaveText('1 selected');
-  await keptFolder.locator('.folder-body .collection .select-checkbox input').check();
+  await keptFolder.locator('.cc-folder-body .cc-collection .cc-select-checkbox input').check();
   await expect(bar.locator('.selection-count')).toHaveText('2 selected');
-  await (await cardFor(panel, 'E2E Keep')).locator('.select-checkbox input').check();
+  await (await cardFor(panel, 'E2E Keep')).locator('.cc-select-checkbox input').check();
   await expect(bar.locator('.selection-count')).toHaveText('3 selected');
 
   // Deleting asks once; Playwright has to accept the dialog (it auto-dismisses otherwise).
@@ -532,10 +535,10 @@ test('bulk-deletes a folder with its contents, a nested collection and a root co
 
   // The selected folder and its collection went with it, and so did the nested collection and the
   // root one — but the *unselected* second folder survives, now empty.
-  await expect(panel.locator('#collectionsContainer > .folder')).toHaveCount(1);
+  await expect(panel.locator('#collectionsContainer > .cc-folder')).toHaveCount(1);
   // The survivor is the only folder left, so re-resolve it rather than reuse the pre-delete index.
-  const survivor = panel.locator('#collectionsContainer > .folder').first();
-  await expect(survivor.locator('.folder-empty')).toBeVisible();
+  const survivor = panel.locator('#collectionsContainer > .cc-folder').first();
+  await expect(survivor.locator('.cc-folder-empty')).toBeVisible();
   await expect.poll(() => storedNames(panel)).not.toContain('E2E Keep');
   await expect.poll(() => storedNames(panel)).not.toContain('E2E Bulk');
   await expect.poll(() => storedNames(panel)).not.toContain('E2E Inner');
@@ -546,7 +549,7 @@ test('bulk-deletes a folder with its contents, a nested collection and a root co
         return folders.map((folder) => folder.name);
       })
     )
-    .toEqual([await survivor.locator('.folder-name').inputValue()]);
+    .toEqual([await survivor.locator('.cc-folder-name').inputValue()]);
   await expect(bar).toBeHidden();
   await expect(panel.locator('#actionsBarDefault')).not.toHaveClass(/ut-hidden/);
 });

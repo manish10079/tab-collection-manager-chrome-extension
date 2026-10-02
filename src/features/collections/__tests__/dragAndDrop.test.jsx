@@ -73,7 +73,7 @@ function renderCards(collections) {
 
 /** The `.collection` element owning a collection-name input. @param {string} name */
 function cardOf(name) {
-  return /** @type {HTMLElement} */ (screen.getByDisplayValue(name).closest('.collection'));
+  return /** @type {HTMLElement} */ (screen.getByDisplayValue(name).closest('.cc-collection'));
 }
 
 /** The `.tab-item` element owning a tab-title input. @param {string} title */
@@ -88,7 +88,7 @@ function rowOf(title) {
  * @param {HTMLElement} target Row or card receiving the drop
  */
 function dragOnto(source, target) {
-  const handle = source.querySelector('.drag-handle');
+  const handle = source.querySelector('.cc-drag-handle');
   fireEvent.pointerDown(handle);
   fireEvent.dragStart(source);
   fireEvent.dragOver(target);
@@ -147,7 +147,7 @@ describe('collection drag and drop', () => {
 
     const source = cardOf('Research');
     const target = cardOf('Reading');
-    fireEvent.pointerDown(source.querySelector('.drag-handle'));
+    fireEvent.pointerDown(source.querySelector('.cc-drag-handle'));
     fireEvent.dragStart(source);
     fireEvent.dragOver(target);
 

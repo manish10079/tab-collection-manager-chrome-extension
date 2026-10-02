@@ -171,7 +171,7 @@ async function walkPanel(page, coverage) {
     await input.fill('CSS Coverage');
     await input.press('Enter');
     await page
-      .locator('#collectionsContainer > .collection')
+      .locator('#collectionsContainer > .cc-collection')
       .first()
       .waitFor({ state: 'visible', timeout: PANEL_TIMEOUT_MS });
   });
@@ -183,21 +183,23 @@ async function walkPanel(page, coverage) {
   // `e2e/panel.spec.js` has a `cardFor` helper).
   await step('find the created card', async () => {
     const id = await page.evaluate(() => {
-      const inputs = [...document.querySelectorAll('#collectionsContainer input.collection-name')];
-      return inputs.find((input) => input.value === 'CSS Coverage')?.closest('.collection')?.dataset
-        .id;
+      const inputs = [
+        ...document.querySelectorAll('#collectionsContainer input.cc-collection-name'),
+      ];
+      return inputs.find((input) => input.value === 'CSS Coverage')?.closest('.cc-collection')
+        ?.dataset.id;
     });
     if (!id) throw new Error('the created collection card was not found');
     createdId = id;
   });
   // Depth-agnostic on purpose: the walk moves this collection into a folder partway through, and
   // `#collectionsContainer > .collection` would stop matching it at that point.
-  const card = page.locator(`#collectionsContainer .collection[data-id="${createdId}"]`);
+  const card = page.locator(`#collectionsContainer .cc-collection[data-id="${createdId}"]`);
 
   // ── Add a tab through the dialog (modal primitive, form controls, buttons) ──
   await step('add a tab', async () => {
-    await card.locator('.collection-menu-btn').click();
-    await card.locator('.add-tabs-btn').click();
+    await card.locator('.cc-collection-menu-btn').click();
+    await card.locator('.cc-add-tabs-btn').click();
     const addTabs = dialog('Add Tabs');
     await addTabs.getByLabel('Title').fill('Coverage docs');
     await addTabs.getByLabel('URL').fill('https://example.test/docs');
@@ -213,8 +215,8 @@ async function walkPanel(page, coverage) {
   // ── The duplicate-URL confirm, which renders only when the same URL is added twice ──
   await step('duplicate confirm', async () => {
     await page.keyboard.press('Escape');
-    await card.locator('.collection-menu-btn').click();
-    await card.locator('.add-tabs-btn').click();
+    await card.locator('.cc-collection-menu-btn').click();
+    await card.locator('.cc-add-tabs-btn').click();
     const addTabs = dialog('Add Tabs');
     await addTabs.getByLabel('Title').fill('Coverage docs again');
     await addTabs.getByLabel('URL').fill('https://example.test/docs');
@@ -240,8 +242,8 @@ async function walkPanel(page, coverage) {
       document.title = 'Coverage other tab';
     });
     await page.keyboard.press('Escape');
-    await card.locator('.collection-menu-btn').click();
-    await card.locator('.add-tabs-btn').click();
+    await card.locator('.cc-collection-menu-btn').click();
+    await card.locator('.cc-add-tabs-btn').click();
     const addTabs = dialog('Add Tabs');
     await addTabs.locator('.dl-mode-btn').nth(1).click();
     await addTabs.locator('.dl-open-tab-item').first().waitFor({ state: 'visible', timeout: 5000 });
@@ -256,9 +258,9 @@ async function walkPanel(page, coverage) {
   // ── Expand the collection, pin it and a tab, then open the tab menu ──
   await step('expand, pin and open the tab menu', async () => {
     await page.keyboard.press('Escape');
-    await card.locator('.expand-btn').click();
+    await card.locator('.cc-expand-btn').click();
     await card.locator('.tab-item').first().waitFor({ state: 'visible', timeout: 5000 });
-    await card.locator('.pin-collection-btn').click();
+    await card.locator('.cc-pin-collection-btn').click();
     await card.locator('.tab-pin-tab-btn').first().click();
     await card.locator('.tab-actions .icon-btn, .tab-item .icon-btn').last().click();
   });
@@ -268,12 +270,12 @@ async function walkPanel(page, coverage) {
   // ── Rename the collection and a tab, so the editable fields and their focus rules exist ──
   await step('rename the collection and a tab', async () => {
     await page.keyboard.press('Escape');
-    await card.locator('.collection-menu-btn').click();
-    await card.locator('.edit-collection-btn').click();
-    await card.locator('.collection-name').fill('Coverage renamed');
-    await card.locator('.collection-name').focus();
+    await card.locator('.cc-collection-menu-btn').click();
+    await card.locator('.cc-edit-collection-btn').click();
+    await card.locator('.cc-collection-name').fill('Coverage renamed');
+    await card.locator('.cc-collection-name').focus();
     await record(page, coverage);
-    await card.locator('.collection-name').press('Enter');
+    await card.locator('.cc-collection-name').press('Enter');
 
     await card.locator('.tab-menu-btn').first().click();
     await hoverSweep(page, coverage, { quiet: true });
@@ -290,7 +292,7 @@ async function walkPanel(page, coverage) {
   await step('focus the read-only fields', async () => {
     await card.locator('.tab-title').first().focus();
     await record(page, coverage);
-    await page.locator('.current-session-collection .collection-name').focus();
+    await page.locator('.cc-current-session-collection .cc-collection-name').focus();
     await record(page, coverage);
   });
   await record(page, coverage);
@@ -308,7 +310,7 @@ async function walkPanel(page, coverage) {
   // ── Open the collection dropdown (its own menu, sampled open) ──
   await step('open the collection menu', async () => {
     await page.keyboard.press('Escape');
-    await card.locator('.collection-menu-btn').click();
+    await card.locator('.cc-collection-menu-btn').click();
   });
   await record(page, coverage);
   await hoverSweep(page, coverage, { quiet: true });
@@ -318,27 +320,27 @@ async function walkPanel(page, coverage) {
     await page.keyboard.press('Escape');
     await page.locator('#createFolderBtn').click();
     await page
-      .locator('#collectionsContainer > .folder')
+      .locator('#collectionsContainer > .cc-folder')
       .first()
       .waitFor({ state: 'visible', timeout: PANEL_TIMEOUT_MS });
   });
   await record(page, coverage);
 
   await step('move the collection into the folder', async () => {
-    await card.locator('.collection-menu-btn').click();
+    await card.locator('.cc-collection-menu-btn').click();
     await card.locator('.move-to-folder-btn').first().click();
   });
   await record(page, coverage);
 
   await step('open the folder menu and rename control', async () => {
-    const folder = page.locator('#collectionsContainer > .folder').first();
+    const folder = page.locator('#collectionsContainer > .cc-folder').first();
     await folder.locator('.folder-menu-btn').click();
   });
   await record(page, coverage);
 
   await step('collapse the folder', async () => {
     await page.keyboard.press('Escape');
-    await page.locator('#collectionsContainer > .folder .expand-btn').first().click();
+    await page.locator('#collectionsContainer > .cc-folder .cc-expand-btn').first().click();
   });
   await record(page, coverage);
 
@@ -349,7 +351,7 @@ async function walkPanel(page, coverage) {
   await record(page, coverage);
 
   await step('select a card', async () => {
-    await page.locator('#collectionsContainer .select-checkbox input').first().check();
+    await page.locator('#collectionsContainer .cc-select-checkbox input').first().check();
   });
   await record(page, coverage);
   await hoverSweep(page, coverage, { quiet: true });
@@ -387,8 +389,8 @@ async function walkPanel(page, coverage) {
   // which the folder's collections — and the grid rules that keep them in list layout — are
   // rendered, which is exactly the CSS Phase 2/5 has to protect.
   await step('prepare grid view', async () => {
-    await page.locator('#collectionsContainer > .folder .expand-btn').first().click();
-    await card.locator('.expand-btn').click();
+    await page.locator('#collectionsContainer > .cc-folder .cc-expand-btn').first().click();
+    await card.locator('.cc-expand-btn').click();
     await card
       .locator('.tab-collection-tabs.ut-expanded')
       .waitFor({ state: 'detached', timeout: 3000 });
@@ -404,7 +406,7 @@ async function walkPanel(page, coverage) {
   // The collection menu in grid view: the grid flips its odd/even alignment, which the stylesheet
   // re-pins, so opening it here is what covers that rule.
   await step('open the collection menu in grid view', async () => {
-    await card.locator('.collection-menu-btn').click();
+    await card.locator('.cc-collection-menu-btn').click();
   });
   await record(page, coverage);
 
@@ -416,7 +418,7 @@ async function walkPanel(page, coverage) {
   // those tab rules.
   await step('expand a collection in grid view', async () => {
     await page.keyboard.press('Escape');
-    await card.locator('.expand-btn').click();
+    await card.locator('.cc-expand-btn').click();
     await page
       .locator('.dl-modal-overlay .dl-view-collection-modal')
       .waitFor({ state: 'visible', timeout: 5000 });

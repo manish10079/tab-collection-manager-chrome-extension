@@ -69,10 +69,10 @@ export function CollectionCard({
     },
   });
 
-  const classNames = ['collection'];
-  if (isCurrentSession) classNames.push('current-session-collection');
+  const classNames = ['cc-collection'];
+  if (isCurrentSession) classNames.push('cc-current-session-collection');
   if (collection.pinned && !isCurrentSession) classNames.push('ut-pinned');
-  if (isAutoSaveTarget) classNames.push('auto-save-target');
+  if (isAutoSaveTarget) classNames.push('cc-auto-save-target');
   if (isDragging) classNames.push('ut-dragging');
   if (isDragOver) classNames.push('ut-drag-over');
   if (isSelected) classNames.push('ut-selected');
@@ -83,7 +83,7 @@ export function CollectionCard({
 
   function handleHeaderClick(event) {
     if (event.target.tagName === 'INPUT') return;
-    if (event.target.closest('.collection-actions')) return;
+    if (event.target.closest('.cc-collection-actions')) return;
     toggleExpanded();
   }
 
@@ -115,10 +115,10 @@ export function CollectionCard({
       {/* Clicking anywhere in the header toggles the collection as a pointer convenience —
           the chevron button below is the keyboard-accessible control. */}
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-      <div className="collection-header" onClick={handleHeaderClick}>
-        <div className="collection-left-section">
+      <div className="cc-collection-header" onClick={handleHeaderClick}>
+        <div className="cc-collection-left-section">
           {selectionMode ? (
-            <label className="select-checkbox" title={`Select ${collection.name}`}>
+            <label className="cc-select-checkbox" title={`Select ${collection.name}`}>
               <input
                 type="checkbox"
                 checked={isSelected}
@@ -129,7 +129,7 @@ export function CollectionCard({
             </label>
           ) : null}
           <div
-            className="collection-drag-handle drag-handle"
+            className="cc-collection-drag-handle cc-drag-handle"
             title="Drag to reorder collection"
             {...handleProps}
           >
@@ -137,7 +137,7 @@ export function CollectionCard({
           </div>
           <button
             type="button"
-            className={`expand-btn${collection.isExpanded ? ' ut-rotated' : ''}`}
+            className={`cc-expand-btn${collection.isExpanded ? ' ut-rotated' : ''}`}
             aria-expanded={!!collection.isExpanded}
             aria-label={collection.isExpanded ? 'Collapse collection' : 'Expand collection'}
             onClick={(event) => {
@@ -150,7 +150,7 @@ export function CollectionCard({
           <input
             ref={nameRef}
             type="text"
-            className="collection-name"
+            className="cc-collection-name"
             value={name}
             maxLength={50}
             readOnly={isCurrentSession || !isEditingName}
@@ -165,18 +165,18 @@ export function CollectionCard({
           />
         </div>
 
-        <div className="collection-right-section">
-          <div className="collection-meta">
+        <div className="cc-collection-right-section">
+          <div className="cc-collection-meta">
             <span className="tab-count">{formatTabCount(collection.tabs.length)}</span>
-            <span className="meta-dot">•</span>
-            <span className="updated-time">{formatTime(collection.updatedAt)}</span>
+            <span className="cc-meta-dot">•</span>
+            <span className="cc-updated-time">{formatTime(collection.updatedAt)}</span>
           </div>
 
-          <div className="collection-actions" ref={menuRef}>
+          <div className="cc-collection-actions" ref={menuRef}>
             {isCurrentSession ? null : (
               <button
                 type="button"
-                className={`icon-btn pin-collection-btn${collection.pinned ? ' ut-pinned' : ''}`}
+                className={`icon-btn cc-pin-collection-btn${collection.pinned ? ' ut-pinned' : ''}`}
                 title={collection.pinned ? 'Unpin Collection' : 'Pin Collection'}
                 aria-pressed={!!collection.pinned}
                 onClick={() => actions.pinCollection(collection.id)}
@@ -187,7 +187,7 @@ export function CollectionCard({
 
             <button
               type="button"
-              className="icon-btn collection-menu-btn"
+              className="icon-btn cc-collection-menu-btn"
               title="Collection options"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
@@ -196,10 +196,10 @@ export function CollectionCard({
               <i className="fas fa-ellipsis-v" />
             </button>
 
-            <div className={`collection-dropdown-menu${menuOpen ? '' : ' ut-hidden'}`}>
+            <div className={`cc-collection-dropdown-menu${menuOpen ? '' : ' ut-hidden'}`}>
               <button
                 type="button"
-                className="dropdown-option open-all-tabs-btn"
+                className="dropdown-option cc-open-all-tabs-btn"
                 title="Open all tabs"
                 onClick={choose(() => actions.openAllTabs(collection.id))}
               >
@@ -208,7 +208,7 @@ export function CollectionCard({
               {isCurrentSession ? null : (
                 <button
                   type="button"
-                  className="dropdown-option edit-collection-btn"
+                  className="dropdown-option cc-edit-collection-btn"
                   title="Edit collection name"
                   onClick={choose(() => setDraftName(collection.name))}
                 >
@@ -218,7 +218,7 @@ export function CollectionCard({
               {isCurrentSession ? null : (
                 <button
                   type="button"
-                  className="dropdown-option add-tabs-btn"
+                  className="dropdown-option cc-add-tabs-btn"
                   title="Add tabs to the collection"
                   onClick={choose(() => actions.addTabs(collection.id))}
                 >
@@ -256,7 +256,7 @@ export function CollectionCard({
               ) : null}
               <button
                 type="button"
-                className="dropdown-option share-collection-btn"
+                className="dropdown-option cc-share-collection-btn"
                 title="Share collection"
                 onClick={choose(() => actions.copyCollectionLinks(collection))}
               >
@@ -265,7 +265,7 @@ export function CollectionCard({
               {isCurrentSession ? null : (
                 <button
                   type="button"
-                  className="dropdown-option delete-collection-btn"
+                  className="dropdown-option cc-delete-collection-btn"
                   title="Delete collection"
                   onClick={choose(() => actions.deleteCollection(collection.id))}
                 >

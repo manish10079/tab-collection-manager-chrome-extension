@@ -21,7 +21,7 @@
 }
 
 /* Collections */
-.collections-container {
+.cc-collections-container {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -29,7 +29,7 @@
 }
 
 /* Grid View Layout Styles */
-.collections-container.ut-grid-view {
+.cc-collections-container.ut-grid-view {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
@@ -47,24 +47,24 @@
   }
 }
 
-.collections-container.ut-grid-view .collection,
-.collections-container:not(.ut-grid-view) .collection {
+.cc-collections-container.ut-grid-view .cc-collection,
+.cc-collections-container:not(.ut-grid-view) .cc-collection {
   animation: cardLayoutChange 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-.collections-container.ut-grid-view .collection-header {
+.cc-collections-container.ut-grid-view .cc-collection-header {
   flex-direction: column;
   align-items: stretch;
   padding: 12px;
   gap: 8px;
 }
 
-.collections-container.ut-grid-view .collection-left-section {
+.cc-collections-container.ut-grid-view .cc-collection-left-section {
   width: 100%;
   gap: 8px;
 }
 
-.collections-container.ut-grid-view .collection-right-section {
+.cc-collections-container.ut-grid-view .cc-collection-right-section {
   width: 100%;
   justify-content: space-between;
   border-top: 1px solid var(--bg-translucent-normal);
@@ -72,18 +72,18 @@
   gap: 8px;
 }
 
-.collections-container.ut-grid-view .collection-name {
+.cc-collections-container.ut-grid-view .cc-collection-name {
   font-size: 14.5px;
   max-width: none;
   flex: 1;
 }
 
-.collections-container.ut-grid-view .collection-drag-handle {
+.cc-collections-container.ut-grid-view .cc-collection-drag-handle {
   font-size: 13px;
   width: 12px;
 }
 
-.collections-container.ut-grid-view .expand-btn {
+.cc-collections-container.ut-grid-view .cc-expand-btn {
   width: 28px;
   height: 28px;
   font-size: 12px;
@@ -91,17 +91,17 @@
 
 /* Phase 4 removed sixteen never-matched rules here: grid view has no inline tab panel, because
    expanding a card opens `GridCollectionModal`, which the modal portals into `#tcm-modal-root` —
-   outside `.collections-container`. So `.collections-container.ut-grid-view .tab-collection-tabs`,
+   outside `.cc-collections-container`. So `.cc-collections-container.ut-grid-view .tab-collection-tabs`,
    `.tab-collection-tab-search` and their `.tab-item` descendants could not match any element the panel
    renders; the coverage walk listed every one of them as never-matched. The rest of the grid rules
    above stay — they target the card itself, which is reachable (css-migration-plan.md, Phase 4). */
 
-.collections-container.ut-grid-view .collection:nth-child(odd) .collection-dropdown-menu {
+.cc-collections-container.ut-grid-view .cc-collection:nth-child(odd) .cc-collection-dropdown-menu {
   left: 0;
   right: auto;
 }
 
-.collections-container.ut-grid-view .collection:nth-child(odd) .tab-dropdown-menu {
+.cc-collections-container.ut-grid-view .cc-collection:nth-child(odd) .tab-dropdown-menu {
   left: auto;
   right: 0;
 }
@@ -128,7 +128,7 @@
   font-size: 15px;
 }
 
-.collection {
+.cc-collection {
   background: var(--bg-card);
   border-radius: var(--radius);
   border: 1px solid var(--border-card);
@@ -141,7 +141,7 @@
     background-color 0.25s;
 }
 
-.collection:hover {
+.cc-collection:hover {
   border-color: color-mix(in srgb, var(--accent) 40%, transparent);
   background: var(--bg-card-hover);
   box-shadow:
@@ -150,7 +150,7 @@
   /* Removed translateY(-2px) — it shifts the card up and causes dropdown flicker */
 }
 
-.current-session-collection {
+.cc-current-session-collection {
   border-left: 4px solid var(--success);
   background: linear-gradient(
     135deg,
@@ -160,7 +160,7 @@
   border-color: color-mix(in srgb, var(--success) 20%, transparent);
 }
 
-.current-session-collection:hover {
+.cc-current-session-collection:hover {
   background: linear-gradient(
     135deg,
     color-mix(in srgb, var(--success) 12%, transparent) 0%,
@@ -172,18 +172,18 @@
     0 0 20px color-mix(in srgb, var(--success) 15%, transparent);
 }
 
-.current-session-collection .collection-name {
+.cc-current-session-collection .cc-collection-name {
   color: var(--success);
   font-weight: 500;
   cursor: default;
 }
 
-.current-session-collection .collection-name:focus {
+.cc-current-session-collection .cc-collection-name:focus {
   border-color: transparent;
   box-shadow: none;
 }
 
-.auto-save-target {
+.cc-auto-save-target {
   border-left: 4px solid var(--accent);
   background: linear-gradient(
     135deg,
@@ -193,7 +193,7 @@
   border-color: color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
-.auto-save-target:hover {
+.cc-auto-save-target:hover {
   background: linear-gradient(
     135deg,
     color-mix(in srgb, var(--accent) 13%, transparent) 0%,
@@ -205,7 +205,7 @@
     0 0 20px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
-.collection-header {
+.cc-collection-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -215,7 +215,7 @@
   flex-wrap: wrap;
 }
 
-.collection-left-section {
+.cc-collection-left-section {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -223,14 +223,14 @@
   min-width: 0;
 }
 
-.collection-right-section {
+.cc-collection-right-section {
   display: flex;
   align-items: center;
   gap: 14px;
   flex-shrink: 0;
 }
 
-.expand-btn {
+.cc-expand-btn {
   background: var(--bg-translucent-subtle);
   border: 1px solid var(--bg-translucent-normal);
   color: var(--text-secondary);
@@ -252,17 +252,17 @@
   flex-shrink: 0;
 }
 
-.expand-btn:hover {
+.cc-expand-btn:hover {
   background: var(--bg-translucent-hover);
   border-color: var(--bg-translucent-strong);
   color: var(--text-primary);
 }
 
-.expand-btn.ut-rotated {
+.cc-expand-btn.ut-rotated {
   transform: rotate(90deg);
 }
 
-.collection-name {
+.cc-collection-name {
   background: transparent;
   border: 1px solid transparent;
   color: var(--text-secondary);
@@ -282,7 +282,7 @@
   overflow: hidden;
 }
 
-.collection-name:not([readonly]) {
+.cc-collection-name:not([readonly]) {
   cursor: text;
   pointer-events: auto;
   background: var(--bg-translucent-normal);
@@ -290,22 +290,22 @@
   color: var(--text-primary);
 }
 
-.collection-name:not([readonly]):focus {
+.cc-collection-name:not([readonly]):focus {
   outline: none;
   background: var(--border);
   border-color: var(--accent);
   color: var(--text-primary);
 }
 
-.collection-name[readonly]:focus {
+.cc-collection-name[readonly]:focus {
   outline: none;
 }
 
-.collection:hover .collection-name {
+.cc-collection:hover .cc-collection-name {
   color: var(--text-primary);
 }
 
-.collection-meta {
+.cc-collection-meta {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -316,18 +316,18 @@
   white-space: nowrap;
 }
 
-.collection-meta .updated-time,
-.collection-meta .meta-dot {
+.cc-collection-meta .cc-updated-time,
+.cc-collection-meta .cc-meta-dot {
   display: none;
 }
 
-.collection-actions {
+.cc-collection-actions {
   display: flex;
   gap: 6px;
   flex-shrink: 0;
 }
 
-.collection-actions .icon-btn {
+.cc-collection-actions .icon-btn {
   width: 28px;
   height: 28px;
   padding: 5px;
@@ -343,19 +343,19 @@
   justify-content: center;
 }
 
-.collection-actions .collection-menu-btn:hover {
+.cc-collection-actions .cc-collection-menu-btn:hover {
   background: var(--bg-translucent-hover);
   border-color: var(--bg-translucent-strong);
   color: var(--text-primary);
 }
 
 /* Dropdown style inside collection actions and tab menu container */
-.collection-actions,
+.cc-collection-actions,
 .tab-menu-container {
   position: relative;
 }
 
-.collection-dropdown-menu,
+.cc-collection-dropdown-menu,
 .tab-dropdown-menu {
   position: absolute;
   top: 100%;
@@ -382,7 +382,7 @@
   -webkit-backdrop-filter: none;
 }
 
-.collection-dropdown-menu.ut-hidden,
+.cc-collection-dropdown-menu.ut-hidden,
 .tab-dropdown-menu.ut-hidden {
   display: none;
 }
@@ -393,7 +393,7 @@
    `:has()` which menu is open, raise the whole card while focus is inside it: opening a menu
    focuses its button, and the menu closes — dropping that focus — when it does. The tab menu
    needs no rule of its own, because the raised card is itself the stacking context now. */
-.collection:focus-within {
+.cc-collection:focus-within {
   position: relative;
   z-index: 100;
 }
@@ -431,43 +431,43 @@
 }
 
 /* Hover effects for options in collection dropdown */
-.collection-dropdown-menu .open-all-tabs-btn:hover {
+.cc-collection-dropdown-menu .cc-open-all-tabs-btn:hover {
   background: rgba(78, 205, 196, 0.1);
   color: var(--success);
   border-color: rgba(78, 205, 196, 0.2);
 }
 
-.collection-dropdown-menu .edit-collection-btn:hover {
+.cc-collection-dropdown-menu .cc-edit-collection-btn:hover {
   background: var(--bg-translucent-hover);
   color: var(--text-primary);
   border-color: var(--bg-translucent-strong);
 }
 
-.collection-dropdown-menu .add-tabs-btn:hover {
+.cc-collection-dropdown-menu .cc-add-tabs-btn:hover {
   background: rgba(108, 99, 255, 0.1);
   color: var(--accent);
   border-color: rgba(108, 99, 255, 0.2);
 }
 
-.collection-dropdown-menu .share-collection-btn:hover {
+.cc-collection-dropdown-menu .cc-share-collection-btn:hover {
   background: rgba(108, 99, 255, 0.08);
   color: var(--accent-hover);
   border-color: rgba(108, 99, 255, 0.15);
 }
 
-.collection-dropdown-menu .delete-collection-btn:hover {
+.cc-collection-dropdown-menu .cc-delete-collection-btn:hover {
   background: rgba(255, 107, 139, 0.1);
   color: var(--danger);
   border-color: rgba(255, 107, 139, 0.2);
 }
 
 /* Drag and Drop Styling */
-.collection,
+.cc-collection,
 .tab-item {
   user-select: none;
 }
 
-.collection-header {
+.cc-collection-header {
   cursor: pointer;
 }
 
@@ -475,7 +475,7 @@
   cursor: default;
 }
 
-.drag-handle {
+.cc-drag-handle {
   cursor: grab;
   color: var(--bg-translucent-strong);
   display: flex;
@@ -487,25 +487,25 @@
   flex-shrink: 0;
 }
 
-.drag-handle i {
+.cc-drag-handle i {
   font-size: 14px;
 }
 
-.drag-handle:hover {
+.cc-drag-handle:hover {
   color: var(--text-primary);
 }
 
-.drag-handle:active {
+.cc-drag-handle:active {
   cursor: grabbing;
 }
 
-.collection.ut-dragging,
+.cc-collection.ut-dragging,
 .tab-item.ut-dragging {
   opacity: 0.4;
   border: 1px dashed var(--accent);
 }
 
-.collection.ut-drag-over {
+.cc-collection.ut-drag-over {
   border: 2px dashed var(--accent);
   transform: scale(1.01);
   box-shadow: 0 4px 20px rgba(108, 99, 255, 0.2);
@@ -518,7 +518,7 @@
 }
 
 /* Pinning Feature Styles */
-.collection-actions .pin-collection-btn {
+.cc-collection-actions .cc-pin-collection-btn {
   width: 28px;
   height: 28px;
   border-radius: 9px;
@@ -529,26 +529,26 @@
   color: var(--text-secondary);
 }
 
-.collection-actions .pin-collection-btn:hover {
+.cc-collection-actions .cc-pin-collection-btn:hover {
   background: var(--bg-translucent-hover);
   border-color: var(--bg-translucent-strong);
   color: var(--text-primary);
 }
 
-.collection-actions .pin-collection-btn.ut-pinned {
+.cc-collection-actions .cc-pin-collection-btn.ut-pinned {
   color: var(--danger); /* Premium Amber */
   background: color-mix(in srgb, var(--warning) 15%, transparent);
   border-color: color-mix(in srgb, var(--warning) 35%, transparent);
   opacity: 1;
 }
 
-.collection-actions .pin-collection-btn.ut-pinned:hover {
+.cc-collection-actions .cc-pin-collection-btn.ut-pinned:hover {
   color: var(--danger);
   background: color-mix(in srgb, var(--warning) 25%, transparent);
   border-color: color-mix(in srgb, var(--warning) 50%, transparent);
 }
 
-.collection.ut-pinned {
+.cc-collection.ut-pinned {
   border-color: color-mix(in srgb, var(--warning) 25%, transparent);
   background: linear-gradient(
     to right,

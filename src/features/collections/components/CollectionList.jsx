@@ -62,7 +62,7 @@ export function CollectionList({
       ) : (
         <>
           {hasFolders ? (
-            <h2 className="section-heading folders-heading" id="foldersHeading">
+            <h2 className="cc-section-heading folders-heading" id="foldersHeading">
               <SectionToggle
                 label="Folders"
                 count={folders.length}
@@ -94,7 +94,7 @@ export function CollectionList({
           <RootDropZone collections={collections} actions={actions} />
 
           {hasFolders && root.length > 0 ? (
-            <h2 className="section-heading collections-heading" id="collectionsHeading">
+            <h2 className="cc-section-heading collections-heading" id="collectionsHeading">
               <SectionToggle
                 label="Collections"
                 count={root.length}

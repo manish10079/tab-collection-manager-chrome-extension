@@ -91,7 +91,7 @@ export function TabRow({ tab, number, collection, actions }) {
       {...dragProps}
       {...dropProps}
     >
-      <div className="tab-drag-handle drag-handle" title="Drag to reorder tab" {...handleProps}>
+      <div className="tab-drag-handle cc-drag-handle" title="Drag to reorder tab" {...handleProps}>
         <i className="fas fa-grip-vertical" />
       </div>
       <span className="tab-number">{number}</span>

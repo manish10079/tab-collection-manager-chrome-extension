@@ -29,7 +29,7 @@ describe('App', () => {
   it('renders collections from storage with Current Session first', async () => {
     await renderApp({ [STORAGE_KEYS.collections]: COLLECTIONS });
 
-    const cards = document.querySelectorAll('.collection');
+    const cards = document.querySelectorAll('.cc-collection');
     expect(cards).toHaveLength(2);
     expect(cards[0].dataset.id).toBe(CURRENT_SESSION_ID);
     expect(cards[1].dataset.id).toBe('c1');
@@ -63,7 +63,7 @@ describe('App', () => {
 
     expect(document.querySelector('.dl-modal-overlay .dl-view-collection-modal')).toBeTruthy();
     // In grid view the card itself renders no tab panel.
-    expect(document.querySelector('.collection[data-id="c1"] .tab-collection-tabs')).toBeNull();
+    expect(document.querySelector('.cc-collection[data-id="c1"] .tab-collection-tabs')).toBeNull();
   });
 
   it('applies the persisted theme to the document', async () => {
@@ -125,6 +125,6 @@ describe('App', () => {
       });
     });
 
-    expect(document.querySelector('.collection[data-id="c1"] input').value).toBe('Renamed');
+    expect(document.querySelector('.cc-collection[data-id="c1"] input').value).toBe('Renamed');
   });
 });

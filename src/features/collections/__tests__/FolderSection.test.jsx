@@ -39,12 +39,12 @@ describe('FolderSection', () => {
     expect(screen.getByDisplayValue('Work')).toBeTruthy();
     expect(screen.getByDisplayValue('Alpha')).toBeTruthy();
 
-    const summary = view.container.querySelector('.folder-body .folder-summary');
+    const summary = view.container.querySelector('.cc-folder-body .cc-folder-summary');
     expect(summary).toBeTruthy();
     expect(summary.textContent).toContain('1 collection');
     expect(summary.textContent).toContain('0 tabs');
     // The header is a single compact row: the counts no longer live there.
-    expect(view.container.querySelector('.folder-header .folder-summary')).toBeNull();
+    expect(view.container.querySelector('.cc-folder-header .cc-folder-summary')).toBeNull();
   });
 
   it('shows a hint instead of a body for an empty folder', () => {
