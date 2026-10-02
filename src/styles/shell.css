@@ -111,6 +111,55 @@
   text-align: center;
 }
 
+/* Grid view with folders. panel.css styles the grid cards with `.collections-container.grid-view
+   .collection`, a descendant selector that also matches collections nested inside a folder, so
+   they would inherit the stacked grid-card header. A folder spans the whole grid as a section and
+   the collections inside it keep the normal list appearance; these rules out-specify the grid
+   ones (four classes to three), so they win regardless of stylesheet order. */
+.collections-container.grid-view .folder {
+  grid-column: 1 / -1;
+}
+
+.collections-container.grid-view .folder-body .collection-header {
+  flex-direction: row;
+  align-items: center;
+  padding: 8px 14px;
+  gap: 12px;
+}
+
+.collections-container.grid-view .folder-body .collection-left-section {
+  width: auto;
+  gap: 10px;
+}
+
+.collections-container.grid-view .folder-body .collection-right-section {
+  width: auto;
+  border-top: none;
+  padding-top: 0;
+  gap: 14px;
+}
+
+.collections-container.grid-view .folder-body .collection-name {
+  font-size: 17.5px;
+  max-width: 320px;
+}
+
+.collections-container.grid-view .folder-body .collection-drag-handle {
+  width: 18px;
+}
+
+.collections-container.grid-view .folder-body .expand-btn {
+  font-size: 14px;
+}
+
+/* The grid's odd/even dropdown flip counts the folder among its siblings, which would misalign a
+   nested card's menu; keep it right-aligned like every other list row. */
+.collections-container.grid-view .folder-body .collection-dropdown-menu,
+.collections-container.grid-view .folder-body .tab-dropdown-menu {
+  left: auto;
+  right: 0;
+}
+
 .dropdown-section-label {
   padding: 6px 12px 2px;
   color: var(--text-secondary);

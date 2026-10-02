@@ -359,3 +359,40 @@ test('creates a folder and keeps its options menu on top of the empty card', asy
   await folder.getByRole('button', { name: 'Remove folder' }).click();
   await expect(panel.locator('#collectionsContainer > .folder')).toHaveCount(0);
 });
+
+test('keeps a folder’s collections in list layout in grid view', async ({ panel }) => {
+  await createCollection(panel, 'E2E Root');
+  await createCollection(panel, 'E2E Foldered');
+  await panel.locator('#createFolderBtn').click();
+  const folder = panel.locator('#collectionsContainer > .folder').first();
+
+  // Move the collection into the folder through its card menu.
+  const card = await cardFor(panel, 'E2E Foldered');
+  await card.locator('.collection-menu-btn').click();
+  await card.locator('.move-to-folder-btn').first().click();
+  await expect(folder.locator('.folder-body .collection-name')).toHaveValue('E2E Foldered');
+
+  await panel.locator('#toggleLayoutBtn').click();
+  await expect(panel.locator('#collectionsContainer')).toHaveClass(/grid-view/);
+
+  // A root card stacks its header into the grid-card shape…
+  const rootDirection = await panel
+    .locator('#collectionsContainer > .collection .collection-header')
+    .first()
+    .evaluate((el) => getComputedStyle(el).flexDirection);
+  expect(rootDirection).toBe('column');
+
+  // …while a collection inside a folder keeps the row layout it has in list view.
+  const nestedDirection = await folder
+    .locator('.folder-body .collection-header')
+    .evaluate((el) => getComputedStyle(el).flexDirection);
+  expect(nestedDirection).toBe('row');
+
+  // And the folder spans the whole grid rather than a single column.
+  const spansBothColumns = await folder.evaluate((el) => {
+    const rootCard = el.parentElement?.querySelector(':scope > .collection');
+    if (!rootCard) return false;
+    return el.getBoundingClientRect().width > rootCard.getBoundingClientRect().width + 20;
+  });
+  expect(spansBothColumns).toBe(true);
+});
