@@ -19,13 +19,13 @@ export function ShortcutsHelpModal({ onClose }) {
     <Modal
       title="Keyboard Shortcuts"
       icon="fa-keyboard"
-      className="shortcuts-help-modal"
-      bodyClassName="shortcuts-help-body"
-      footerClassName="shortcuts-help-footer"
+      className="set-shortcuts-help-modal"
+      bodyClassName="set-shortcuts-help-body"
+      footerClassName="set-shortcuts-help-footer"
       zIndex={3000}
       onClose={onClose}
       footer={
-        <span className="shortcuts-help-hint">
+        <span className="set-shortcuts-help-hint">
           <i className="fas fa-lightbulb" /> Tip: press <kbd>?</kbd> anytime to see these shortcuts
         </span>
       }

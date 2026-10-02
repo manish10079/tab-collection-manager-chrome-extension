@@ -252,13 +252,13 @@ export function useShellController({ toast }) {
 
       const targetId = target.dataset.id;
       scrollIntoView(target, { behavior: 'smooth', block: 'nearest' });
-      target.classList.add('shortcut-jump-highlight');
+      target.classList.add('set-shortcut-jump-highlight');
       // Re-query by id when removing, so the highlight survives a re-render in between.
       setTimeout(() => {
         const el = document.querySelector(
           `#collectionsContainer > .collection[data-id="${targetId}"]`
         );
-        if (el) el.classList.remove('shortcut-jump-highlight');
+        if (el) el.classList.remove('set-shortcut-jump-highlight');
       }, 1200);
     },
     [toast]

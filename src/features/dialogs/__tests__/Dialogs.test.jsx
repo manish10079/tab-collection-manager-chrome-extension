@@ -174,7 +174,7 @@ describe('ShortcutsHelpModal', () => {
     render(<ShortcutsHelpModal onClose={onClose} />);
 
     expect(screen.getAllByText('Show shortcuts help')).toHaveLength(1);
-    expect(document.querySelectorAll('.shortcut-row')).toHaveLength(SHORTCUTS.length);
+    expect(document.querySelectorAll('.set-shortcut-row')).toHaveLength(SHORTCUTS.length);
 
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(1);

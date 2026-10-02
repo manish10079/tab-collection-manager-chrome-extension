@@ -321,7 +321,7 @@ test('opens the history and settings dialogs, and returns focus when each closes
   await expect(settings).toBeVisible();
 
   // The switch is a checkbox behind a zero-size input, so click its visible track.
-  await settings.locator('label.toggle-switch:has(#lightModeToggle) .toggle-track').click();
+  await settings.locator('label.set-toggle-switch:has(#lightModeToggle) .set-toggle-track').click();
   await expect(settings.locator('#lightModeToggle')).toBeChecked();
   await expect(panel.locator('html')).toHaveAttribute('data-theme', 'light');
 

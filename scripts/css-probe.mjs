@@ -125,12 +125,12 @@ const PROBES = [
   '.dl-modal-overlay',
   '.dl-modal',
   '.dl-modal-header',
-  '.settings-modal',
-  '.settings-card',
-  '.settings-row',
-  '.toggle-input',
-  '.toggle-track',
-  '.toggle-thumb',
+  '.set-settings-modal',
+  '.set-settings-card',
+  '.set-settings-row',
+  '.set-toggle-input',
+  '.set-toggle-track',
+  '.set-toggle-thumb',
   '.dl-history-modal',
   '.ts-toast',
   '.footer-btn-container',
@@ -530,7 +530,9 @@ async function walkPanel(page, capture) {
     await page.locator('#settingsBtn').click();
     const settings = dialog('Settings');
     await settings.waitFor({ state: 'visible', timeout: PANEL_TIMEOUT_MS });
-    await settings.locator('label.toggle-switch:has(#lightModeToggle) .toggle-track').click();
+    await settings
+      .locator('label.set-toggle-switch:has(#lightModeToggle) .set-toggle-track')
+      .click();
     await page.locator('html[data-theme="light"]').waitFor({ state: 'attached', timeout: 3000 });
   });
   await capture('settings-light');

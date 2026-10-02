@@ -8,10 +8,10 @@ import { SHORTCUTS } from '../shared/shortcuts.js';
  */
 export function ShortcutGrid() {
   return (
-    <div className="shortcut-grid">
+    <div className="set-shortcut-grid">
       {SHORTCUTS.map((shortcut) => (
-        <div className="shortcut-row" key={shortcut.description}>
-          <span className="shortcut-keys">
+        <div className="set-shortcut-row" key={shortcut.description}>
+          <span className="set-shortcut-keys">
             {shortcut.keys.map((key, index) => (
               <span key={`${shortcut.description}-${key}`}>
                 {index > 0 ? ' + ' : null}
@@ -19,7 +19,7 @@ export function ShortcutGrid() {
               </span>
             ))}
           </span>
-          <span className="shortcut-desc">{shortcut.description}</span>
+          <span className="set-shortcut-desc">{shortcut.description}</span>
         </div>
       ))}
     </div>

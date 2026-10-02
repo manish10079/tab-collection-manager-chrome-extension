@@ -450,14 +450,18 @@ async function walkPanel(page, coverage) {
 
   await step('light theme', async () => {
     const settings = dialog('Settings');
-    await settings.locator('label.toggle-switch:has(#lightModeToggle) .toggle-track').click();
+    await settings
+      .locator('label.set-toggle-switch:has(#lightModeToggle) .set-toggle-track')
+      .click();
     await page.locator('html[data-theme="light"]').waitFor({ state: 'attached', timeout: 3000 });
   });
   await record(page, coverage);
 
   await step('back to the dark theme', async () => {
     const settings = dialog('Settings');
-    await settings.locator('label.toggle-switch:has(#lightModeToggle) .toggle-track').click();
+    await settings
+      .locator('label.set-toggle-switch:has(#lightModeToggle) .set-toggle-track')
+      .click();
   });
   await record(page, coverage);
 
@@ -465,7 +469,7 @@ async function walkPanel(page, coverage) {
   await step('settings limits', async () => {
     const settings = dialog('Settings');
     const enforce = settings.locator(
-      'label.toggle-switch:has(#enforceMaxPinnedCollectionsToggle) .toggle-track'
+      'label.set-toggle-switch:has(#enforceMaxPinnedCollectionsToggle) .set-toggle-track'
     );
     await settings.locator('#maxPinnedCollectionsInput').focus();
     await record(page, coverage);
@@ -473,7 +477,7 @@ async function walkPanel(page, coverage) {
     // The group gets its `disabled` class once the store write round-trips, so wait for it rather
     // than sampling the frame before the re-render.
     await page
-      .locator('.limit-input-group.ut-disabled')
+      .locator('.set-limit-input-group.ut-disabled')
       .waitFor({ state: 'attached', timeout: 3000 });
     await record(page, coverage);
     await enforce.click(); // Back to the default so the rest of the walk is undisturbed.

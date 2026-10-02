@@ -19,20 +19,20 @@
 export function SettingsRow({ icon, label, description, badge, title, children, below }) {
   return (
     <>
-      <div className="settings-row" title={title}>
-        <div className="settings-row-left">
-          <div className="settings-row-icon">
+      <div className="set-settings-row" title={title}>
+        <div className="set-settings-row-left">
+          <div className="set-settings-row-icon">
             <i className={icon} />
           </div>
-          <div className="settings-row-text">
-            <span className="settings-row-label">
+          <div className="set-settings-row-text">
+            <span className="set-settings-row-label">
               {label}
               {badge ? <span className="ram-saver-badge">{badge}</span> : null}
             </span>
-            <span className="settings-row-desc">{description}</span>
+            <span className="set-settings-row-desc">{description}</span>
           </div>
         </div>
-        {children ? <div className="settings-row-right">{children}</div> : null}
+        {children ? <div className="set-settings-row-right">{children}</div> : null}
       </div>
       {below}
     </>

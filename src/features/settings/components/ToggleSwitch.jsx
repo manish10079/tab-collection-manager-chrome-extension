@@ -16,18 +16,18 @@
  */
 export function ToggleSwitch({ id, label, checked, onChange, disabled = false }) {
   return (
-    <label className="toggle-switch">
+    <label className="set-toggle-switch">
       <input
         type="checkbox"
         id={id}
-        className="toggle-input"
+        className="set-toggle-input"
         aria-label={label}
         checked={checked}
         disabled={disabled}
         onChange={(event) => onChange(event.target.checked)}
       />
-      <span className="toggle-track">
-        <span className="toggle-thumb" />
+      <span className="set-toggle-track">
+        <span className="set-toggle-thumb" />
       </span>
     </label>
   );

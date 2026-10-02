@@ -36,11 +36,11 @@ export function LimitInput({ id, label, value, min, max, disabled, onCommit }) {
   }
 
   return (
-    <div className={`limit-input-group${disabled ? ' ut-disabled' : ''}`}>
+    <div className={`set-limit-input-group${disabled ? ' ut-disabled' : ''}`}>
       <input
         type="number"
         id={id}
-        className="limit-input"
+        className="set-limit-input"
         aria-label={label}
         min={min}
         max={max}
@@ -51,7 +51,7 @@ export function LimitInput({ id, label, value, min, max, disabled, onCommit }) {
           if (event.key === 'Enter') event.currentTarget.blur();
         }}
       />
-      <span className="limit-label">max</span>
+      <span className="set-limit-label">max</span>
     </div>
   );
 }

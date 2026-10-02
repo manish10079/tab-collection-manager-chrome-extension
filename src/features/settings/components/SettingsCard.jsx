@@ -14,15 +14,15 @@
  */
 export function SettingsCard({ icon, title, badge, children }) {
   return (
-    <div className="settings-card">
-      <div className="settings-card-header">
-        <i className={`fas ${icon} settings-card-icon`} />
+    <div className="set-settings-card">
+      <div className="set-settings-card-header">
+        <i className={`fas ${icon} set-settings-card-icon`} />
         <span>
           {title}
           {badge ? <span className="ram-saver-badge">{badge}</span> : null}
         </span>
       </div>
-      <div className="settings-card-body">{children}</div>
+      <div className="set-settings-card-body">{children}</div>
     </div>
   );
 }

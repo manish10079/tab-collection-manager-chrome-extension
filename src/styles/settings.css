@@ -13,7 +13,7 @@
    MATERIAL 3 SETTINGS MODAL
    ============================================================ */
 
-.settings-modal-body {
+.set-settings-modal-body {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -22,7 +22,7 @@
 }
 
 /* Settings Cards - Material 3 elevated surface */
-.settings-card {
+.set-settings-card {
   background: var(--bg-translucent-subtle);
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -32,11 +32,11 @@
     box-shadow 0.2s ease;
 }
 
-.settings-card:hover {
+.set-settings-card:hover {
   border-color: color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
-.settings-card-header {
+.set-settings-card-header {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -50,24 +50,24 @@
   opacity: 0.8;
 }
 
-.settings-card-icon {
+.set-settings-card-icon {
   font-size: 11px;
   opacity: 0.9;
 }
 
-.settings-card-body {
+.set-settings-card-body {
   padding: 4px 0;
 }
 
 /* ── Keyboard Shortcuts card ─────────────────────────────── */
-.shortcut-grid {
+.set-shortcut-grid {
   padding: 8px 16px 12px;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.shortcut-row {
+.set-shortcut-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -76,18 +76,18 @@
   border-bottom: 1px dashed var(--border);
 }
 
-.shortcut-row:last-child {
+.set-shortcut-row:last-child {
   border-bottom: none;
 }
 
-.shortcut-keys {
+.set-shortcut-keys {
   display: flex;
   align-items: center;
   gap: 5px;
   flex-shrink: 0;
 }
 
-.shortcut-keys kbd {
+.set-shortcut-keys kbd {
   display: inline-block;
   min-width: 26px;
   padding: 2px 8px;
@@ -103,30 +103,30 @@
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
 }
 
-.shortcut-desc {
+.set-shortcut-desc {
   font-size: 12px;
   color: var(--text-secondary);
   text-align: right;
 }
 
 /* ── Shortcuts Help modal ─────────────────────────────────── */
-.shortcuts-help-modal {
+.set-shortcuts-help-modal {
   max-width: 420px;
 }
 
-.shortcuts-help-body {
+.set-shortcuts-help-body {
   padding: 8px 20px 16px;
   min-height: auto;
   max-height: 60vh;
   overflow-y: auto;
 }
 
-.shortcuts-help-footer {
+.set-shortcuts-help-footer {
   justify-content: center;
   padding: 12px 20px;
 }
 
-.shortcuts-help-hint {
+.set-shortcuts-help-hint {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -134,13 +134,13 @@
   color: var(--text-secondary);
 }
 
-.shortcuts-help-hint i {
+.set-shortcuts-help-hint i {
   color: var(--accent);
   opacity: 0.9;
 }
 
 /* ── Jump-to-collection highlight (1-9 shortcut) ─────────── */
-.collection.shortcut-jump-highlight {
+.collection.set-shortcut-jump-highlight {
   border-color: color-mix(in srgb, var(--accent) 55%, transparent);
   box-shadow:
     0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent),
@@ -161,7 +161,7 @@
 }
 
 /* Settings Rows inside cards */
-.settings-row {
+.set-settings-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -171,15 +171,15 @@
   border-bottom: 1px solid var(--border);
 }
 
-.settings-row:last-child {
+.set-settings-row:last-child {
   border-bottom: none;
 }
 
-.settings-row:hover {
+.set-settings-row:hover {
   background: var(--bg-translucent-normal);
 }
 
-.settings-row-left {
+.set-settings-row-left {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -187,7 +187,7 @@
   min-width: 0;
 }
 
-.settings-row-icon {
+.set-settings-row-icon {
   width: 32px;
   height: 32px;
   display: flex;
@@ -206,7 +206,7 @@
     background 0.2s ease;
 }
 
-.settings-row-icon i {
+.set-settings-row-icon i {
   font-size: 13px;
   color: var(--accent);
   line-height: 1;
@@ -215,7 +215,7 @@
   justify-content: center;
 }
 
-.settings-row:hover .settings-row-icon {
+.set-settings-row:hover .set-settings-row-icon {
   transform: scale(1.05);
   background: linear-gradient(
     135deg,
@@ -224,14 +224,14 @@
   );
 }
 
-.settings-row-text {
+.set-settings-row-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
 
-.settings-row-label {
+.set-settings-row-label {
   font-size: 13.5px;
   font-weight: 500;
   color: var(--text-primary);
@@ -240,7 +240,7 @@
   gap: 6px;
 }
 
-.settings-row-desc {
+.set-settings-row-desc {
   font-size: 11px;
   color: var(--text-secondary);
   opacity: 0.75;
@@ -249,7 +249,7 @@
   text-overflow: ellipsis;
 }
 
-.settings-row-right {
+.set-settings-row-right {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -257,7 +257,7 @@
 }
 
 /* Action buttons row in settings */
-.settings-row-actions {
+.set-settings-row-actions {
   padding: 10px 16px 12px;
   gap: 8px;
   justify-content: flex-start;
@@ -269,7 +269,7 @@
    MATERIAL 3 TOGGLE SWITCH
    ============================================================ */
 
-.toggle-switch {
+.set-toggle-switch {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -277,7 +277,7 @@
   flex-shrink: 0;
 }
 
-.toggle-input {
+.set-toggle-input {
   position: absolute;
   opacity: 0;
   width: 0;
@@ -286,7 +286,7 @@
   padding: 0;
 }
 
-.toggle-track {
+.set-toggle-track {
   position: relative;
   width: 48px;
   height: 26px;
@@ -299,7 +299,7 @@
   flex-shrink: 0;
 }
 
-.toggle-thumb {
+.set-toggle-thumb {
   width: 20px;
   height: 20px;
   background: var(--text-primary);
@@ -313,34 +313,34 @@
 }
 
 /* Checked state */
-.toggle-input:checked + .toggle-track {
+.set-toggle-input:checked + .set-toggle-track {
   background: var(--accent);
 }
 
-.toggle-input:checked + .toggle-track .toggle-thumb {
+.set-toggle-input:checked + .set-toggle-track .set-toggle-thumb {
   transform: translateX(22px);
   background: #ffffff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* Hover state */
-.toggle-switch:hover .toggle-track {
+.set-toggle-switch:hover .set-toggle-track {
   background: var(--bg-translucent-strong);
   filter: brightness(1.2);
 }
 
-.toggle-switch:hover .toggle-input:checked + .toggle-track {
+.set-toggle-switch:hover .set-toggle-input:checked + .set-toggle-track {
   filter: brightness(1.15);
 }
 
 /* Focus-visible ring for keyboard navigation */
-.toggle-input:focus-visible + .toggle-track {
+.set-toggle-input:focus-visible + .set-toggle-track {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
 /* Disabled state */
-.toggle-input:disabled + .toggle-track {
+.set-toggle-input:disabled + .set-toggle-track {
   opacity: 0.4;
   cursor: not-allowed;
 }
@@ -349,7 +349,7 @@
    LIMIT INPUT GROUP (used with toggles)
    ============================================================ */
 
-.limit-input-group {
+.set-limit-input-group {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -358,12 +358,12 @@
     transform 0.2s ease;
 }
 
-.limit-input-group.ut-disabled {
+.set-limit-input-group.ut-disabled {
   opacity: 0.3;
   pointer-events: none;
 }
 
-.limit-label {
+.set-limit-label {
   font-size: 10px;
   color: var(--text-secondary);
   font-weight: 600;
@@ -371,7 +371,7 @@
   letter-spacing: 0.5px;
 }
 
-.limit-input {
+.set-limit-input {
   width: 48px;
   height: 28px;
   padding: 2px 4px;
@@ -386,31 +386,31 @@
   font-weight: 600;
 }
 
-.limit-input:focus {
+.set-limit-input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
   background: var(--bg-translucent-hover);
 }
 
 /* Chrome, Safari, Edge, Opera: Remove spin buttons from number input */
-.limit-input::-webkit-outer-spin-button,
-.limit-input::-webkit-inner-spin-button {
+.set-limit-input::-webkit-outer-spin-button,
+.set-limit-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
 /* Firefox: Remove spin buttons */
-.limit-input[type='number'] {
+.set-limit-input[type='number'] {
   -moz-appearance: textfield;
 }
 
 /* ===== Settings Modal specific ===== */
-.settings-modal {
+.set-settings-modal {
   max-width: 420px;
 }
 
 /* ===== Cloud Backup Buttons ===== */
-.cloud-backup-btn {
+.set-cloud-backup-btn {
   padding: 8px 14px;
   font-size: 11.5px;
   font-weight: 600;
@@ -418,12 +418,12 @@
   white-space: nowrap;
 }
 
-.cloud-backup-btn:disabled {
+.set-cloud-backup-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.settings-row-actions {
+.set-settings-row-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;

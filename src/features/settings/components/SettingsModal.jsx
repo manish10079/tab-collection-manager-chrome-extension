@@ -35,8 +35,8 @@ export function SettingsModal({ onClose, actions }) {
     <Modal
       title="Settings"
       icon="fa-sliders-h"
-      className="settings-modal"
-      bodyClassName="settings-modal-body"
+      className="set-settings-modal"
+      bodyClassName="set-settings-modal-body"
       onClose={onClose}
     >
       <SettingsCard icon="fa-clock" title="Session">

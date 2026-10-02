@@ -65,10 +65,10 @@ export function GDriveSection({ actions }) {
       ) : null}
 
       {status.enabled ? (
-        <div className="settings-row-actions">
+        <div className="set-settings-row-actions">
           <button
             type="button"
-            className="btn-secondary cloud-backup-btn"
+            className="btn-secondary set-cloud-backup-btn"
             disabled={busy !== null}
             onClick={gdrive.backupNow}
           >
@@ -79,7 +79,7 @@ export function GDriveSection({ actions }) {
           </button>
           <button
             type="button"
-            className="btn-secondary cloud-backup-btn"
+            className="btn-secondary set-cloud-backup-btn"
             disabled={busy !== null}
             onClick={() => {
               if (
@@ -98,7 +98,7 @@ export function GDriveSection({ actions }) {
           </button>
           <button
             type="button"
-            className="btn-outline cloud-backup-btn"
+            className="btn-outline set-cloud-backup-btn"
             disabled={busy !== null}
             onClick={() => {
               if (!confirm('Disconnect Google Drive? This will remove the backup from Drive.'))
