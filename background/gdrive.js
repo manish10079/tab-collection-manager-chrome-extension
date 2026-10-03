@@ -12,6 +12,7 @@ import {
   TIMING,
 } from './constants.js';
 import { getState, updateState } from './state.js';
+import { isBuiltInColor, normalizeCustomColors } from '../src/lib/colors.js';
 import { CURRENT_SESSION_ID } from '../src/shared/storage-keys.js';
 
 /**
@@ -102,6 +103,9 @@ export async function buildBackupPayload() {
     version: api.runtime.getManifest().version,
     collections: state.collections,
     folders: state.folders,
+    // The custom colour palette travels with the collections so the labels keep meaning the same
+    // thing on the other machine; the labels themselves are `color` on each collection/folder.
+    customColors: state.customColors || [],
     sessionHistory: (state.sessionHistory || []).slice(0, 50),
     settings: {
       autoSaveCollectionId: state.autoSaveCollectionId,
@@ -272,6 +276,16 @@ export async function restoreFromGDrive() {
     // Folders travel with the backup; an older backup without them keeps the live folders.
     if (Array.isArray(restoredData.folders)) state.folders = restoredData.folders;
 
+    // The colour palette travels with the backup; sanitize it, then drop any label that does not
+    // resolve against it or the built-ins, so a restore cannot leave a dangling colour reference.
+    if (Array.isArray(restoredData.customColors)) {
+      state.customColors = normalizeCustomColors(restoredData.customColors);
+    }
+    const palette = state.customColors || [];
+    const knownColor = (colorId) =>
+      typeof colorId === 'string' &&
+      (isBuiltInColor(colorId) || palette.some((color) => color.id === colorId));
+
     // Keep the live Current Session; drop any Current Session from the backup.
     const liveSession = state.collections.find((c) => c.id === CURRENT_SESSION_ID);
     const newCollections = restoredData.collections.filter((c) => c.id !== CURRENT_SESSION_ID);
@@ -282,6 +296,10 @@ export async function restoreFromGDrive() {
     const folderIds = new Set(state.folders.map((folder) => folder.id));
     for (const collection of state.collections) {
       if (collection.folderId && !folderIds.has(collection.folderId)) collection.folderId = null;
+      if (collection.color && !knownColor(collection.color)) collection.color = null;
+    }
+    for (const folder of state.folders) {
+      if (folder.color && !knownColor(folder.color)) folder.color = null;
     }
 
     // A restored auto-save id may point at a collection that is not on this device.

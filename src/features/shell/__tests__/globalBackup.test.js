@@ -4,6 +4,7 @@ import { CURRENT_SESSION_ID } from '../../../shared/storage-keys.js';
 import {
   buildCollectionsExport,
   extractImportedCollections,
+  extractImportedCustomColors,
   extractImportedFolders,
   isValidImportedCollection,
   mergeImportedCollections,
@@ -26,22 +27,47 @@ function importedTab(id, title = id, url = `https://${id}.test`, pinned = false)
 }
 
 describe('buildCollectionsExport', () => {
-  it('wraps the collections and folders with an export timestamp', () => {
+  it('wraps the collections, folders and palette with an export timestamp', () => {
     const collections = [{ id: 'a', name: 'A', tabs: [] }];
     const folders = [{ id: 'f1', name: 'Work' }];
+    const palette = [{ id: 'custom-1', name: 'Ocean', value: '#0088ff' }];
     const payload = buildCollectionsExport(
       collections,
       folders,
+      palette,
       new Date('2026-10-01T12:00:00.000Z')
     );
 
     expect(payload.exportedAt).toBe('2026-10-01T12:00:00.000Z');
     expect(payload.collections).toBe(collections);
     expect(payload.folders).toBe(folders);
+    expect(payload.customColors).toBe(palette);
   });
 
-  it('defaults the folders to an empty list', () => {
-    expect(buildCollectionsExport([], undefined).folders).toEqual([]);
+  it('defaults the folders and palette to empty lists', () => {
+    const payload = buildCollectionsExport([], undefined);
+
+    expect(payload.folders).toEqual([]);
+    expect(payload.customColors).toEqual([]);
+  });
+});
+
+describe('extractImportedCustomColors', () => {
+  it('reads and sanitizes the palette from an export object', () => {
+    expect(
+      extractImportedCustomColors({
+        customColors: [
+          { id: 'c1', name: 'Ocean', value: '#00FF88' },
+          { id: '', name: 'bad' },
+        ],
+      })
+    ).toEqual([{ id: 'c1', name: 'Ocean', value: '#00ff88' }]);
+  });
+
+  it('returns an empty list for a bare array or a missing field', () => {
+    expect(extractImportedCustomColors([{ name: 'A', tabs: [] }])).toEqual([]);
+    expect(extractImportedCustomColors({ collections: [] })).toEqual([]);
+    expect(extractImportedCustomColors(null)).toEqual([]);
   });
 });
 
@@ -226,6 +252,97 @@ describe('mergeImportedCollections', () => {
     mergeImportedCollections(target, [{ name: 'Alpha', tabs: [importedTab('t1')] }]);
 
     expect(target.collections[0].id).toBe(CURRENT_SESSION_ID);
+  });
+});
+
+/**
+ * Colour labels and the custom palette through export/import. A label is shared across folders and
+ * collections, and a custom label is only meaningful against the palette that defines it, so the
+ * palette has to travel with the file and the label has to be remapped onto the merged palette.
+ */
+describe('mergeImportedCollections colours', () => {
+  const sun = { id: 'custom-1', name: 'Sunset', value: '#ff8800' };
+
+  it('imports the palette and restores labels on new folders and collections', () => {
+    const target = draft();
+    mergeImportedCollections(
+      target,
+      [{ name: 'Blue one', tabs: [], color: 'blue' }],
+      [{ id: 'f1', name: 'Work', color: 'custom-1' }],
+      [sun]
+    );
+
+    expect(target.settings.customColors).toEqual([sun]);
+    expect(target.folders[0].color).toBe('custom-1');
+    expect(target.collections[0].color).toBe('blue');
+  });
+
+  it('reuses an existing same-named colour and remaps the label onto its id', () => {
+    const target = draft([], {
+      customColors: [{ id: 'existing', name: 'sunset', value: '#ff8800' }],
+    });
+
+    mergeImportedCollections(
+      target,
+      [{ name: 'Labelled', tabs: [], color: 'custom-1' }],
+      [],
+      [sun]
+    );
+
+    // The palette is not duplicated and the label points at the id that already exists.
+    expect(target.settings.customColors).toHaveLength(1);
+    expect(target.collections[0].color).toBe('existing');
+  });
+
+  it('drops a custom label the file did not carry, keeping the built-in ones', () => {
+    const target = draft();
+    mergeImportedCollections(
+      target,
+      [
+        { name: 'Dangling', tabs: [], color: 'custom-9' },
+        { name: 'Built-in', tabs: [], color: 'red' },
+      ],
+      [{ id: 'f1', name: 'Work', color: 'custom-9' }]
+    );
+
+    expect(target.collections.find((c) => c.name === 'Dangling').color).toBeNull();
+    expect(target.collections.find((c) => c.name === 'Built-in').color).toBe('red');
+    expect(target.folders[0].color).toBeNull();
+  });
+
+  it('adopts an imported label on a merge only when the existing item has none', () => {
+    const target = draft([
+      { id: 'a', name: 'Alpha', tabs: [], color: null },
+      { id: 'b', name: 'Beta', tabs: [], color: 'green' },
+    ]);
+
+    mergeImportedCollections(target, [
+      { name: 'Alpha', tabs: [importedTab('t1')], color: 'red' },
+      { name: 'Beta', tabs: [importedTab('t2')], color: 'red' },
+    ]);
+
+    expect(target.collections.find((c) => c.name === 'Alpha').color).toBe('red');
+    expect(target.collections.find((c) => c.name === 'Beta').color).toBe('green');
+  });
+
+  it('round-trips colours and the palette through build then merge', () => {
+    const payload = buildCollectionsExport(
+      [{ id: 'a', name: 'Labeled', tabs: [], color: 'custom-1' }],
+      [{ id: 'f1', name: 'Work', color: 'blue' }],
+      [sun]
+    );
+
+    const target = draft();
+    mergeImportedCollections(
+      target,
+      extractImportedCollections(payload) ?? [],
+      extractImportedFolders(payload),
+      extractImportedCustomColors(payload)
+    );
+
+    expect(target.settings.customColors).toEqual([sun]);
+    expect(target.collections[0].color).toBe('custom-1');
+    expect(target.folders[0].color).toBe('blue');
   });
 });
 

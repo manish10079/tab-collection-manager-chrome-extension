@@ -13,6 +13,7 @@ import {
 import {
   buildCollectionsExport,
   extractImportedCollections,
+  extractImportedCustomColors,
   extractImportedFolders,
   isValidImportedCollection,
   mergeImportedCollections,
@@ -148,13 +149,13 @@ export function useShellController({ toast }) {
   }, []);
 
   const exportAll = useCallback(async () => {
-    const { collections, folders } = getSnapshot();
+    const { collections, folders, settings } = getSnapshot();
     if (collections.length === 0) {
       toast('No collections to export.');
       return;
     }
     downloadJson(
-      buildCollectionsExport(collections, folders),
+      buildCollectionsExport(collections, folders, settings.customColors ?? []),
       `tab_collections_backup_${formatFileTimestamp()}.json`
     );
     toast('All collections exported successfully');
@@ -183,9 +184,10 @@ export function useShellController({ toast }) {
     }
 
     const importedFolders = extractImportedFolders(result.data);
+    const importedColors = extractImportedCustomColors(result.data);
     let outcome = { added: 0, merged: 0, skipped: 0 };
     await mutate((draft) => {
-      outcome = mergeImportedCollections(draft, valid, importedFolders);
+      outcome = mergeImportedCollections(draft, valid, importedFolders, importedColors);
     });
     toast(`Import completed: Created ${outcome.added} and merged ${outcome.merged} collections.`);
   }, [toast]);

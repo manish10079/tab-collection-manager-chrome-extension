@@ -6,21 +6,29 @@
 // still imports, and every imported collection falls back to the root.
 import { LIMITS } from '../../../shared/constants.js';
 import { CURRENT_SESSION_ID } from '../../../shared/storage-keys.js';
+import { isBuiltInColor, normalizeCustomColors } from '../../../lib/colors.js';
 import { partitionCollections, partitionTabs } from '../../../lib/sort.js';
 import { isValidUrl } from '../../../lib/url.js';
 
 /**
  * The global export payload. A legacy reader only looked at the two original fields, so an old
- * build still imports this file and a legacy file without `folders` still imports here. Folders
- * ride along so an export/import round trip restores the hierarchy instead of flattening it.
+ * build still imports this file and a legacy file without `folders` still imports here. Folders and
+ * the custom colour palette ride along so an export/import round trip restores the hierarchy and
+ * the labels instead of flattening them; `color` is already on each collection/folder.
  *
  * @param {import('../../../store/schema.js').Collection[]} collections
  * @param {import('../../../store/schema.js').Folder[]} [folders]
+ * @param {Array<{id: string, name: string, value: string}>} [customColors]
  * @param {Date} [now]
- * @returns {{exportedAt: string, collections: import('../../../store/schema.js').Collection[], folders: import('../../../store/schema.js').Folder[]}}
+ * @returns {{exportedAt: string, collections: import('../../../store/schema.js').Collection[], folders: import('../../../store/schema.js').Folder[], customColors: Array<{id: string, name: string, value: string}>}}
  */
-export function buildCollectionsExport(collections, folders = [], now = new Date()) {
-  return { exportedAt: now.toISOString(), collections, folders };
+export function buildCollectionsExport(
+  collections,
+  folders = [],
+  customColors = [],
+  now = new Date()
+) {
+  return { exportedAt: now.toISOString(), collections, folders, customColors };
 }
 
 /**
@@ -56,6 +64,20 @@ export function extractImportedFolders(parsed) {
   return [];
 }
 
+/**
+ * The custom colour palette from an export object, sanitized, or an empty list for a bare array / a
+ * legacy file without one.
+ *
+ * @param {unknown} parsed
+ * @returns {Array<{id: string, name: string, value: string}>}
+ */
+export function extractImportedCustomColors(parsed) {
+  if (parsed && typeof parsed === 'object') {
+    return normalizeCustomColors(/** @type {any} */ (parsed).customColors);
+  }
+  return [];
+}
+
 /** A collection entry the importer will accept: a name and a tabs array. */
 export function isValidImportedCollection(entry) {
   return (
@@ -72,6 +94,23 @@ function normalizeFolderName(name) {
     .trim()
     .replace(/\s+/g, ' ')
     .toLowerCase();
+}
+
+/**
+ * The colour id an imported folder/collection may carry, remapped onto the merged palette.
+ *
+ * A built-in id is always valid. A custom id resolves only when the file carried that colour (or a
+ * same-named one already exists here), so an import can never leave an item pointing at a colour
+ * the palette does not have.
+ *
+ * @param {unknown} rawColor
+ * @param {Map<string, string>} colorIdMap Imported colour id -> merged palette id
+ * @returns {string|null}
+ */
+function resolveImportedColor(rawColor, colorIdMap) {
+  if (typeof rawColor !== 'string' || !rawColor) return null;
+  if (isBuiltInColor(rawColor)) return rawColor;
+  return colorIdMap.get(rawColor) ?? null;
 }
 
 /** URLs compare the way the legacy duplicate check compared them: trimmed, lower-cased, no trailing slash. */
@@ -227,12 +266,23 @@ function nextGroupKey(taken) {
  * that are free in the target collection, so an import can never overwrite a group the existing
  * tabs still point at; an identical group is reused instead, which keeps a re-import idempotent.
  *
+ * Colour labels come back too: an item's `color` is restored when the file carried it, and when it
+ * is a custom colour it is remapped onto the palette the import merges (a same-named existing
+ * colour is reused, so the labels keep meaning the same thing). A label no longer in the palette is
+ * dropped rather than trusted, so an import cannot create a dangling reference.
+ *
  * @param {import('../../../store/schema.js').AppState} draft
  * @param {unknown[]} importedCollections
  * @param {unknown[]} [importedFolders]
+ * @param {unknown[]} [importedColors]
  * @returns {ImportOutcome}
  */
-export function mergeImportedCollections(draft, importedCollections = [], importedFolders = []) {
+export function mergeImportedCollections(
+  draft,
+  importedCollections = [],
+  importedFolders = [],
+  importedColors = []
+) {
   /** @type {ImportOutcome} */
   const outcome = { added: 0, merged: 0, skipped: 0 };
   const maxPinnedTabs = Number(draft.settings.maxPinnedTabs);
@@ -240,21 +290,44 @@ export function mergeImportedCollections(draft, importedCollections = [], import
   // A legacy draft (or file) may not carry folders at all.
   if (!Array.isArray(draft.folders)) draft.folders = [];
 
+  // Merge the imported palette first, so a label below can resolve against it. A colour already
+  // present by id or name is reused (its id wins), which keeps a re-import idempotent.
+  if (!Array.isArray(draft.settings.customColors)) draft.settings.customColors = [];
+  const palette = draft.settings.customColors;
+  /** @type {Map<string, string>} */
+  const colorIdMap = new Map();
+  for (const color of normalizeCustomColors(importedColors)) {
+    const existing = palette.find(
+      (entry) =>
+        entry.id === color.id || normalizeFolderName(entry.name) === normalizeFolderName(color.name)
+    );
+    if (existing) {
+      colorIdMap.set(color.id, existing.id);
+      continue;
+    }
+    if (palette.length >= LIMITS.MAX_CUSTOM_COLORS) continue;
+    palette.push(color);
+    colorIdMap.set(color.id, color.id);
+  }
+
   // Map each imported folder id to a draft folder id, reusing a same-named folder so importing into
   // an existing profile does not duplicate one.
   /** @type {Map<string, string>} */
   const folderIdMap = new Map();
   for (const raw of importedFolders) {
     if (!raw || typeof raw !== 'object') continue;
-    const importedFolder = /** @type {{id?: unknown, name?: unknown}} */ (raw);
+    const importedFolder = /** @type {{id?: unknown, name?: unknown, color?: unknown}} */ (raw);
     if (!importedFolder.id || !importedFolder.name) continue;
 
+    const color = resolveImportedColor(importedFolder.color, colorIdMap);
     const name = String(importedFolder.name).trim();
     const existing = draft.folders.find(
       (folder) => normalizeFolderName(folder.name) === normalizeFolderName(name)
     );
     if (existing) {
       folderIdMap.set(String(importedFolder.id), existing.id);
+      // Adopt the file's label only when this folder has none, so a merge never relabels one.
+      if (!existing.color && color) existing.color = color;
       continue;
     }
     if (draft.folders.length >= LIMITS.MAX_FOLDERS) continue;
@@ -263,6 +336,7 @@ export function mergeImportedCollections(draft, importedCollections = [], import
     draft.folders.push({
       id,
       name,
+      color,
       createdAt: Date.now(),
       updatedAt: Date.now(),
       isExpanded: false,
@@ -277,9 +351,10 @@ export function mergeImportedCollections(draft, importedCollections = [], import
     }
 
     const imported =
-      /** @type {{name: string, tabs: any[], pinned?: boolean, folderId?: string|null, chromeGroups?: unknown}} */ (
+      /** @type {{name: string, tabs: any[], pinned?: boolean, folderId?: string|null, color?: unknown, chromeGroups?: unknown}} */ (
         raw
       );
+    const importedColor = resolveImportedColor(imported.color, colorIdMap);
     const existing = draft.collections.find(
       (collection) => String(collection.name).toLowerCase() === String(imported.name).toLowerCase()
     );
@@ -311,6 +386,8 @@ export function mergeImportedCollections(draft, importedCollections = [], import
 
       if (Object.keys(targetGroups).length > 0) existing.chromeGroups = targetGroups;
       existing.tabs = partitionTabs(existing.tabs);
+      // Adopt the file's label only when this collection has none, so a merge never relabels one.
+      if (!existing.color && importedColor) existing.color = importedColor;
       if (existing.tabs.length > before) {
         existing.updatedAt = Date.now();
         outcome.merged += 1;
@@ -366,6 +443,7 @@ export function mergeImportedCollections(draft, importedCollections = [], import
       updatedAt: Date.now(),
       isExpanded: false,
       folderId,
+      color: importedColor,
     });
     outcome.added += 1;
   }

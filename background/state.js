@@ -21,6 +21,7 @@ export async function getState() {
     STORAGE_KEYS.maxPinnedTabs,
     STORAGE_KEYS.enforceMaxPinnedCollections,
     STORAGE_KEYS.maxPinnedCollections,
+    STORAGE_KEYS.customColors,
     STORAGE_KEYS.sessionHistory,
   ]);
   return {
@@ -33,6 +34,7 @@ export async function getState() {
     maxPinnedTabs: result[STORAGE_KEYS.maxPinnedTabs] ?? 3,
     enforceMaxPinnedCollections: result[STORAGE_KEYS.enforceMaxPinnedCollections] !== false,
     maxPinnedCollections: result[STORAGE_KEYS.maxPinnedCollections] ?? 3,
+    customColors: result[STORAGE_KEYS.customColors] || [],
     sessionHistory: result[STORAGE_KEYS.sessionHistory] || [],
   };
 }

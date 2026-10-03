@@ -382,6 +382,9 @@ itself labeled.
 * A **Color** option in the Collections sort menu that groups the list into colour sections — every
   folder and collection sharing a colour sits together (a collection whose folder carries a
   different colour is promoted into its own colour's section), with the unlabelled items last
+* Labels and the custom palette travel through global export/import and the Google Drive backup; a
+  label whose colour a file does not carry is dropped rather than trusted, and a re-import never
+  duplicates a colour
 * Removing a custom color unlabels everything that used it (no dangling references)
 * Migration-safe storage: `color` on folders/collections and a `customColors` palette, applied by
   `schemaVersion: 3`
