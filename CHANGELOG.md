@@ -10,6 +10,20 @@ Entries are append-only: a released version's notes are never rewritten.
 
 ---
 
+## 2.5.1
+
+No user-visible change to the panel. This release records the project's commit rules in
+`skill.md` 2.8.0: every commit now raises the extension version and names it as a trailing
+`(vX.Y.Z)` token in the commit subject.
+
+### Changed
+
+- The extension version advances on every commit, so it follows the build rather than a curated
+  set of features. The storage schema and the message protocol are untouched and no permission
+  changed.
+
+---
+
 ## 2.5.0
 
 Bundles everything landed since `v2.3.0`. **2.4.0 was set during development but never tagged or

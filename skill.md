@@ -5,9 +5,9 @@
 
 | Field | Value |
 | --- | --- |
-| Document version | 2.7.0 |
+| Document version | 2.8.0 |
 | Status | Active |
-| Last updated | 2026-10-02 |
+| Last updated | 2026-10-03 |
 | Owner | Maintainer (`@mkn`) |
 | Supersedes | — |
 
@@ -282,7 +282,7 @@ chore/<slug>            chore/vite-setup
 **Commit messages — Conventional Commits**
 
 ```text
-<type>(<scope>): <imperative summary>
+<type>(<scope>): <imperative summary> (vX.Y.Z)
 
 [optional body: why, not what]
 [optional footer: BREAKING CHANGE: ..., Refs: #12]
@@ -291,6 +291,29 @@ chore/<slug>            chore/vite-setup
 Allowed types: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `build`, `ci`, `chore`,
 `style`. Scopes: `collections`, `tabs`, `search`, `settings`, `history`, `gdrive`, `store`,
 `background`, `manifest`, `docs`.
+
+**Version bump and trailing version token — mandatory on every commit**
+
+Every commit ships a version. No commit leaves the extension version where it found it, and no
+commit message omits the version it produces.
+
+- **Raise the version in every aligned location** — `manifest.json`, `package.json`, both
+  `version` fields in `package-lock.json`, `feature_list.md`, `missing_features.md`. They move
+  together, or `tests/version-alignment.test.js` fails. Add the `CHANGELOG.md` entry in the same
+  commit.
+- **Choose the increment per §7**: PATCH for a fix, a docs/chore/style/test change, or any other
+  non-feature commit; MINOR for a user-visible feature; MAJOR for a breaking storage or protocol
+  change.
+- **Name the resulting version in the subject** as a trailing `(vX.Y.Z)` token — the last thing
+  on the subject line, after the summary:
+
+  ```text
+  fix(tabs): stop double-restoring pinned tabs (v2.5.1)
+  docs(skill): make the version bump mandatory on every commit (v2.5.2)
+  ```
+
+- A commit that does not touch `manifest.json` is still a commit that bumps it. The bump belongs
+  to the commit, never to a follow-up commit.
 
 **PR rules**
 
@@ -429,6 +452,7 @@ Four independent version axes. **Never conflate them.**
 
 - [ ] `main` is green (build, lint, unit, e2e)
 - [ ] `manifest.json` version bumped per SemVer
+- [ ] Every commit since the last release raised and named its version (§4.4)
 - [ ] `schemaVersion` / protocol version bumped if contracts changed
 - [ ] Migration tested against a real exported backup
 - [ ] `feature_list.md` updated (implemented items checked)
@@ -456,6 +480,7 @@ A change is **done** when all of the following hold:
 - [ ] Storage keys / message protocol unchanged — or bump + migration + tests included
 - [ ] Files respect the folder rules (§3.3) and the dependency rule (§2.1)
 - [ ] Docs updated (`skill.md` amendment, ADR, feature list, README as applicable)
+- [ ] Version bumped in every aligned location, and the commit subject carries `(vX.Y.Z)` (§4.4)
 - [ ] PR ≤ ~400 lines or split; one capability only
 - [ ] Autosave/restore unaffected, or the manual matrix was run and reported
 
@@ -534,6 +559,7 @@ export { useCollectionActions } from './hooks/useCollectionActions.js';
 - ❌ Adding TypeScript syntax (`.ts` / `.tsx`, type annotations) to this JavaScript codebase
 - ❌ Reformatting files unrelated to the change
 - ❌ Long-lived branches (> 2 days) without rebasing on `main`
+- ❌ Committing without raising the extension version, or with a subject that omits `(vX.Y.Z)` (§4.4)
 
 ---
 
@@ -559,3 +585,4 @@ export { useCollectionActions } from './hooks/useCollectionActions.js';
 | 2.4.0 | 2026-10-02 | §2.3's snapshot rows gain `chromeGroups`: a session snapshot's tabs reference their Chrome group by number, so the map has to be stored with them or the id resolves to nothing and no restore path can rebuild the group. Landed with migration 0002 and `schemaVersion` 2. No rule changed. |
 | 2.6.0 | 2026-10-02 | §5.3's naming rule becomes the closed prefix map: the three prefixes it named grow to the seven the panel needs (`cc-` collections, `tab-` tab rows, `sh-` shell, `dl-` dialogs, `set-` settings, `ts-` toasts, `ut-` shared utilities), each with the family sheet that owns it and an example class. The panel is larger than three features, so the rule has to say which prefix a new class takes before the CSS migration's Phase 3 renames family by family. This also retires `rs-`, the prefix `shell.css` invented for itself, in favour of `sh-`. Classes keep their current names until their family's rename commit. |
 | 2.7.0 | 2026-10-02 | §3.1 says the legacy single stylesheet is now gone rather than merely split, after the CSS migration's Phase 6 retired it; the `tokens.css` + `index.css` + family sheets in `src/styles/` are the panel's only styling and no file is excluded from lint or format. The refactor — tokens, the closed prefix map, the coverage and computed-style tools, and the deletion of the legacy sheet — is recorded in ADR-0014. No rule changed. |
+| 2.8.0 | 2026-10-03 | §4.4 makes the version bump and a trailing `(vX.Y.Z)` subject token mandatory on **every** commit, names the aligned locations that must move together, and points the increment at §7's table; §8 gains the matching Definition-of-Done item, §10 the anti-pattern, and §7.2 a release-check that no commit since the last release skipped its bump. New rule. |
