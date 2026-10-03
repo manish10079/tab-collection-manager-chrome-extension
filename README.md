@@ -11,6 +11,7 @@
 - **🚀 Instant Sessions**: Save your entire multi-window browser session with a single click or dynamic multi-select mode.
 - **📁 Custom Spaces**: Organize tabs into named collections with unique metadata tracking (creation time, modified time, and drag-and-drop custom order).
 - **🗂️ Nested Folders**: Group collections into one-level folders — expand/collapse them, drag collections in and out, and see per-folder tab counts. Folders are migration-safe (a versioned storage upgrade) and travel with your backups.
+- **🎨 Colour Labels**: Label folders and collections with one of ten built-in colours or a custom one you add yourself, directly from the item's menu or from Settings. The same colour tags any number of items, and the controls bar can filter and sort by colour to gather them together. Labels and your palette travel with export/import and Google Drive backups.
 - **🧹 Bulk Delete**: Turn on **Select** to get a checkbox on every folder and collection, pick as many as you like across both sections, and remove them together behind a single confirmation that names what will go.
 - **🔄 Auto-Save Engine**: Background service worker automatically tracks window changes, tab closures, and URL shifts inside a dedicated, debounced (500ms) **Current Session** collection.
 - **⚡ RAM Saver Mode**: Restores collections gracefully by leveraging background tab discarding (`api.tabs.discard`), preventing performance stutter or memory spikes.

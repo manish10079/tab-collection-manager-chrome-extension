@@ -1,4 +1,4 @@
-# Tab Collection Manager v2.4.0
+# Tab Collection Manager v2.5.0
 
 A powerful browser extension for managing, organizing, backing up, and restoring browsing sessions with a premium side-panel experience.
 
