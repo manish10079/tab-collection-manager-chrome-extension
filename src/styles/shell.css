@@ -47,23 +47,27 @@
   flex-shrink: 0;
 }
 
-/* Two rows of six controls, each showing its icon above a short label. The side panel is the
-   narrowest surface in the extension, so `minmax(0, 1fr)` lets a long label ellipsise rather than
-   widen its column, and each cell stacks icon over label instead of sitting side by side. A hidden
-   control (the restore button with no backup) is removed from the grid, so the second row simply
-   ends early rather than leaving a hole. Six columns keep the eleven controls (including the colour
-   filter) on two rows; five would spill a single control onto a third. */
+/* Two rows of six controls, each showing its icon above a short label. The tiles are a fixed size:
+   the grid is only as wide as six of them need and is centred in the row, so widening the panel
+   does not stretch the buttons and narrowing it does not reflow them — the arrangement (and the
+   button size) is the same at every panel width. Six columns keep the eleven controls (including
+   the colour filter) on two rows; `minmax(0, 1fr)` lets a long label ellipsise rather than widen
+   its column, and a hidden control (the restore button with no backup) drops out of the grid, so
+   the second row simply ends early rather than leaving a hole. */
 .sh-actions-bar-default {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 6px 8px;
   width: 100%;
+  /* Six 48px tiles plus five 8px gaps; the flex parent centres the row. */
+  max-width: 328px;
+  margin: 0 auto;
 }
 
 .sh-actions-bar-default .sh-icon-btn {
-  width: auto;
-  height: auto;
-  min-height: 46px;
+  width: 100%;
+  height: 48px;
+  min-height: 48px;
   flex-direction: column;
   gap: 3px;
   padding: 7px 4px;
