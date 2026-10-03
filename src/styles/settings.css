@@ -430,3 +430,102 @@
   padding: 10px 16px 14px;
   border-top: 1px solid var(--border);
 }
+
+/* ===== Colour Labels card ===== */
+.set-color-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 16px 14px;
+}
+
+.set-color-labels-hint {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* The fixed ten. They are display-only: they can be used but not renamed or removed. */
+.set-color-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.set-color-swatch-static {
+  width: 18px;
+  height: 18px;
+}
+
+.set-color-custom-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.set-color-custom-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.set-color-custom-name {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.set-color-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.set-color-name-input {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 4px 10px;
+  background: var(--bg-translucent-normal);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.set-color-name-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.set-color-value-input {
+  width: 34px;
+  height: 30px;
+  padding: 2px;
+  background: var(--bg-translucent-normal);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.set-color-add-btn {
+  padding: 6px 14px;
+  font-size: 12px;
+}
+
+.set-color-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 11px;
+}

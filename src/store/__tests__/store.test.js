@@ -22,6 +22,7 @@ const WRITABLE_KEYS = [
   'maxPinnedCollections',
   'gdriveBackupEnabled',
   'gdriveAutoBackupEnabled',
+  'customColors',
 ];
 
 describe('store hydration', () => {

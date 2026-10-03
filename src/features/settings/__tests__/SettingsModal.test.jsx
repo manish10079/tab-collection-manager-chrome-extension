@@ -178,6 +178,36 @@ describe('SettingsModal', () => {
     });
   });
 
+  it('adds a custom colour to the palette through the store queue', async () => {
+    const { store } = await renderSettings({});
+
+    fireEvent.change(screen.getByLabelText('New color name'), { target: { value: 'Ocean' } });
+    fireEvent.click(screen.getByText('Add'));
+
+    await waitFor(() => {
+      expect(store.customColors).toHaveLength(1);
+    });
+    expect(store.customColors[0].name).toBe('Ocean');
+    expect(store.customColors[0].value).toMatch(/^#[0-9a-f]{6}$/);
+  });
+
+  it('removes a custom colour and reports the refusal for a duplicate', async () => {
+    const { store } = await renderSettings({
+      customColors: [{ id: 'custom-1', name: 'Ocean', value: '#0088ff' }],
+    });
+
+    // A duplicate name is refused, so the palette is unchanged.
+    fireEvent.change(screen.getByLabelText('New color name'), { target: { value: 'ocean' } });
+    fireEvent.click(screen.getByText('Add'));
+    expect(await screen.findByRole('alert')).toBeTruthy();
+    expect(store.customColors).toHaveLength(1);
+
+    fireEvent.click(screen.getByLabelText('Remove Ocean'));
+    await waitFor(() => {
+      expect(store.customColors).toEqual([]);
+    });
+  });
+
   it('closes the modal through the primitive', async () => {
     const { onClose } = await renderSettings({});
 

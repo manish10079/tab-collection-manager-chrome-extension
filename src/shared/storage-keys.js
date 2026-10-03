@@ -16,6 +16,7 @@ export const STORAGE_KEYS = Object.freeze({
   maxPinnedCollections: 'maxPinnedCollections',
   gdriveBackupEnabled: 'gdriveBackupEnabled',
   gdriveAutoBackupEnabled: 'gdriveAutoBackupEnabled',
+  customColors: 'customColors',
   sessionHistory: 'sessionHistory',
 });
 

@@ -87,4 +87,18 @@
   --warning: #f59e0b;
   --warning-hover: #d97706;
   --warning-accent: #fbbf24;
+  /* Colour labels — the ten built-in swatches a folder/collection can be tagged with. They are
+     theme-independent on purpose: the same red should read as the same red in light and dark. */
+  --swatch-red: #ef4444;
+  --swatch-orange: #f97316;
+  --swatch-amber: #eab308;
+  --swatch-green: #22c55e;
+  --swatch-teal: #14b8a6;
+  --swatch-blue: #3b82f6;
+  --swatch-indigo: #6366f1;
+  --swatch-purple: #a855f7;
+  --swatch-pink: #ec4899;
+  --swatch-gray: #94a3b8;
+  /* The "no color" swatch: a translucent neutral that reads as empty in either theme. */
+  --swatch-neutral: rgba(148, 163, 184, 0.35);
 }

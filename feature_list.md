@@ -1,4 +1,4 @@
-# Tab Collection Manager v2.3.0
+# Tab Collection Manager v2.4.0
 
 A powerful browser extension for managing, organizing, backing up, and restoring browsing sessions with a premium side-panel experience.
 
@@ -359,6 +359,35 @@ Work
 
 ---
 
+## Color Labels 🎨 ✅ Implemented
+
+Label folders and collections with a color, then filter the list by color. A color is a **shared
+grouping key**: the same color can label any number of folders and any number of collections, and
+filtering on it brings every one of them together — including a collection whose folder is not
+itself labeled.
+
+### Implemented
+
+* Ten built-in colors (red, orange, amber, green, teal, blue, indigo, purple, pink, gray), always
+  available and fixed — they can be used but not renamed or removed
+* Add your own custom colors (name + picker) from **Settings → Color Labels**, up to 40 of them
+* Assign a color from a folder's or collection's options menu, or clear it with the “no color”
+  swatch
+* A small color dot in a labelled folder's or collection's header
+* A **Color** filter in the controls bar — multi-select, so several colors can be shown at once,
+  plus a “No color” option for unlabelled items
+* Multi-select filtering is a union: it shows folders by their own color and collections by their
+  own color, promoting a matching collection out of a folder the filter hid so a color never loses a
+  member; a “no matches” message appears when nothing matches
+* A **Color** option in the Collections sort menu that groups the list into colour sections — every
+  folder and collection sharing a colour sits together (a collection whose folder carries a
+  different colour is promoted into its own colour's section), with the unlabelled items last
+* Removing a custom color unlabels everything that used it (no dangling references)
+* Migration-safe storage: `color` on folders/collections and a `customColors` palette, applied by
+  `schemaVersion: 3`
+
+---
+
 ## Collection Sharing 👥
 
 Share collections with others.
@@ -528,7 +557,7 @@ Legend: 🔴 major · 🟡 medium · ⚪ minor · Status: ✅ implemented · �
   export/import and the Google Drive backup; a dangling `folderId` is dropped on load.
 * **Migration-safe:** the persisted shape moved to `schemaVersion: 1` through a versioned
   migration (`src/store/migrations/`), so an existing profile upgrades in place.
-* **Not built:** folder colors.
+* **Colors:** folder colors are implemented — see **Color Labels** below.
 
 ### 2. Chrome Tab Groups capture & restore — ✅ Implemented
 * **Ta Box:** stores `chromeGroups` metadata (group name, color, collapsed, pinned) with
@@ -619,7 +648,7 @@ Legend: 🔴 major · 🟡 medium · ⚪ minor · Status: ✅ implemented · �
 
 ## ⚪ Minor gaps / quality-of-life
 
-13. **Per-collection colors** (color picker, used in UI accents) — ❌ Not implemented
+13. **Per-collection colors** (color picker, used in UI accents) — ✅ Implemented as **Color Labels** (folders and collections, ten built-ins plus custom colors, with a color filter)
 14. **Favorites with custom favorite order** (`isFavorite`, `favoriteOrder`) — 🔶 Partial (pinning covers the main use case; no separate favorites order)
 15. **`lastOpened` tracking per collection** — enables "recently opened" sort — ❌ Not implemented
 16. **`unlimitedStorage` permission** — ❌ Not implemented (we cap collections at 200 tabs; Ta Box doesn't cap)
@@ -632,6 +661,7 @@ Legend: 🔴 major · 🟡 medium · ⚪ minor · Status: ✅ implemented · �
 
 1. Chrome tab groups capture & restore — ✅ Done
 2. Folder hierarchy — ✅ Done
+2b. Color labels + color filter — ✅ Done
 3. Recently closed restore — small effort, uses one new permission
 4. Duplicate sweep + undo — builds on our existing duplicate detection
 5. Global keyboard commands (Ctrl+Shift+1..4) — small effort

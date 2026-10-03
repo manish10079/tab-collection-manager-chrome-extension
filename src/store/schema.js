@@ -2,6 +2,7 @@
 // and reused by the store, components and tests.
 import { CURRENT_SESSION_ID } from '../shared/storage-keys.js';
 import { DEFAULT_SETTINGS, SCHEMA_VERSION } from '../shared/constants.js';
+import { normalizeCustomColors } from '../lib/colors.js';
 
 /**
  * @typedef {object} TabItem
@@ -31,6 +32,7 @@ import { DEFAULT_SETTINGS, SCHEMA_VERSION } from '../shared/constants.js';
  * @property {number} [createdAt]
  * @property {number} [updatedAt]
  * @property {boolean} [isExpanded]
+ * @property {string|null} [color] Colour-label id, or null when the folder is unlabelled
  */
 
 /**
@@ -46,6 +48,7 @@ import { DEFAULT_SETTINGS, SCHEMA_VERSION } from '../shared/constants.js';
  * @property {string} [tabSortType]
  * @property {Record<string, ChromeGroupMeta>} [chromeGroups]
  * @property {string|null} [folderId] Owning folder, or null when the collection is at the root
+ * @property {string|null} [color] Colour-label id, or null when the collection is unlabelled
  */
 
 /**
@@ -106,6 +109,7 @@ export function normalizeState(raw = {}) {
       folder.createdAt = folder.createdAt ?? Date.now();
       folder.updatedAt = folder.updatedAt ?? folder.createdAt;
       folder.isExpanded = !!folder.isExpanded;
+      folder.color = typeof folder.color === 'string' && folder.color ? folder.color : null;
       return folder;
     })
     .filter((folder) => folder.id !== '');
@@ -122,6 +126,8 @@ export function normalizeState(raw = {}) {
       collection.tabs = Array.isArray(collection.tabs) ? collection.tabs : [];
       const folderId = typeof collection.folderId === 'string' ? collection.folderId : null;
       collection.folderId = folderId && folderIds.has(folderId) ? folderId : null;
+      collection.color =
+        typeof collection.color === 'string' && collection.color ? collection.color : null;
       return collection;
     })
     // Current Session always sorts first, matching the service worker's invariant.
@@ -135,6 +141,7 @@ export function normalizeState(raw = {}) {
   for (const key of Object.keys(DEFAULT_SETTINGS)) {
     if (raw[key] !== undefined) settings[key] = raw[key];
   }
+  settings.customColors = normalizeCustomColors(settings.customColors);
 
   const backup = raw.lastSessionBackup;
   const lastSessionBackup =

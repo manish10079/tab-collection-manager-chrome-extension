@@ -602,3 +602,66 @@
   border-color: color-mix(in srgb, var(--warning) 20%, transparent);
   background: color-mix(in srgb, var(--warning) 2%, transparent);
 }
+
+/* Colour labels on a card/folder (Phase 6 feature). A labelled item shows a dot in its header; the
+   dropdown menu carries the swatch row that assigns one. The colour itself comes from
+   `--tc-swatch-color`, so neither rule names a literal. */
+.cc-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--tc-swatch-color, var(--swatch-neutral));
+  box-shadow: 0 0 0 2px var(--bg-translucent-normal);
+  flex-shrink: 0;
+}
+
+.cc-color-picker {
+  padding-bottom: 4px;
+}
+
+.cc-color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 12px 6px;
+}
+
+/* A swatch inside the picker. `.ut-color-swatch` (base.css) paints it; this resets the button
+   chrome and adds the selected ring. */
+.cc-color-swatch {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.cc-color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.cc-color-swatch.ut-active {
+  border-color: var(--text-primary);
+  box-shadow: 0 0 0 2px var(--bg-translucent-active);
+}
+
+/* The swatch a colour-cluster heading carries, tying the heading to the label it collects. */
+.cc-section-swatch {
+  width: 12px;
+  height: 12px;
+}
+
+/* The "no color" control: an empty, dashed circle with a slashed glyph, so it reads as "none"
+   rather than as one more colour. */
+.cc-color-swatch-none {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px dashed var(--text-secondary);
+  color: var(--text-secondary);
+  font-size: 9px;
+}

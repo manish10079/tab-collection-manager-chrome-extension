@@ -10,6 +10,7 @@ import { CURRENT_SESSION_ID } from '../shared/storage-keys.js';
 /** Collection sort modes offered by the controls bar. */
 export const COLLECTION_SORT_TYPES = Object.freeze([
   'custom',
+  'color',
   'lastModified',
   'nameAsc',
   'nameDesc',

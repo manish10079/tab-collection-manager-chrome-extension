@@ -43,6 +43,9 @@ function renderBar(props = {}) {
       isGrid={props.isGrid ?? false}
       backup={props.backup ?? null}
       onOpenHistory={onOpenHistory}
+      colorFilter={props.colorFilter}
+      onToggleColorFilter={props.onToggleColorFilter}
+      onClearColorFilter={props.onClearColorFilter}
     />
   );
   return { ...view, controller, onOpenHistory };
@@ -62,7 +65,7 @@ describe('ControlsBar', () => {
   it('labels every default control, so the two-row bar stays readable', () => {
     renderBar({ backup: BACKUP });
 
-    // The bar lays out as two rows of five in CSS, which jsdom cannot measure; the labels are the
+    // The bar lays out as two rows of six in CSS, which jsdom cannot measure; the labels are the
     // part a unit test can pin down, and the E2E walk proves the buttons still work.
     const labels = [...document.querySelectorAll('#actionsBarDefault .sh-action-label')].map(
       (node) => node.textContent
@@ -78,6 +81,7 @@ describe('ControlsBar', () => {
       'Grid',
       'Restore',
       'Sort',
+      'Color',
       'History',
     ]);
   });
@@ -159,6 +163,24 @@ describe('ControlsBar', () => {
     expect(restoreBackup).toHaveBeenCalledTimes(1);
   });
 
+  it('toggles a colour in the filter menu and clears it', () => {
+    const onToggleColorFilter = vi.fn();
+    const onClearColorFilter = vi.fn();
+    renderBar({
+      colorFilter: new Set(['red']),
+      onToggleColorFilter,
+      onClearColorFilter,
+    });
+
+    expect(screen.getByRole('button', { name: 'Filter by color' })).toBeTruthy();
+    fireEvent.click(document.getElementById('colorFilterBtn'));
+    fireEvent.click(screen.getByRole('menuitemcheckbox', { name: 'Blue' }));
+    expect(onToggleColorFilter).toHaveBeenCalledWith('blue');
+
+    fireEvent.click(screen.getByText('Clear filter'));
+    expect(onClearColorFilter).toHaveBeenCalledTimes(1);
+  });
+
   it('selects a collection sort mode from the dropdown', () => {
     const setCollectionSort = vi.fn();
     renderBar({ controller: makeController({ setCollectionSort }) });
@@ -167,6 +189,16 @@ describe('ControlsBar', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: /Name \(A-Z\)/ }));
 
     expect(setCollectionSort).toHaveBeenCalledWith('nameAsc');
+  });
+
+  it('switches to colour grouping from the sort menu', () => {
+    const setCollectionSort = vi.fn();
+    renderBar({ controller: makeController({ setCollectionSort }) });
+
+    fireEvent.click(document.getElementById('collectionSortBtn'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Color' }));
+
+    expect(setCollectionSort).toHaveBeenCalledWith('color');
   });
 
   it('moves focus into a slide and back to the toggle that opened it', () => {

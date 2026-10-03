@@ -4,6 +4,8 @@
  * @property {number} count      Live number of items in the section
  * @property {boolean} collapsed Whether the section is folded away
  * @property {() => void} onToggle
+ * @property {import('react').ReactNode} [swatch] Optional swatch shown before the label (colour
+ *   clusters)
  */
 
 /**
@@ -13,7 +15,7 @@
  * @param {SectionToggleProps} props
  * @returns {import('react').ReactElement}
  */
-export function SectionToggle({ label, count, collapsed, onToggle }) {
+export function SectionToggle({ label, count, collapsed, onToggle, swatch }) {
   return (
     <button
       type="button"
@@ -23,6 +25,7 @@ export function SectionToggle({ label, count, collapsed, onToggle }) {
       onClick={onToggle}
     >
       <i className={`fas fa-chevron-${collapsed ? 'right' : 'down'}`} aria-hidden="true" />
+      {swatch}
       <span className="section-heading-label">{label}</span>
       <span className="cc-section-count">{count}</span>
     </button>

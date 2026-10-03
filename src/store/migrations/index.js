@@ -7,6 +7,7 @@
 import { SCHEMA_VERSION } from '../../shared/constants.js';
 import { up as foldersUp } from './0001-folders.js';
 import { up as sessionGroupsUp } from './0002-session-groups.js';
+import { up as colorsUp } from './0003-colors.js';
 
 /**
  * @typedef {{version: number, name: string, up: (data: Record<string, unknown>) => Record<string, unknown>}} Migration
@@ -16,6 +17,7 @@ import { up as sessionGroupsUp } from './0002-session-groups.js';
 export const MIGRATIONS = Object.freeze([
   { version: 1, name: 'folders', up: foldersUp },
   { version: 2, name: 'session-groups', up: sessionGroupsUp },
+  { version: 3, name: 'colors', up: colorsUp },
 ]);
 
 export { SCHEMA_VERSION };

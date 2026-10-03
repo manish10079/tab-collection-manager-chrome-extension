@@ -4,6 +4,7 @@ import { useDismissable } from '../../../app/hooks/useDismissable.js';
 /** The icon shown on the trigger button per sort mode (the legacy `updateCollectionSortIcon`). */
 const SORT_ICONS = {
   custom: 'fa-grip-vertical',
+  color: 'fa-palette',
   lastModified: 'fa-clock',
   nameAsc: 'fa-sort-alpha-down',
   nameDesc: 'fa-sort-alpha-up',
@@ -13,9 +14,10 @@ const SORT_ICONS = {
   tabCountAsc: 'fa-arrow-up-1-9',
 };
 
-/** The same eight options and icons the legacy `#collectionsSortMenu` listed. */
+/** The legacy options plus the colour grouping the label feature adds. */
 const SORT_OPTIONS = [
   { value: 'custom', icon: 'fa-grip-vertical', label: 'Custom Order' },
+  { value: 'color', icon: 'fa-palette', label: 'Color' },
   { value: 'lastModified', icon: 'fa-clock', label: 'Last Modified' },
   { value: 'nameAsc', icon: 'fa-sort-alpha-down', label: 'Name (A-Z)' },
   { value: 'nameDesc', icon: 'fa-arrow-down-z-a', label: 'Name (Z-A)' },

@@ -193,6 +193,99 @@ describe('CollectionList folders', () => {
 });
 
 /**
+ * Colour filtering: only the matching labels are shown, and a matching collection whose folder is
+ * not itself selected is promoted to the root rather than hidden.
+ */
+describe('CollectionList color filter', () => {
+  const COLOR_STORAGE = {
+    collections: [
+      { id: 'a', name: 'Blue root', tabs: [], color: 'blue' },
+      { id: 'b', name: 'Red root', tabs: [], color: 'red' },
+      { id: 'c', name: 'Nested blue', tabs: [], folderId: 'f1', color: 'blue' },
+    ],
+    folders: [{ id: 'f1', name: 'Work', isExpanded: true }],
+  };
+
+  it('shows only the matching colours and promotes a match out of an unlabelled folder', async () => {
+    const { container } = await renderList(COLOR_STORAGE, { colorFilter: new Set(['blue']) });
+    const rootIds = [...container.querySelectorAll(':scope > .cc-collection')].map(
+      (element) => element.dataset.id
+    );
+
+    expect(rootIds).toEqual(['a', 'c']);
+    expect(container.querySelector('.cc-collection[data-id="b"]')).toBeNull();
+    expect(container.querySelector('.cc-collection[data-id="a"] .cc-color-dot')).toBeTruthy();
+  });
+
+  it('shows a no-matches message when nothing carries the colour', async () => {
+    const { container } = await renderList(COLOR_STORAGE, { colorFilter: new Set(['purple']) });
+
+    expect(container.textContent).toContain('No folders or collections match this color');
+  });
+});
+
+/**
+ * Colour grouping (the Color sort mode): one section per colour label, every member of a colour in
+ * the same section, in palette order with the unlabelled items last.
+ */
+describe('CollectionList color grouping', () => {
+  it('renders one heading per colour, with a swatch and its members together', async () => {
+    const { container } = await renderList({
+      collectionSortType: 'color',
+      collections: [
+        { id: 'a', name: 'Blue root', tabs: [], color: 'blue' },
+        { id: 'b', name: 'Red root', tabs: [], color: 'red' },
+        { id: 'c', name: 'Nested red', tabs: [], folderId: 'f1', color: 'red' },
+      ],
+      folders: [{ id: 'f1', name: 'Unlabelled folder', isExpanded: true }],
+    });
+
+    const headings = [...container.querySelectorAll('.cc-section-heading.color-heading')];
+    // Red comes before blue in the palette, and the unlabelled folder last.
+    expect(headings.map((heading) => heading.dataset.color)).toEqual(['red', 'blue', 'none']);
+    expect(
+      headings.map((heading) => heading.querySelector('.section-heading-label').textContent)
+    ).toEqual(['Red', 'Blue', 'No color']);
+    expect(headings[0].querySelector('.cc-section-swatch')).toBeTruthy();
+
+    // Every member is a direct child of the list (the promoted nested red collection included),
+    // grouped under its colour's heading.
+    const directIds = [...container.querySelectorAll(':scope > .cc-collection')].map(
+      (element) => element.dataset.id
+    );
+    expect(directIds).toEqual(expect.arrayContaining(['a', 'b', 'c']));
+  });
+
+  it('keeps a matching collection nested inside a folder that shares its colour', async () => {
+    const { container } = await renderList({
+      collectionSortType: 'color',
+      collections: [{ id: 'x', name: 'Nested blue', tabs: [], folderId: 'f1', color: 'blue' }],
+      folders: [{ id: 'f1', name: 'Blue folder', isExpanded: true, color: 'blue' }],
+    });
+
+    const heading = container.querySelector('.color-heading[data-color="blue"]');
+    expect(heading).toBeTruthy();
+    expect(
+      container.querySelector('.cc-folder[data-folder-id="f1"] .cc-folder-body .cc-collection')
+        .dataset.id
+    ).toBe('x');
+  });
+
+  it('shows the no-matches message when the colour filter leaves no cluster', async () => {
+    const { container } = await renderList(
+      {
+        collectionSortType: 'color',
+        collections: [{ id: 'a', name: 'Blue', tabs: [], color: 'blue' }],
+        folders: [],
+      },
+      { colorFilter: new Set(['purple']) }
+    );
+
+    expect(container.textContent).toContain('No folders or collections match this color');
+  });
+});
+
+/**
  * Bulk selection: the checkboxes only exist in selection mode, and each one reports its kind and
  * id so the caller can keep one selection across folders and collections.
  */

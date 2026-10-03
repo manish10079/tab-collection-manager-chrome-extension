@@ -99,6 +99,20 @@ body.ut-panel-closing {
   display: none;
 }
 
+/* Colour-label swatch. The colour itself is painted from the `--tc-swatch-color` custom property
+   (a token for a built-in, a stored hex for a custom colour), so a swatch carries no literal and
+   the palette lives in one place. The neutral fallback shows when a swatch has no colour — the
+   "no color" controls add `.cc-color-swatch-none` on top to make that read as "none". */
+.ut-color-swatch {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--tc-swatch-color, var(--swatch-neutral));
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
 /* Scrollbar - Hidden but functionality intact */
 ::-webkit-scrollbar {
   display: none;

@@ -37,6 +37,8 @@ function makeActions() {
     openTab: vi.fn(),
     copyTabUrl: vi.fn(),
     toast: vi.fn(),
+    setCollectionColor: vi.fn(),
+    setFolderColor: vi.fn(),
   };
 }
 
@@ -115,5 +117,23 @@ describe('CollectionCard', () => {
     await user.click(screen.getByTitle('Collection options'));
     await user.click(screen.getByTitle('Open all tabs'));
     expect(actions.openAllTabs).toHaveBeenCalledWith('c1');
+  });
+
+  it('shows one Color section in the menu and assigns a colour from it', async () => {
+    const user = userEvent.setup();
+    const { actions, container } = renderCard(makeCollection());
+
+    await user.click(screen.getByTitle('Collection options'));
+
+    const labels = [
+      ...container.querySelectorAll('.cc-collection-dropdown-menu .sh-dropdown-section-label'),
+    ].map((node) => node.textContent);
+    expect(labels.filter((label) => label === 'Color')).toHaveLength(1);
+
+    const swatches = container.querySelectorAll('.cc-color-swatches .cc-color-swatch');
+    expect(swatches).toHaveLength(11); // ten built-ins plus the "no color" swatch
+
+    await user.click(container.querySelector('.cc-color-swatches button[aria-label="Blue"]'));
+    expect(actions.setCollectionColor).toHaveBeenCalledWith('c1', 'blue');
   });
 });

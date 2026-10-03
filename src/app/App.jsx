@@ -53,6 +53,18 @@ export function App() {
   const [selectedFolders, setSelectedFolders] = useState(() => new Set());
   const [selectedCollections, setSelectedCollections] = useState(() => new Set());
   const selectedCount = selectedFolders.size + selectedCollections.size;
+
+  // Colour filter. Like the bulk selection, it narrows both folders and collections, so the
+  // composition root owns it and passes it to the controls bar and the list.
+  const [colorFilter, setColorFilter] = useState(() => /** @type {Set<string>} */ (new Set()));
+  const toggleColorFilter = (colorId) =>
+    setColorFilter((prev) => {
+      const next = new Set(prev);
+      if (next.has(colorId)) next.delete(colorId);
+      else next.add(colorId);
+      return next;
+    });
+  const clearColorFilter = () => setColorFilter(new Set());
   const { openHistory, openShortcuts } = dialogs.actions;
 
   const exitSelection = () => {
@@ -116,6 +128,9 @@ export function App() {
           onToggleSelectionMode={() => (selectionMode ? exitSelection() : setSelectionMode(true))}
           onDeleteSelected={deleteSelected}
           onCancelSelection={exitSelection}
+          colorFilter={colorFilter}
+          onToggleColorFilter={toggleColorFilter}
+          onClearColorFilter={clearColorFilter}
         />
 
         {search.isEmpty ? (
@@ -132,6 +147,7 @@ export function App() {
                 selectedFolderIds={selectedFolders}
                 selectedCollectionIds={selectedCollections}
                 onToggleSelect={toggleSelected}
+                colorFilter={colorFilter}
               />
             ) : null}
           </div>

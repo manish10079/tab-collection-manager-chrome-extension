@@ -47,14 +47,15 @@
   flex-shrink: 0;
 }
 
-/* Two rows of five controls, each showing its icon above a short label. The side panel is the
+/* Two rows of six controls, each showing its icon above a short label. The side panel is the
    narrowest surface in the extension, so `minmax(0, 1fr)` lets a long label ellipsise rather than
    widen its column, and each cell stacks icon over label instead of sitting side by side. A hidden
    control (the restore button with no backup) is removed from the grid, so the second row simply
-   ends early rather than leaving a hole. */
+   ends early rather than leaving a hole. Six columns keep the eleven controls (including the colour
+   filter) on two rows; five would spill a single control onto a third. */
 .sh-actions-bar-default {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 6px 8px;
   width: 100%;
 }
@@ -1083,4 +1084,117 @@ mark.sh-search-hl {
 .sh-selection-delete[disabled] {
   cursor: default;
   opacity: 0.5;
+}
+
+/* Colour filter. The container mirrors `.sh-sort-collections-container` so the menu anchors the
+   same way; the button takes the row's equal-width cell and shows a count badge while it is on. */
+.sh-color-filter-container {
+  position: relative;
+  display: flex;
+  flex: 1;
+}
+
+.sh-color-filter-btn.ut-active {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.sh-color-filter-count {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--bg-primary);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
+}
+
+.sh-color-filter-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 6px;
+  min-width: 175px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--bg-dropdown);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  z-index: 1000;
+}
+
+.sh-color-filter-menu.ut-hidden {
+  display: none;
+}
+
+.sh-color-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 10px;
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.sh-color-filter-option:hover {
+  background: var(--bg-translucent-normal);
+  color: var(--text-primary);
+}
+
+.sh-color-filter-option.ut-active {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 20%, transparent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.sh-color-filter-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sh-color-filter-check {
+  font-size: 9px;
+}
+
+.sh-color-filter-clear {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  padding: 6px 10px;
+  border: none;
+  border-top: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.sh-color-filter-clear:hover:not([disabled]) {
+  color: var(--text-primary);
+}
+
+.sh-color-filter-clear[disabled] {
+  cursor: default;
+  opacity: 0.4;
 }

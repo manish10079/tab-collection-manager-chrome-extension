@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { formatTabCount } from '../../../lib/format.js';
+import { colorName, swatchValue } from '../../../lib/colors.js';
+import { useSettings } from '../../../store/hooks.js';
 import { useDismissable } from '../../../app/hooks/useDismissable.js';
 import { useDropZone } from '../hooks/useDropZone.js';
 import { CollectionCard } from './CollectionCard.jsx';
+import { ColorPicker } from './ColorPicker.jsx';
 
 /**
  * @typedef {object} FolderSectionProps
@@ -41,6 +44,10 @@ export function FolderSection({
   selectedCollectionIds,
   onToggleSelect,
 }) {
+  const settings = useSettings();
+  const customColors = /** @type {Array<{id: string, name: string, value?: string}>} */ (
+    settings.customColors ?? []
+  );
   const [menuOpen, setMenuOpen] = useState(false);
   /** Draft name while editing; null means "not editing". */
   const [draftName, setDraftName] = useState(null);
@@ -134,6 +141,14 @@ export function FolderSection({
             className={`fas ${folder.isExpanded ? 'fa-folder-open' : 'fa-folder'} cc-folder-icon`}
             aria-hidden="true"
           />
+          {folder.color ? (
+            <span
+              className="cc-color-dot"
+              style={{ '--tc-swatch-color': swatchValue(folder.color, customColors) }}
+              title={colorName(folder.color, customColors)}
+              aria-hidden="true"
+            />
+          ) : null}
           <input
             ref={nameRef}
             type="text"
@@ -171,6 +186,14 @@ export function FolderSection({
               >
                 <i className="fas fa-pen" /> Edit folder name
               </button>
+              <ColorPicker
+                value={folder.color ?? null}
+                customColors={customColors}
+                onSelect={(colorId) => {
+                  setMenuOpen(false);
+                  actions.setFolderColor(folder.id, colorId);
+                }}
+              />
               <button
                 type="button"
                 className="sh-dropdown-option delete-folder-btn"

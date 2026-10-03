@@ -19,6 +19,7 @@ import {
   setCollectionExpanded,
   setTabSortType,
 } from '../lib/collectionDraft.js';
+import { setCollectionColor, setFolderColor } from '../lib/colorDraft.js';
 import {
   createFolder,
   deleteFolder,
@@ -38,6 +39,8 @@ import { deleteSelection, describeSelection, summarizeSelection } from '../lib/b
  * @property {(id: string) => Promise<void>} deleteFolder
  * @property {(selection: import('../lib/bulkDelete.js').Selection) => Promise<boolean>} deleteMany
  * @property {(collectionId: string, folderId: string|null) => Promise<void>} moveCollectionToFolder
+ * @property {(id: string, colorId: string|null) => Promise<void>} setCollectionColor
+ * @property {(id: string, colorId: string|null) => Promise<void>} setFolderColor
  * @property {(id: string) => void} pinCollection
  * @property {(collectionId: string, tabId: string) => void} pinTab
  * @property {(id: string, name: string) => Promise<boolean>} renameCollection
@@ -311,6 +314,10 @@ export function useCollectionActions({ toast, addTabs, importTabs }) {
 
     moveCollectionToFolder: (collectionId, folderId) =>
       mutate((draft) => moveCollectionToFolder(draft, collectionId, folderId)),
+
+    setCollectionColor: (id, colorId) => mutate((draft) => setCollectionColor(draft, id, colorId)),
+
+    setFolderColor: (id, colorId) => mutate((draft) => setFolderColor(draft, id, colorId)),
 
     reorderTabs: (collectionId, sourceTabId, targetTabId) =>
       mutate((draft) => reorderTabsWithinCollection(draft, collectionId, sourceTabId, targetTabId)),

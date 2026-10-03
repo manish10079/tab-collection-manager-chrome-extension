@@ -1,6 +1,7 @@
 import { Modal } from '../../../components/Modal.jsx';
 import { ShortcutGrid } from '../../../components/ShortcutGrid.jsx';
 import { useSettings } from '../../../store/hooks.js';
+import { ColorLabelsSection } from './ColorLabelsSection.jsx';
 import { GDriveSection } from './GDriveSection.jsx';
 import { LimitInput } from './LimitInput.jsx';
 import { SettingsCard } from './SettingsCard.jsx';
@@ -85,6 +86,8 @@ export function SettingsModal({ onClose, actions }) {
           />
         </SettingsRow>
       </SettingsCard>
+
+      <ColorLabelsSection actions={actions} />
 
       <SettingsCard icon="fa-keyboard" title="Keyboard Shortcuts">
         <ShortcutGrid />

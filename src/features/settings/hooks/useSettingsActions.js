@@ -1,5 +1,9 @@
 import { mutate } from '../../../store/store.js';
 import { CURRENT_SESSION_ID } from '../../../shared/storage-keys.js';
+import {
+  addCustomColor as addCustomColorDraft,
+  removeCustomColor as removeCustomColorDraft,
+} from '../lib/customColors.js';
 
 /** Bounds the legacy number inputs enforced, kept so the clamping rules stay in one place. */
 const LIMIT_BOUNDS = Object.freeze({
@@ -16,6 +20,8 @@ const LIMIT_BOUNDS = Object.freeze({
  * @property {(enabled: boolean, limit: number) => Promise<void>} setEnforcePinnedCollections
  * @property {(enabled: boolean, limit: number) => Promise<void>} setEnforcePinnedTabs
  * @property {(kind: 'collections' | 'tabs', value: number) => Promise<number>} setPinnedLimit
+ * @property {(name: string, value: string) => Promise<'added'|'empty'|'too-long'|'invalid'|'duplicate'|'too-many'>} addCustomColor
+ * @property {(id: string) => Promise<boolean>} removeCustomColor
  * @property {(message: string, duration?: number) => void} toast
  */
 
@@ -93,6 +99,39 @@ export function useSettingsActions({ toast }) {
           : `Pinned collections limit set to ${clamped}`
       );
       return clamped;
+    },
+
+    /**
+     * Add a colour to the palette. The refusal reasons are reported so the form can show one.
+     *
+     * @param {string} name
+     * @param {string} value
+     * @returns {Promise<'added'|'empty'|'too-long'|'invalid'|'duplicate'|'too-many'>}
+     */
+    addCustomColor: async (name, value) => {
+      /** @type {'added'|'empty'|'too-long'|'invalid'|'duplicate'|'too-many'} */
+      let outcome = 'invalid';
+      await mutate((draft) => {
+        outcome = addCustomColorDraft(draft, name, value, `custom-${crypto.randomUUID()}`);
+      });
+
+      if (outcome === 'added') toast(`Color "${String(name).trim()}" added`);
+      return outcome;
+    },
+
+    /**
+     * Remove a custom colour; every folder/collection using it becomes unlabelled.
+     *
+     * @param {string} id
+     * @returns {Promise<boolean>}
+     */
+    removeCustomColor: async (id) => {
+      let removed = false;
+      await mutate((draft) => {
+        removed = removeCustomColorDraft(draft, id);
+      });
+      if (removed) toast('Color removed');
+      return removed;
     },
 
     toast: (message, duration) => toast(message, duration),

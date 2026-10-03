@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { CURRENT_SESSION_ID } from '../../../shared/storage-keys.js';
 import { formatTabCount, formatTime } from '../../../lib/format.js';
+import { colorName, swatchValue } from '../../../lib/colors.js';
+import { useSettings } from '../../../store/hooks.js';
 import { useDismissable } from '../../../app/hooks/useDismissable.js';
 import { useDraggable } from '../hooks/useDraggable.js';
 import { useDropZone } from '../hooks/useDropZone.js';
+import { ColorPicker } from './ColorPicker.jsx';
 import { TabPanel } from './TabPanel.jsx';
 
 /**
@@ -35,6 +38,10 @@ export function CollectionCard({
   isSelected = false,
   onToggleSelect,
 }) {
+  const settings = useSettings();
+  const customColors = /** @type {Array<{id: string, name: string, value?: string}>} */ (
+    settings.customColors ?? []
+  );
   const isCurrentSession = collection.id === CURRENT_SESSION_ID;
   const [menuOpen, setMenuOpen] = useState(false);
   /** Draft name while editing; null means "not editing". */
@@ -147,6 +154,14 @@ export function CollectionCard({
           >
             <i className="fas fa-chevron-right" />
           </button>
+          {collection.color ? (
+            <span
+              className="cc-color-dot"
+              style={{ '--tc-swatch-color': swatchValue(collection.color, customColors) }}
+              title={colorName(collection.color, customColors)}
+              aria-hidden="true"
+            />
+          ) : null}
           <input
             ref={nameRef}
             type="text"
@@ -225,6 +240,14 @@ export function CollectionCard({
                   <i className="fas fa-plus" /> Add new tab
                 </button>
               )}
+              <ColorPicker
+                value={collection.color ?? null}
+                customColors={customColors}
+                onSelect={(colorId) => {
+                  setMenuOpen(false);
+                  actions.setCollectionColor(collection.id, colorId);
+                }}
+              />
               {folders.length > 0 && !isCurrentSession ? (
                 <>
                   <div className="sh-dropdown-section-label">Move to folder</div>

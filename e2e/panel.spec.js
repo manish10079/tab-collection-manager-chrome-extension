@@ -553,3 +553,43 @@ test('bulk-deletes a folder with its contents, a nested collection and a root co
   await expect(bar).toBeHidden();
   await expect(panel.locator('#actionsBarDefault')).not.toHaveClass(/ut-hidden/);
 });
+
+test('labels two collections by colour and filters the list to one', async ({ panel }) => {
+  await createCollection(panel, 'E2E Colour Blue');
+  await createCollection(panel, 'E2E Colour Red');
+
+  const blue = await cardFor(panel, 'E2E Colour Blue');
+  const red = await cardFor(panel, 'E2E Colour Red');
+
+  // Assign a colour from each card's options menu (the swatch row lives in the dropdown).
+  await blue.locator('.cc-collection-menu-btn').click();
+  await blue.locator('.cc-color-swatches button[aria-label="Blue"]').click();
+  await expect(blue.locator('.cc-color-dot')).toBeVisible();
+
+  await red.locator('.cc-collection-menu-btn').click();
+  await red.locator('.cc-color-swatches button[aria-label="Red"]').click();
+  await expect(red.locator('.cc-color-dot')).toBeVisible();
+
+  // The label is a storage write, not just DOM styling.
+  await expect
+    .poll(() =>
+      panel.evaluate(async () => {
+        const { collections = [] } = await chrome.storage.local.get('collections');
+        return collections.map((collection) => collection.color);
+      })
+    )
+    .toEqual(expect.arrayContaining(['blue', 'red']));
+
+  // The Color sort mode groups the list into one section per colour label.
+  await panel.locator('#collectionSortBtn').click();
+  await panel.getByRole('menuitem', { name: 'Color' }).click();
+  await expect(panel.locator('.color-heading[data-color="blue"]')).toBeVisible();
+  await expect(panel.locator('.color-heading[data-color="red"]')).toBeVisible();
+
+  // Filtering still applies on top of the grouping: blue keeps its section, red loses its own.
+  await panel.locator('#colorFilterBtn').click();
+  await panel.getByRole('menuitemcheckbox', { name: 'Blue' }).click();
+
+  await expect(blue).toBeVisible();
+  await expect(red).toHaveCount(0);
+});

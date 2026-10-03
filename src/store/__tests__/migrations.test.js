@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { SCHEMA_VERSION } from '../../shared/constants.js';
 import { up as foldersUp } from '../migrations/0001-folders.js';
 import { up as sessionGroupsUp } from '../migrations/0002-session-groups.js';
+import { up as colorsUp } from '../migrations/0003-colors.js';
 import { runMigrations } from '../migrations/index.js';
 import { normalizeState } from '../schema.js';
 
@@ -151,5 +152,58 @@ describe('normalizeState folders', () => {
     expect(state.collections[0].folderId).toBe('f1');
     expect(state.folders[0].name).toBe('Folder');
     expect(state.folders[0].isExpanded).toBe(false);
+  });
+});
+
+describe('migration 0003 — colors', () => {
+  it('pins a null colour on every collection and folder', () => {
+    const migrated = colorsUp({
+      collections: [{ id: 'a' }, { id: 'b', color: 'blue' }],
+      folders: [{ id: 'f1' }],
+    });
+
+    expect(migrated.collections.map((entry) => entry.color)).toEqual([null, 'blue']);
+    expect(migrated.folders[0].color).toBeNull();
+  });
+
+  it('replaces a malformed colour and is idempotent', () => {
+    const once = colorsUp({
+      collections: [{ id: 'a', color: 42 }, 'not-an-object'],
+      folders: [],
+    });
+    const twice = colorsUp(once);
+
+    expect(once.collections[0].color).toBeNull();
+    expect(once.collections[1]).toBe('not-an-object');
+    expect(twice).toEqual(once);
+  });
+
+  it('tolerates storage with no collections or folders', () => {
+    expect(colorsUp({})).toEqual({});
+  });
+});
+
+describe('normalizeState colors', () => {
+  it('defaults a missing colour to null on both items', () => {
+    const state = normalizeState({
+      collections: [{ id: 'a', name: 'A', tabs: [] }],
+      folders: [{ id: 'f1', name: 'Work' }],
+    });
+
+    expect(state.collections[0].color).toBeNull();
+    expect(state.folders[0].color).toBeNull();
+  });
+
+  it('keeps a colour id and normalizes the stored palette', () => {
+    const state = normalizeState({
+      collections: [{ id: 'a', name: 'A', tabs: [], color: 'blue' }],
+      customColors: [
+        { id: 'c1', name: 'Ocean', value: '#00FF88' },
+        { id: '', name: 'bad' },
+      ],
+    });
+
+    expect(state.collections[0].color).toBe('blue');
+    expect(state.settings.customColors).toEqual([{ id: 'c1', name: 'Ocean', value: '#00ff88' }]);
   });
 });

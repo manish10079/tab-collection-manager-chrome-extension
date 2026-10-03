@@ -1,6 +1,6 @@
 # Missing Features vs Ta Box (Tabox) 4.2.2
 
-Comparison of **Tab Collection Manager v2.3.0** against the Ta Box extension build
+Comparison of **Tab Collection Manager v2.4.0** against the Ta Box extension build
 (`ta box tab collection manager extension.zip`, Chrome Web Store build, webpack + React).
 
 Features we already have are **not** listed here: collection CRUD, drag & drop reorder,
@@ -26,7 +26,8 @@ Legend: 🔴 major · 🟡 medium · ⚪ minor
   the Drive backup, and the persisted shape is upgraded by a versioned migration
   (`schemaVersion: 1`). A separate Select mode bulk-deletes several folders and collections
   at once from both sections.
-- **Still missing:** folder colors.
+- **Colors:** implemented — folders and collections carry a color label (ten built-ins plus
+  user-added custom colors), shown as a dot in the header and filterable from the controls bar.
 
 ### 2. Chrome Tab Groups capture & restore — ✅ implemented
 - **Ta Box:** stores `chromeGroups` metadata (group name, color, collapsed, pinned) with
@@ -117,7 +118,7 @@ Legend: 🔴 major · 🟡 medium · ⚪ minor
 
 ## ⚪ Minor gaps / quality-of-life
 
-13. **Per-collection colors** (color picker on collection, used in UI accents)
+13. **Per-collection colors** (color picker on collection, used in UI accents) — ✅ implemented as Color Labels, extended to folders and with a color filter
 14. **Favorites with custom favorite order** (`isFavorite`, `favoriteOrder`) — our pinning covers most of this
 15. **`lastOpened` tracking per collection** — enables "recently opened" sort
 16. **`unlimitedStorage` permission** — we cap collections at 200 tabs; Ta Box doesn't cap

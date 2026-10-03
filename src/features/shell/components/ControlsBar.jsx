@@ -1,3 +1,4 @@
+import { ColorFilterMenu } from './ColorFilterMenu.jsx';
 import { CreateSlide } from './CreateSlide.jsx';
 import { SearchSlide } from './SearchSlide.jsx';
 import { SortMenu } from './SortMenu.jsx';
@@ -14,7 +15,16 @@ import { SortMenu } from './SortMenu.jsx';
  * @property {() => void} onToggleSelectionMode
  * @property {() => void} onDeleteSelected
  * @property {() => void} onCancelSelection
+ * @property {Set<string>} [colorFilter]                     Colour ids the list is narrowed to
+ * @property {(colorId: string) => void} [onToggleColorFilter]
+ * @property {() => void} [onClearColorFilter]
  */
+
+/** Shared empty filter so an omitted prop does not allocate on every render. */
+const EMPTY_COLOR_FILTER = new Set();
+
+/** Placeholder for an omitted filter callback. */
+function noop() {}
 
 /**
  * The controls bar: the default actions row, the search/create slides and the collections sort menu.
@@ -35,6 +45,9 @@ export function ControlsBar({
   onToggleSelectionMode,
   onDeleteSelected,
   onCancelSelection,
+  colorFilter,
+  onToggleColorFilter,
+  onClearColorFilter,
 }) {
   const { slide } = controller;
   const hasBackup = Boolean(backup && Array.isArray(backup.tabs) && backup.tabs.length > 0);
@@ -145,6 +158,12 @@ export function ControlsBar({
           </button>
 
           <SortMenu active={collectionSortType} onSelect={controller.setCollectionSort} />
+
+          <ColorFilterMenu
+            selected={colorFilter ?? EMPTY_COLOR_FILTER}
+            onToggle={onToggleColorFilter ?? noop}
+            onClear={onClearColorFilter ?? noop}
+          />
 
           <button
             type="button"
