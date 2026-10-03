@@ -288,3 +288,50 @@ describe('useCollectionActions deleteMany', () => {
     confirmSpy.mockRestore();
   });
 });
+
+/**
+ * The hook is a composition of the capability groups (`useTabActions`, `useFolderActions`,
+ * `useColorActions`, `usePinActions`) plus the collection-level actions and the bulk delete, none of
+ * which a caller can see. This pins the surface it promises, so moving an action between the groups
+ * cannot quietly drop it from the object the panel consumes.
+ */
+describe('useCollectionActions surface', () => {
+  it('exposes every documented action', async () => {
+    const { actions } = setup({});
+    await hydrate();
+
+    expect(Object.keys(actions).sort()).toEqual(
+      [
+        'addTabs',
+        'copyCollectionLinks',
+        'copyTabUrl',
+        'createFolder',
+        'deleteCollection',
+        'deleteFolder',
+        'deleteMany',
+        'exportCollection',
+        'importTabs',
+        'labelWithNewColor',
+        'moveCollection',
+        'moveCollectionToFolder',
+        'moveTab',
+        'moveTabToPosition',
+        'openAllTabs',
+        'openTab',
+        'pinCollection',
+        'pinTab',
+        'removeTab',
+        'renameCollection',
+        'renameFolder',
+        'renameTab',
+        'reorderTabs',
+        'setCollectionColor',
+        'setExpanded',
+        'setFolderColor',
+        'setFolderExpanded',
+        'setTabSortType',
+        'toast',
+      ].sort()
+    );
+  });
+});

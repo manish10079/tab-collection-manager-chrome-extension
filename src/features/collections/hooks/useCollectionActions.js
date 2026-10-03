@@ -1,33 +1,14 @@
 import { getSnapshot, mutate } from '../../../store/store.js';
 import { LIMITS } from '../../../shared/constants.js';
-import { toOpenableUrl } from '../../../lib/url.js';
-import { discardWhenLoaded } from '../../../lib/tabs.js';
+import { downloadJson } from '../../../lib/download.js';
 import { formatFileTimestamp } from '../../../lib/format.js';
-import {
-  deleteCollection,
-  removeTab,
-  renameCollection,
-  renameTab,
-  toggleCollectionPin,
-  toggleTabPin,
-} from '../lib/collectionAdmin.js';
-import {
-  moveTabToCollection,
-  moveTabToCollectionAtPosition,
-  reorderCollections,
-  reorderTabsWithinCollection,
-  setCollectionExpanded,
-  setTabSortType,
-} from '../lib/collectionDraft.js';
-import { addAndAssignColor, setCollectionColor, setFolderColor } from '../lib/colorDraft.js';
-import {
-  createFolder,
-  deleteFolder,
-  moveCollectionToFolder,
-  renameFolder,
-  setFolderExpanded,
-} from '../lib/folderDraft.js';
+import { deleteCollection, renameCollection } from '../lib/collectionAdmin.js';
+import { reorderCollections, setCollectionExpanded } from '../lib/collectionDraft.js';
 import { deleteSelection, describeSelection, summarizeSelection } from '../lib/bulkDelete.js';
+import { useColorActions } from './useColorActions.js';
+import { useFolderActions } from './useFolderActions.js';
+import { usePinActions } from './usePinActions.js';
+import { useTabActions } from './useTabActions.js';
 
 /**
  * @typedef {object} CollectionActions
@@ -65,10 +46,15 @@ import { deleteSelection, describeSelection, summarizeSelection } from '../lib/b
 /**
  * Actions available to the collections feature.
  *
+ * The capability groups live in their own hooks — `useTabActions`, `useFolderActions`,
+ * `useColorActions` and `usePinActions` — and this composes them with the collection-level actions
+ * and the bulk delete, which spans folders and collections and so belongs to neither. Callers still
+ * take one object, so the composition is invisible to them.
+ *
  * Every action is React-owned since Phase 5.1: state changes go through the store's write queue,
- * opening and restoring tabs is a `chrome.tabs` / `chrome.runtime` call here, and the two handlers
- * the app layer owns (`addTabs`, `importTabs` — they are dialogs) plus `toast` arrive by injection.
- * `src/app/legacy-ui.js` disappeared with this change.
+ * opening and restoring tabs is a `chrome.tabs` / `chrome.runtime` call in `useTabActions`, and the
+ * two handlers the app layer owns (`addTabs`, `importTabs` — they are dialogs) plus `toast` arrive
+ * by injection. `src/app/legacy-ui.js` disappeared with this change.
  *
  * @param {object} deps Injected by the app layer
  * @param {(message: string, duration?: number) => void} deps.toast
@@ -77,55 +63,62 @@ import { deleteSelection, describeSelection, summarizeSelection } from '../lib/b
  * @returns {CollectionActions}
  */
 export function useCollectionActions({ toast, addTabs, importTabs }) {
-  /**
-   * A cross-collection tab move can be refused (the 200-tab cap). The mutator's verdict comes
-   * back through the write queue and surfaces as a toast instead of the legacy alert().
-   *
-   * @param {(draft: import('../../../store/schema.js').AppState) => {moved: boolean, message?: string}} mutator
-   * @returns {Promise<{moved: boolean, message?: string}>}
-   */
-  async function runTabMove(mutator) {
-    let result = { moved: true };
-    await mutate((draft) => {
-      result = mutator(draft);
-    });
-    if (!result.moved && result.message) toast(result.message);
-    return result;
-  }
-
-  /**
-   * Toggle a pin through the queue and report a refused limit. The mutator decides, so the rule
-   * lives with the state rather than with the click.
-   *
-   * @param {(draft: import('../../../store/schema.js').AppState) => {changed: boolean, limitReached: boolean, limit: number}} mutator
-   * @param {(limit: number) => string} limitMessage
-   */
-  async function runPinToggle(mutator, limitMessage) {
-    let result = { changed: false, limitReached: false, limit: 0 };
-    await mutate((draft) => {
-      result = mutator(draft);
-    });
-    if (result.limitReached) toast(limitMessage(result.limit));
-  }
+  const tabs = useTabActions({ toast, addTabs, importTabs });
+  const folders = useFolderActions({ toast });
+  const colors = useColorActions({ toast });
+  const pins = usePinActions({ toast });
 
   return {
     setExpanded: (id, expanded) => mutate((draft) => setCollectionExpanded(draft, id, expanded)),
 
-    setTabSortType: (id, sortType) => mutate((draft) => setTabSortType(draft, id, sortType)),
+    setTabSortType: tabs.setTabSortType,
 
-    pinCollection: (id) =>
-      runPinToggle(
-        (draft) => toggleCollectionPin(draft, id),
-        (limit) =>
-          `Maximum of ${limit} pinned collections reached. Raise the limit or disable it in Settings.`
-      ),
+    setFolderExpanded: folders.setFolderExpanded,
 
-    pinTab: (collectionId, tabId) =>
-      runPinToggle(
-        (draft) => toggleTabPin(draft, collectionId, tabId),
-        (limit) =>
-          `Maximum of ${limit} pinned tabs per collection reached. Raise the limit or disable it in Settings.`
-      ),
+    createFolder: folders.createFolder,
+
+    renameFolder: folders.renameFolder,
+
+    deleteFolder: folders.deleteFolder,
+
+    /**
+     * Delete everything the user checked in selection mode, in one write. A folder takes its
+     * collections with it; the confirm names exactly what will go. It lives here rather than in
+     * either group because a selection can mix both.
+     *
+     * @returns {Promise<boolean>} Whether anything was deleted.
+     */
+    deleteMany: async ({ folderIds = [], collectionIds = [] } = {}) => {
+      const summary = summarizeSelection(getSnapshot(), { folderIds, collectionIds });
+      if (summary.folders + summary.collections === 0) return false;
+      if (!window.confirm(describeSelection(summary))) return false;
+
+      let result = { removedFolders: 0, removedCollections: 0 };
+      await mutate((draft) => {
+        result = deleteSelection(draft, { folderIds, collectionIds });
+      });
+      const bits = [];
+      if (result.removedFolders > 0)
+        bits.push(`${result.removedFolders} folder${result.removedFolders === 1 ? '' : 's'}`);
+      if (result.removedCollections > 0)
+        bits.push(
+          `${result.removedCollections} collection${result.removedCollections === 1 ? '' : 's'}`
+        );
+      toast(bits.length > 0 ? `Deleted ${bits.join(' and ')}` : 'Nothing to delete');
+      return true;
+    },
+
+    moveCollectionToFolder: folders.moveCollectionToFolder,
+
+    setCollectionColor: colors.setCollectionColor,
+
+    setFolderColor: colors.setFolderColor,
+
+    labelWithNewColor: colors.labelWithNewColor,
+
+    pinCollection: pins.pinCollection,
+
+    pinTab: pins.pinTab,
 
     /** @returns {Promise<boolean>} Whether the rename stuck — the card keeps its draft otherwise. */
     renameCollection: async (id, name) => {
@@ -158,29 +151,15 @@ export function useCollectionActions({ toast, addTabs, importTabs }) {
       });
     },
 
-    openAllTabs: async (id) => {
-      // The service worker owns restore: it opens the tabs in a new window, rebuilds Chrome tab
-      // groups and applies RAM Saver. The legacy fallback that duplicated that logic is gone.
-      try {
-        const response = await chrome.runtime.sendMessage({
-          command: 'restoreSession',
-          collectionId: id,
-        });
-        if (response && response.success) toast('All tabs opened in background');
-        else toast('Could not restore that collection.');
-      } catch (error) {
-        console.error('[collections] failed to restore collection:', error);
-        toast('Could not restore that collection.');
-      }
-    },
+    openAllTabs: tabs.openAllTabs,
 
-    addTabs: (id) => addTabs(id),
+    addTabs: tabs.addTabs,
 
-    importTabs: (id) => importTabs(id),
+    importTabs: tabs.importTabs,
 
     exportCollection: (collection) => {
-      const tabs = Array.isArray(collection.tabs) ? collection.tabs : [];
-      if (tabs.length === 0) {
+      const tabsInCollection = Array.isArray(collection.tabs) ? collection.tabs : [];
+      if (tabsInCollection.length === 0) {
         toast('No tabs to export in this collection.');
         return;
       }
@@ -193,187 +172,20 @@ export function useCollectionActions({ toast, addTabs, importTabs }) {
           collectionId: collection.id,
           collectionName: collection.name,
           exportedAt: new Date().toISOString(),
-          tabs,
+          tabs: tabsInCollection,
         },
         filename
       );
       toast('Collection exported successfully');
     },
 
-    removeTab: (collectionId, tabId) =>
-      mutate((draft) => {
-        removeTab(draft, collectionId, tabId);
-      }),
-
-    renameTab: (collectionId, tabId, title) =>
-      mutate((draft) => {
-        renameTab(draft, collectionId, tabId, title);
-      }),
-
-    openTab: async (url, options = {}) => {
-      const target = toOpenableUrl(url);
-      if (!target) return;
-
-      // `active` defaults to true, so clicking a tab row loads it straight away.
-      const active = options.active !== false;
-      try {
-        const created = await chrome.tabs.create({ url: target, active });
-        if (active) return;
-
-        if (getSnapshot().settings.ramSaverEnabled && created && created.id) {
-          discardWhenLoaded(created.id);
-          toast('Tab opened (RAM Saver — loads on click)');
-        } else {
-          toast('Tab opened in background');
-        }
-      } catch (error) {
-        console.error('[collections] failed to open tab:', target, error);
-        toast('Could not open that tab.');
-      }
-    },
-
-    moveCollection: (sourceId, targetId) =>
-      mutate((draft) => reorderCollections(draft, sourceId, targetId)),
-
-    setFolderExpanded: (id, expanded) => mutate((draft) => setFolderExpanded(draft, id, expanded)),
-
-    /** @returns {Promise<'created'|'empty'|'too-long'|'too-many'|'duplicate'>} */
-    createFolder: async (name) => {
-      /** @type {'created'|'empty'|'too-long'|'too-many'|'duplicate'} */
-      let outcome = 'empty';
-      await mutate((draft) => {
-        outcome = createFolder(draft, name, crypto.randomUUID());
-      });
-      return outcome;
-    },
-
-    /** @returns {Promise<boolean>} Whether the rename stuck — the section keeps its draft otherwise. */
-    renameFolder: async (id, name) => {
-      /** @type {'renamed'|'unchanged'|'empty'|'too-long'|'duplicate'|'missing'} */
-      let outcome = 'missing';
-      await mutate((draft) => {
-        outcome = renameFolder(draft, id, name);
-      });
-
-      if (outcome === 'too-long') {
-        toast(`Folder name cannot exceed ${LIMITS.MAX_FOLDER_NAME_LENGTH} characters.`);
-        return false;
-      }
-      if (outcome === 'duplicate') {
-        toast(`Folder name "${String(name).trim()}" already exists.`);
-        return false;
-      }
-      return outcome === 'renamed' || outcome === 'unchanged';
-    },
-
-    deleteFolder: async (id) => {
-      const folder = getSnapshot().folders.find((entry) => entry.id === id);
-      if (!folder) return;
-      const nested = getSnapshot().collections.filter((entry) => entry.folderId === id).length;
-      const warning =
-        nested > 0
-          ? `Delete "${folder.name}" and the ${nested} collection${nested === 1 ? '' : 's'} inside it? This cannot be undone.`
-          : `Delete the folder "${folder.name}"?`;
-      if (!window.confirm(warning)) return;
-
-      let removed = 0;
-      await mutate((draft) => {
-        removed = deleteFolder(draft, id).removedCollections;
-      });
-      toast(
-        removed > 0
-          ? `Folder deleted — ${removed} collection${removed === 1 ? '' : 's'} removed with it.`
-          : 'Folder deleted'
-      );
-    },
-
-    /**
-     * Delete everything the user checked in selection mode, in one write. A folder takes its
-     * collections with it; the confirm names exactly what will go.
-     *
-     * @returns {Promise<boolean>} Whether anything was deleted.
-     */
-    deleteMany: async ({ folderIds = [], collectionIds = [] } = {}) => {
-      const summary = summarizeSelection(getSnapshot(), { folderIds, collectionIds });
-      if (summary.folders + summary.collections === 0) return false;
-      if (!window.confirm(describeSelection(summary))) return false;
-
-      let result = { removedFolders: 0, removedCollections: 0 };
-      await mutate((draft) => {
-        result = deleteSelection(draft, { folderIds, collectionIds });
-      });
-      const bits = [];
-      if (result.removedFolders > 0)
-        bits.push(`${result.removedFolders} folder${result.removedFolders === 1 ? '' : 's'}`);
-      if (result.removedCollections > 0)
-        bits.push(
-          `${result.removedCollections} collection${result.removedCollections === 1 ? '' : 's'}`
-        );
-      toast(bits.length > 0 ? `Deleted ${bits.join(' and ')}` : 'Nothing to delete');
-      return true;
-    },
-
-    moveCollectionToFolder: (collectionId, folderId) =>
-      mutate((draft) => moveCollectionToFolder(draft, collectionId, folderId)),
-
-    setCollectionColor: (id, colorId) => mutate((draft) => setCollectionColor(draft, id, colorId)),
-
-    setFolderColor: (id, colorId) => mutate((draft) => setFolderColor(draft, id, colorId)),
-
-    /**
-     * Add a custom colour to the palette and label one folder/collection with it, from that item's
-     * own menu — the same write, so the colour exists exactly when the label does. The refusal
-     * reasons come back so the menu can show one instead of silently doing nothing.
-     *
-     * @param {'collection'|'folder'} kind
-     * @param {string} id
-     * @param {string} name
-     * @param {string} value
-     * @returns {Promise<'added'|'empty'|'too-long'|'invalid'|'duplicate'|'too-many'>}
-     */
-    labelWithNewColor: async (kind, id, name, value) => {
-      /** @type {'added'|'empty'|'too-long'|'invalid'|'duplicate'|'too-many'} */
-      let outcome = 'invalid';
-      await mutate((draft) => {
-        outcome = addAndAssignColor(
-          draft,
-          { kind, id },
-          name,
-          value,
-          `custom-${crypto.randomUUID()}`
-        );
-      });
-
-      if (outcome === 'added') toast(`Color "${String(name).trim()}" added`);
-      return outcome;
-    },
-
-    reorderTabs: (collectionId, sourceTabId, targetTabId) =>
-      mutate((draft) => reorderTabsWithinCollection(draft, collectionId, sourceTabId, targetTabId)),
-
-    moveTab: (tabId, sourceCollectionId, targetCollectionId) =>
-      runTabMove((draft) =>
-        moveTabToCollection(draft, tabId, sourceCollectionId, targetCollectionId)
-      ),
-
-    moveTabToPosition: (tabId, sourceCollectionId, targetCollectionId, targetTabId) =>
-      runTabMove((draft) =>
-        moveTabToCollectionAtPosition(
-          draft,
-          tabId,
-          sourceCollectionId,
-          targetCollectionId,
-          targetTabId
-        )
-      ),
-
     copyCollectionLinks: async (collection) => {
-      const tabs = Array.isArray(collection.tabs) ? collection.tabs : [];
-      if (tabs.length === 0) {
+      const tabsInCollection = Array.isArray(collection.tabs) ? collection.tabs : [];
+      if (tabsInCollection.length === 0) {
         toast('Collection has no tabs to share');
         return;
       }
-      const text = tabs.map((tab) => `${tab.title}\n${tab.url}`).join('\n\n');
+      const text = tabsInCollection.map((tab) => `${tab.title}\n${tab.url}`).join('\n\n');
       try {
         await navigator.clipboard.writeText(text);
         toast('Collection copied to clipboard', 1000);
@@ -383,35 +195,23 @@ export function useCollectionActions({ toast, addTabs, importTabs }) {
       }
     },
 
-    copyTabUrl: async (url) => {
-      try {
-        await navigator.clipboard.writeText(url);
-        toast('Link copied to clipboard', 500);
-      } catch (error) {
-        console.error('[collections] failed to copy tab link:', error);
-        toast('Failed to copy link');
-      }
-    },
+    moveCollection: (sourceId, targetId) =>
+      mutate((draft) => reorderCollections(draft, sourceId, targetId)),
+
+    reorderTabs: tabs.reorderTabs,
+
+    moveTab: tabs.moveTab,
+
+    moveTabToPosition: tabs.moveTabToPosition,
+
+    removeTab: tabs.removeTab,
+
+    renameTab: tabs.renameTab,
+
+    openTab: tabs.openTab,
+
+    copyTabUrl: tabs.copyTabUrl,
 
     toast: (message, duration) => toast(message, duration),
   };
-}
-
-/**
- * Save a JSON payload through a temporary object URL. The legacy code did this inline in two
- * places (`exportCollection`, `exportAllCollections`); it lives here because it touches `document`.
- *
- * @param {unknown} payload
- * @param {string} filename
- */
-function downloadJson(payload, filename) {
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-  setTimeout(() => URL.revokeObjectURL(url), 100);
 }
