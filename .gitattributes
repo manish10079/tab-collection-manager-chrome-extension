@@ -1,0 +1,19 @@
+# Line endings: LF everywhere, on every platform.
+#
+# `.editorconfig` already asks for `end_of_line = lf`, but that is only a hint to editors and Git is
+# not obliged to honour it. Without this file a Windows clone with `core.autocrlf=true` checks text
+# files out as CRLF while the committed blobs stay LF, so `prettier --check` (whose config pins
+# `endOfLine: "lf"`) flags every file that nobody actually edited — 37 untouched files on a clean
+# tree. CI runs on Linux, where `core.autocrlf` is off, so the failure never showed up there.
+#
+# The `eol` attribute takes precedence over `core.autocrlf` and `core.eol`, so checkouts are LF even
+# on a machine that still has `core.autocrlf=true`. Committed blobs were already LF, so this changes
+# no tracked content — only what Git writes into the working tree.
+* text=auto eol=lf
+
+# Binary assets: never normalise them and never diff them as text.
+*.png binary
+*.ttf binary
+*.woff2 binary
+*.crx binary
+*.xpi binary
