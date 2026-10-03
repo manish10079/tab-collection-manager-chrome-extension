@@ -371,6 +371,9 @@ itself labeled.
 * Ten built-in colors (red, orange, amber, green, teal, blue, indigo, purple, pink, gray), always
   available and fixed — they can be used but not renamed or removed
 * Add your own custom colors (name + picker) from **Settings → Color Labels**, up to 40 of them
+* Create a custom color **straight from a folder's or collection's options menu** — a “+” swatch
+  opens a color well and a name, and confirming both adds it to the palette and labels that item in
+  a single write, so no trip to Settings is needed
 * Assign a color from a folder's or collection's options menu, or clear it with the “no color”
   swatch
 * A small color dot in a labelled folder's or collection's header

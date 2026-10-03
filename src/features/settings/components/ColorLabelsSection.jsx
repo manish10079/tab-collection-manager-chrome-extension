@@ -1,17 +1,8 @@
 import { useState } from 'react';
-import { BUILT_IN_COLORS, swatchValue } from '../../../lib/colors.js';
+import { BUILT_IN_COLORS, customColorErrorMessage, swatchValue } from '../../../lib/colors.js';
 import { LIMITS } from '../../../shared/constants.js';
 import { useSettings } from '../../../store/hooks.js';
 import { SettingsCard } from './SettingsCard.jsx';
-
-/** Why a custom colour was refused, phrased for the form. */
-const ERROR_MESSAGES = Object.freeze({
-  empty: 'Give the color a name.',
-  'too-long': `Names are limited to ${LIMITS.MAX_CUSTOM_COLOR_NAME_LENGTH} characters.`,
-  invalid: 'Pick a valid color.',
-  duplicate: 'A color with that name already exists.',
-  'too-many': `You can add up to ${LIMITS.MAX_CUSTOM_COLORS} custom colors.`,
-});
 
 /**
  * @typedef {object} ColorLabelsSectionProps
@@ -47,7 +38,7 @@ export function ColorLabelsSection({ actions }) {
       setError('');
       return;
     }
-    setError(ERROR_MESSAGES[outcome] ?? 'Could not add that color.');
+    setError(customColorErrorMessage(outcome) || 'Could not add that color.');
   }
 
   return (

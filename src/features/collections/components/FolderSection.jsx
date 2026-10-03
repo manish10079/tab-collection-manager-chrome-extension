@@ -5,6 +5,7 @@ import { useSettings } from '../../../store/hooks.js';
 import { useDismissable } from '../../../app/hooks/useDismissable.js';
 import { useDropZone } from '../hooks/useDropZone.js';
 import { CollectionCard } from './CollectionCard.jsx';
+import { colorPickerHandlers } from '../lib/colorPickerHandlers.js';
 import { ColorPicker } from './ColorPicker.jsx';
 
 /**
@@ -189,10 +190,7 @@ export function FolderSection({
               <ColorPicker
                 value={folder.color ?? null}
                 customColors={customColors}
-                onSelect={(colorId) => {
-                  setMenuOpen(false);
-                  actions.setFolderColor(folder.id, colorId);
-                }}
+                {...colorPickerHandlers(actions, 'folder', folder.id, () => setMenuOpen(false))}
               />
               <button
                 type="button"

@@ -594,6 +594,48 @@ test('labels two collections by colour and filters the list to one', async ({ pa
   await expect(red).toHaveCount(0);
 });
 
+test('creates a custom colour from a card menu and labels the collection with it', async ({
+  panel,
+}) => {
+  await createCollection(panel, 'E2E Custom Colour');
+  const card = await cardFor(panel, 'E2E Custom Colour');
+
+  // The "new custom color" control lives in the same swatch row as the built-ins.
+  await card.locator('.cc-collection-menu-btn').click();
+  await card.locator('.cc-color-swatches button[aria-label="New custom color"]').click();
+  await card.locator('.cc-color-add-name').fill('E2E Ocean');
+  await card.locator('.cc-color-add-submit').click();
+
+  // Minting the colour and labelling the card are one storage write, so the dot and the palette
+  // entry appear together.
+  await expect(card.locator('.cc-color-dot')).toBeVisible();
+  await expect
+    .poll(() =>
+      panel.evaluate(async () => {
+        const { customColors = [], collections = [] } = await chrome.storage.local.get([
+          'customColors',
+          'collections',
+        ]);
+        const labelled = collections.filter((collection) => collection.color != null);
+        return {
+          palette: customColors.map((color) => color.name),
+          labels: labelled.map((collection) => collection.color),
+          paletteHasLabel: labelled.every((collection) =>
+            customColors.some((color) => color.id === collection.color)
+          ),
+        };
+      })
+    )
+    .toMatchObject({ palette: ['E2E Ocean'], paletteHasLabel: true });
+
+  // The new colour is now offered in every picker, so another item can reuse it.
+  await createCollection(panel, 'E2E Reuse Colour');
+  const reuse = await cardFor(panel, 'E2E Reuse Colour');
+  await reuse.locator('.cc-collection-menu-btn').click();
+  await reuse.locator('.cc-color-swatches button[aria-label="E2E Ocean"]').click();
+  await expect(reuse.locator('.cc-color-dot')).toBeVisible();
+});
+
 test('reflows the controls onto one row as the panel widens', async ({ panel }) => {
   const bar = panel.locator('#actionsBarDefault');
   await expect(bar).toBeVisible();

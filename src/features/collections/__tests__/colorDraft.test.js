@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_SETTINGS } from '../../../shared/constants.js';
-import { canAssignColor, setCollectionColor, setFolderColor } from '../lib/colorDraft.js';
+import {
+  addAndAssignColor,
+  canAssignColor,
+  setCollectionColor,
+  setFolderColor,
+} from '../lib/colorDraft.js';
 
 /** @param {Record<string, unknown>} [extra] */
 function draft(extra = {}) {
@@ -76,6 +81,42 @@ describe('setFolderColor', () => {
     expect(setFolderColor(state, 'ghost', 'red')).toBe(false);
     expect(setFolderColor(state, 'f1', 'ghost')).toBe(false);
     expect(state.folders[0].color).toBeNull();
+  });
+});
+
+describe('addAndAssignColor', () => {
+  it('adds the colour to the palette and labels the collection with it', () => {
+    const state = draft();
+
+    expect(
+      addAndAssignColor(state, { kind: 'collection', id: 'a' }, 'Ocean', '#00FF88', 'c2')
+    ).toBe('added');
+    expect(state.settings.customColors).toContainEqual({
+      id: 'c2',
+      name: 'Ocean',
+      value: '#00ff88',
+    });
+    expect(state.collections[0].color).toBe('c2');
+    expect(state.collections[0].updatedAt).toBeGreaterThan(0);
+  });
+
+  it('labels a folder the same way', () => {
+    const state = draft();
+
+    expect(addAndAssignColor(state, { kind: 'folder', id: 'f1' }, 'Ocean', '#0088ff', 'c2')).toBe(
+      'added'
+    );
+    expect(state.folders[0].color).toBe('c2');
+  });
+
+  it('reports a refusal and adds nothing', () => {
+    const state = draft();
+
+    expect(
+      addAndAssignColor(state, { kind: 'collection', id: 'a' }, 'Sunset', '#0088ff', 'c2')
+    ).toBe('duplicate');
+    expect(state.settings.customColors).toHaveLength(1);
+    expect(state.collections[0].color).toBeNull();
   });
 });
 

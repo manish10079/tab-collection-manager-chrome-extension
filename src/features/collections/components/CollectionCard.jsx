@@ -6,6 +6,7 @@ import { useSettings } from '../../../store/hooks.js';
 import { useDismissable } from '../../../app/hooks/useDismissable.js';
 import { useDraggable } from '../hooks/useDraggable.js';
 import { useDropZone } from '../hooks/useDropZone.js';
+import { colorPickerHandlers } from '../lib/colorPickerHandlers.js';
 import { ColorPicker } from './ColorPicker.jsx';
 import { TabPanel } from './TabPanel.jsx';
 
@@ -243,10 +244,9 @@ export function CollectionCard({
               <ColorPicker
                 value={collection.color ?? null}
                 customColors={customColors}
-                onSelect={(colorId) => {
-                  setMenuOpen(false);
-                  actions.setCollectionColor(collection.id, colorId);
-                }}
+                {...colorPickerHandlers(actions, 'collection', collection.id, () =>
+                  setMenuOpen(false)
+                )}
               />
               {folders.length > 0 && !isCurrentSession ? (
                 <>

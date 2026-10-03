@@ -28,6 +28,7 @@ Legend: 🔴 major · 🟡 medium · ⚪ minor
   at once from both sections.
 - **Colors:** implemented — folders and collections carry a color label (ten built-ins plus
   user-added custom colors), shown as a dot in the header and filterable from the controls bar.
+  Custom colors can be created either in Settings or straight from a folder's/collection's own menu.
 
 ### 2. Chrome Tab Groups capture & restore — ✅ implemented
 - **Ta Box:** stores `chromeGroups` metadata (group name, color, collapsed, pinned) with

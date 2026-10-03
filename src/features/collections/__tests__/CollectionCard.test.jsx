@@ -39,6 +39,7 @@ function makeActions() {
     toast: vi.fn(),
     setCollectionColor: vi.fn(),
     setFolderColor: vi.fn(),
+    labelWithNewColor: vi.fn().mockResolvedValue('added'),
   };
 }
 
@@ -131,9 +132,43 @@ describe('CollectionCard', () => {
     expect(labels.filter((label) => label === 'Color')).toHaveLength(1);
 
     const swatches = container.querySelectorAll('.cc-color-swatches .cc-color-swatch');
-    expect(swatches).toHaveLength(11); // ten built-ins plus the "no color" swatch
+    // Ten built-ins, the "no color" swatch, and the "new custom color" control.
+    expect(swatches).toHaveLength(12);
 
     await user.click(container.querySelector('.cc-color-swatches button[aria-label="Blue"]'));
     expect(actions.setCollectionColor).toHaveBeenCalledWith('c1', 'blue');
+  });
+
+  it('creates a custom colour from the menu and labels the collection with it', async () => {
+    const user = userEvent.setup();
+    const { actions, container } = renderCard(makeCollection());
+
+    await user.click(screen.getByTitle('Collection options'));
+    await user.click(container.querySelector('button[aria-label="New custom color"]'));
+
+    await user.type(container.querySelector('.cc-color-add-name'), 'Ocean');
+    await user.click(container.querySelector('.cc-color-add-submit'));
+
+    expect(actions.labelWithNewColor).toHaveBeenCalledWith('collection', 'c1', 'Ocean', '#7c6fff');
+    // The menu closes on success, the same as picking an existing swatch.
+    expect(container.querySelector('.cc-collection-dropdown-menu').className).toContain(
+      'ut-hidden'
+    );
+  });
+
+  it('keeps the menu open and reports a refused custom colour', async () => {
+    const user = userEvent.setup();
+    const { actions, container } = renderCard(makeCollection());
+    actions.labelWithNewColor.mockResolvedValue('duplicate');
+
+    await user.click(screen.getByTitle('Collection options'));
+    await user.click(container.querySelector('button[aria-label="New custom color"]'));
+    await user.type(container.querySelector('.cc-color-add-name'), 'Red');
+    await user.click(container.querySelector('.cc-color-add-submit'));
+
+    expect(screen.getByRole('alert').textContent).toBe('A color with that name already exists.');
+    expect(container.querySelector('.cc-collection-dropdown-menu').className).not.toContain(
+      'ut-hidden'
+    );
   });
 });

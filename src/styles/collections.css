@@ -665,3 +665,65 @@
   color: var(--text-secondary);
   font-size: 9px;
 }
+
+/* The "new custom color" control: the same 20px slot and dashed ring as "none", so the row stays
+   aligned, but with a plus. It opens the form below rather than being a colour of its own. */
+.cc-color-swatch-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px dashed var(--text-secondary);
+  color: var(--text-secondary);
+  font-size: 9px;
+}
+
+/* The inline form a folder/collection menu opens to mint a colour: a native colour well, a name,
+   and Add. It sits under the swatch row, inside the menu, so no trip to Settings is needed. */
+.cc-color-add-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 12px 6px;
+}
+
+.cc-color-add-value {
+  width: 34px;
+  height: 30px;
+  padding: 2px;
+  background: var(--bg-translucent-normal);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.cc-color-add-name {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 4px 10px;
+  background: var(--bg-translucent-normal);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.cc-color-add-name:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.cc-color-add-submit {
+  padding: 6px 14px;
+  font-size: 12px;
+}
+
+.cc-color-add-error {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--danger);
+  font-size: 11px;
+}

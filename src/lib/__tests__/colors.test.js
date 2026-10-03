@@ -4,9 +4,11 @@ import {
   BUILT_IN_COLORS,
   NO_COLOR,
   allColors,
+  appendCustomColor,
   clearColorEverywhere,
   colorKey,
   colorName,
+  customColorErrorMessage,
   findColor,
   isAssignableColor,
   isBuiltInColor,
@@ -124,6 +126,47 @@ describe('validateCustomColor', () => {
         '#0088ff'
       )
     ).toBe('too-many');
+  });
+});
+
+describe('appendCustomColor', () => {
+  it('appends a normalized entry to the palette', () => {
+    const draft = { settings: { customColors: [...CUSTOM] } };
+
+    expect(appendCustomColor(draft, '  Ocean ', '#00FF88', 'custom-2')).toBe('added');
+    expect(draft.settings.customColors).toEqual([
+      ...CUSTOM,
+      { id: 'custom-2', name: 'Ocean', value: '#00ff88' },
+    ]);
+  });
+
+  it('refuses without touching the palette', () => {
+    const draft = { settings: { customColors: [...CUSTOM] } };
+
+    expect(appendCustomColor(draft, '', '#0088ff', 'x')).toBe('empty');
+    expect(appendCustomColor(draft, 'Sunset', '#0088ff', 'x')).toBe('duplicate');
+    expect(draft.settings.customColors).toEqual(CUSTOM);
+  });
+
+  it('treats a missing palette as empty', () => {
+    const draft = { settings: {} };
+
+    expect(appendCustomColor(draft, 'Ocean', '#0088ff', 'custom-2')).toBe('added');
+    expect(draft.settings.customColors).toHaveLength(1);
+  });
+});
+
+describe('customColorErrorMessage', () => {
+  it('names each refusal and stays silent on success', () => {
+    expect(customColorErrorMessage('empty')).toMatch(/name/i);
+    expect(customColorErrorMessage('too-long')).toContain(
+      String(LIMITS.MAX_CUSTOM_COLOR_NAME_LENGTH)
+    );
+    expect(customColorErrorMessage('invalid')).toMatch(/valid color/i);
+    expect(customColorErrorMessage('duplicate')).toMatch(/already exists/i);
+    expect(customColorErrorMessage('too-many')).toContain(String(LIMITS.MAX_CUSTOM_COLORS));
+    expect(customColorErrorMessage('added')).toBe('');
+    expect(customColorErrorMessage('whatever')).toBe('');
   });
 });
 

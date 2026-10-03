@@ -185,3 +185,46 @@ export function validateCustomColor(customColors, name, value) {
   if (customColors.length >= LIMITS.MAX_CUSTOM_COLORS) return 'too-many';
   return 'ok';
 }
+
+/**
+ * Append a custom colour to the palette, refusing one that fails validation. The id is supplied by
+ * the caller (the action layer) so this stays deterministic and testable. Both the Settings card and
+ * the folder/collection colour menus add through here, so the two can never disagree on the rules.
+ *
+ * @param {{settings: {customColors?: Array<{id: string, name: string, value: string}>}}} draft
+ * @param {string} name
+ * @param {unknown} value
+ * @param {string} id
+ * @returns {'added'|'empty'|'too-long'|'invalid'|'duplicate'|'too-many'}
+ */
+export function appendCustomColor(draft, name, value, id) {
+  const list = draft.settings.customColors ?? [];
+  const outcome = validateCustomColor(list, name, value);
+  if (outcome !== 'ok') return outcome;
+
+  draft.settings.customColors = [
+    ...list,
+    { id, name: String(name).trim(), value: normalizeHex(value) },
+  ];
+  return 'added';
+}
+
+/** A short sentence explaining why a custom colour was refused, phrased for a form. */
+const CUSTOM_COLOR_ERRORS = Object.freeze({
+  empty: 'Give the color a name.',
+  'too-long': `Names are limited to ${LIMITS.MAX_CUSTOM_COLOR_NAME_LENGTH} characters.`,
+  invalid: 'Pick a valid color.',
+  duplicate: 'A color with that name already exists.',
+  'too-many': `You can add up to ${LIMITS.MAX_CUSTOM_COLORS} custom colors.`,
+});
+
+/**
+ * The message for a `validateCustomColor`/`appendCustomColor` outcome, or `''` when there is
+ * nothing to report (`'ok'`/`'added'` or an unknown outcome).
+ *
+ * @param {string} outcome
+ * @returns {string}
+ */
+export function customColorErrorMessage(outcome) {
+  return CUSTOM_COLOR_ERRORS[outcome] ?? '';
+}

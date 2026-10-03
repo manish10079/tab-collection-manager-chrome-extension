@@ -1,10 +1,12 @@
 // Custom colour management as store-draft mutators, pure so the add/remove rules are unit-testable.
 // The palette is a single setting (`customColors`); removing an entry also clears it from every
 // folder and collection that used it, so the list can never point at a colour that is gone.
-import { clearColorEverywhere, normalizeHex, validateCustomColor } from '../../../lib/colors.js';
+import { appendCustomColor, clearColorEverywhere } from '../../../lib/colors.js';
 
 /**
- * Add a custom colour. `id` is supplied by the caller (the action layer), keeping this pure.
+ * Add a custom colour to the palette. `id` is supplied by the caller (the action layer), keeping
+ * this pure. The rules live in `lib/colors.js` so the folder/collection colour menus can add through
+ * the same code path.
  *
  * @param {import('../../../store/schema.js').AppState} draft
  * @param {string} name
@@ -13,15 +15,7 @@ import { clearColorEverywhere, normalizeHex, validateCustomColor } from '../../.
  * @returns {'added'|'empty'|'too-long'|'invalid'|'duplicate'|'too-many'}
  */
 export function addCustomColor(draft, name, value, id) {
-  const list = draft.settings.customColors ?? [];
-  const outcome = validateCustomColor(list, name, value);
-  if (outcome !== 'ok') return outcome;
-
-  draft.settings.customColors = [
-    ...list,
-    { id, name: String(name).trim(), value: normalizeHex(value) },
-  ];
-  return 'added';
+  return appendCustomColor(draft, name, value, id);
 }
 
 /**
