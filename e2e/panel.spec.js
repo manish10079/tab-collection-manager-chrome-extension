@@ -593,3 +593,51 @@ test('labels two collections by colour and filters the list to one', async ({ pa
   await expect(blue).toBeVisible();
   await expect(red).toHaveCount(0);
 });
+
+test('reflows the controls onto one row as the panel widens', async ({ panel }) => {
+  const bar = panel.locator('#actionsBarDefault');
+  await expect(bar).toBeVisible();
+
+  /**
+   * Resize the panel and read back how the controls laid out: the number of rows they occupy and
+   * the set of tile widths. Polling covers the resize+reflow frame; the widths are asserted to be a
+   * single value of 48 so a stretched or shrunken tile fails here rather than only looking wrong.
+   *
+   * @param {number} width
+   */
+  const layoutAt = async (width) => {
+    await panel.setViewportSize({ width, height: 800 });
+    /** @type {{rows: number, widths: number[], tiles: number}|null} */
+    let layout = null;
+    await expect
+      .poll(async () => {
+        layout = await bar.evaluate((element) => {
+          const tiles = [...element.children].filter(
+            (child) => !child.classList.contains('ut-hidden')
+          );
+          const rects = tiles.map((child) => child.getBoundingClientRect());
+          return {
+            rows: new Set(rects.map((rect) => Math.round(rect.top))).size,
+            widths: [...new Set(rects.map((rect) => Math.round(rect.width)))],
+            tiles: tiles.length,
+          };
+        });
+        return layout.widths.length === 1 && layout.widths[0] === 48 && layout.rows > 0;
+      })
+      .toBe(true);
+    return layout;
+  };
+
+  // Wide enough for every control: a single row of 48px tiles.
+  const wide = await layoutAt(760);
+  expect(wide.rows).toBe(1);
+
+  // Narrower than one row needs, so the controls wrap rather than shrink.
+  const narrow = await layoutAt(470);
+  expect(narrow.rows).toBeGreaterThanOrEqual(2);
+
+  // Widening again pulls them back onto one row — the regression this test exists for.
+  const widened = await layoutAt(760);
+  expect(widened.rows).toBe(1);
+  expect(widened.tiles).toBe(wide.tiles);
+});
