@@ -599,15 +599,17 @@ test('reflows the controls onto one row as the panel widens', async ({ panel }) 
   await expect(bar).toBeVisible();
 
   /**
-   * Resize the panel and read back how the controls laid out: the number of rows they occupy and
-   * the set of tile widths. Polling covers the resize+reflow frame; the widths are asserted to be a
-   * single value of 48 so a stretched or shrunken tile fails here rather than only looking wrong.
+   * Resize the panel and read back how the controls laid out: the number of rows they occupy, the
+   * set of tile widths, and the left edge of each row. Polling covers the resize+reflow frame; the
+   * widths are asserted to be a single value of 48 so a stretched or shrunken tile fails here
+   * rather than only looking wrong. `rowLefts` names the left edge of the first tile on each row,
+   * which is what the wrapped rows have to keep in common.
    *
    * @param {number} width
    */
   const layoutAt = async (width) => {
     await panel.setViewportSize({ width, height: 800 });
-    /** @type {{rows: number, widths: number[], tiles: number}|null} */
+    /** @type {{rows: number, widths: number[], tiles: number, rowLefts: number[]}|null} */
     let layout = null;
     await expect
       .poll(async () => {
@@ -616,10 +618,23 @@ test('reflows the controls onto one row as the panel widens', async ({ panel }) 
             (child) => !child.classList.contains('ut-hidden')
           );
           const rects = tiles.map((child) => child.getBoundingClientRect());
+          const tops = [...new Set(rects.map((rect) => Math.round(rect.top)))].sort(
+            (a, b) => a - b
+          );
           return {
-            rows: new Set(rects.map((rect) => Math.round(rect.top))).size,
+            rows: tops.length,
             widths: [...new Set(rects.map((rect) => Math.round(rect.width)))],
             tiles: tiles.length,
+            // The leftmost tile on each row, row by row: a wrapped row that shared the row above's
+            // left edge reports the same value here, whereas one centred under it reports a larger
+            // one.
+            rowLefts: tops.map((top) =>
+              Math.round(
+                Math.min(
+                  ...rects.filter((rect) => Math.round(rect.top) === top).map((rect) => rect.left)
+                )
+              )
+            ),
           };
         });
         return layout.widths.length === 1 && layout.widths[0] === 48 && layout.rows > 0;
@@ -635,9 +650,59 @@ test('reflows the controls onto one row as the panel widens', async ({ panel }) 
   // Narrower than one row needs, so the controls wrap rather than shrink.
   const narrow = await layoutAt(470);
   expect(narrow.rows).toBeGreaterThanOrEqual(2);
+  // A wrapped row lines up with the row above it instead of being indented towards the middle.
+  expect(new Set(narrow.rowLefts).size).toBe(1);
 
   // Widening again pulls them back onto one row — the regression this test exists for.
   const widened = await layoutAt(760);
   expect(widened.rows).toBe(1);
   expect(widened.tiles).toBe(wide.tiles);
+});
+
+test('keeps the header subtitle on its own row as the panel widens', async ({ panel }) => {
+  const header = panel.locator('.sh-header');
+
+  /**
+   * Resize the panel and report which row (by vertical position) each header child occupies, plus
+   * the subtitle's width. The subtitle used to slide up beside the settings and close buttons as
+   * soon as the panel was wide enough for all three, which is what this pins down.
+   *
+   * @param {number} width
+   */
+  const rowsAt = async (width) => {
+    await panel.setViewportSize({ width, height: 800 });
+    /** @type {{actions: number, subtitle: number, headerWidth: number, subtitleWidth: number}|null} */
+    let rows = null;
+    await expect
+      .poll(async () => {
+        rows = await header.evaluate((element) => {
+          const [title, actions, subtitle] = [...element.children];
+          const rectOf = (node) => node.getBoundingClientRect();
+          const tops = [title, actions, subtitle]
+            .map((node) => Math.round(rectOf(node).top))
+            .filter((top, index, all) => all.indexOf(top) === index)
+            .sort((a, b) => a - b);
+          const rowOf = (node) => tops.indexOf(Math.round(rectOf(node).top)) + 1;
+          return {
+            actions: rowOf(actions),
+            subtitle: rowOf(subtitle),
+            headerWidth: Math.round(rectOf(element).width),
+            subtitleWidth: Math.round(rectOf(subtitle).width),
+          };
+        });
+        return rows.actions > 0 && rows.subtitle > 0 && rows.subtitleWidth > 0;
+      })
+      .toBe(true);
+    return rows;
+  };
+
+  // At a width where all three children would fit on one line the subtitle still gets its own.
+  const wide = await rowsAt(900);
+  expect(wide.subtitle).toBeGreaterThan(wide.actions);
+  // It spans the header rather than sharing the button row, so it reads as a line under the title.
+  expect(wide.subtitleWidth).toBe(wide.headerWidth);
+
+  // And it stays below the buttons when the buttons themselves wrap.
+  const narrow = await rowsAt(360);
+  expect(narrow.subtitle).toBeGreaterThan(narrow.actions);
 });

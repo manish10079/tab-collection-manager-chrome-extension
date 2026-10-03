@@ -35,6 +35,10 @@
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 400;
+  /* The header is a wrapping row, so without a basis of its own the subtitle slides up beside the
+     settings/close buttons as soon as the panel is wide enough to fit all three. Claiming the whole
+     row keeps it on its own line under the title at every panel width. */
+  flex-basis: 100%;
 }
 
 /* Compact Row and Action Bars */
@@ -47,25 +51,29 @@
   flex-shrink: 0;
 }
 
-/* The controls wrap, each showing its icon above a short label. Every tile is a fixed 48px square,
-   so the buttons never stretch or shrink; the only thing that changes with the panel width is how
-   many of the eleven controls fit on a row — all of them on one row when the panel is wide enough,
-   two or three as it narrows, and back to one row as soon as it is widened again. The rows are
-   centred, so a partly filled last row sits in the middle of the bar rather than against its left
-   edge. `width: 100%` with `min-width: 0` makes the bar exactly as wide as the panel allows it:
-   without the first a flex item would size to its content and never wrap, and without the second
-   its automatic minimum size would stop it shrinking. A hidden control (the restore button with no
-   backup) drops out, so a row simply ends early rather than leaving a hole. */
+/* The controls flow onto as many rows as the panel width allows, each showing its icon above a
+   short label. Every tile is a fixed 48px square, so the buttons never stretch or shrink; the only
+   thing that changes with the panel width is how many of the eleven controls fit on a row — all of
+   them on one row when the panel is wide enough, two or three as it narrows, and back to one row as
+   soon as it is widened again. `auto-fit` puts as many 48px tracks on a row as fit and collapses the
+   ones no control landed in, so slack is shared evenly and the used tracks stay centred: a single
+   row sits in the middle of the bar, while a partly filled *last* row starts at the same left edge
+   as the row above it rather than being indented towards the middle. `width: 100%` with
+   `min-width: 0` keeps the bar exactly as wide as the panel allows: without the first the grid
+   would size to its tracks and never fit fewer per row, and without the second its automatic
+   minimum size would stop it shrinking. A hidden control (the restore button with no backup) drops
+   out, so a row simply ends early rather than leaving a hole. */
 .sh-actions-bar-default {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, 48px);
   justify-content: center;
   gap: 6px 8px;
   width: 100%;
   min-width: 0;
 }
 
-/* One control = one 48px tile. */
+/* One control = one 48px tile: the grid track already sizes a direct child, and this pins the
+   button inside a popup-menu wrapper, which is a flex row of its own. */
 .sh-actions-bar-default .sh-icon-btn {
   flex: 0 0 48px;
   width: 48px;
@@ -87,8 +95,9 @@
      restore button is hidden (css-migration-plan.md, Phase 5). */
 }
 
-/* The two popup-menu wrappers held `flex: 1` when they were grid cells, so they need the tile
-   sizing named at their own specificity; the button inside each then fills the 48px tile. */
+/* The two popup-menu wrappers still declare `flex: 1` from when they were the only grid children,
+   so the tile sizing has to be named at their own specificity; the button inside each then fills
+   the 48px tile. */
 .sh-actions-bar-default > .sh-sort-collections-container,
 .sh-actions-bar-default > .sh-color-filter-container {
   flex: 0 0 48px;
