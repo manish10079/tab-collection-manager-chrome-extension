@@ -612,13 +612,33 @@ async function main() {
         }
       });
 
+    // The restore tile appears only once the worker has recorded a session backup, a moment after
+    // hydration. The controls bar wraps, so whether that tile is there decides how many rows it
+    // needs — a state captured before it lands would be measured against a different layout, and
+    // its height would differ from the same state on a slower run. Wait for the tile itself rather
+    // than guessing: a watchdog sampling for a quiet bar would pass in the gap before it lands.
+    await page
+      .locator('#restoreBackupBtn')
+      .waitFor({ state: 'visible', timeout: PANEL_TIMEOUT_MS });
+
     /**
+     * Snapshot one panel state.
+     *
+     * Settling the animations finishes the entrance animation of a toast the state's own action
+     * raised, so it is sampled at rest. The wait afterwards then lets that toast clear before the
+     * next state, because a toast lives on its own timer: left alone, whether a later state still
+     * has one on screen depends on how quickly the walk got there — which is what made `.ts-toast`
+     * flap between runs. Each state owns the toast it raises instead of inheriting the last one's.
+     *
      * @param {string} name
      */
     const capture = async (name) => {
       await settleAnimations();
       await page.waitForTimeout(120);
       states[name] = canonicalizeSnapshot(await snapshot(page, IGNORE_PROPERTIES[name] ?? {}));
+      await page.waitForFunction(() => document.querySelectorAll('.ts-toast').length === 0, null, {
+        timeout: PANEL_TIMEOUT_MS,
+      });
     };
 
     await walkPanel(page, capture);
