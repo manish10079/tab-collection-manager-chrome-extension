@@ -1,5 +1,6 @@
 import { getSnapshot, mutate } from '../../../store/store.js';
 import { LIMITS } from '../../../shared/constants.js';
+import { useConfirm } from '../../../app/providers/useConfirm.js';
 import {
   createFolder,
   deleteFolder,
@@ -27,6 +28,8 @@ import {
  * @returns {FolderActions}
  */
 export function useFolderActions({ toast }) {
+  const confirm = useConfirm();
+
   return {
     setFolderExpanded: (id, expanded) => mutate((draft) => setFolderExpanded(draft, id, expanded)),
 
@@ -67,7 +70,13 @@ export function useFolderActions({ toast }) {
         nested > 0
           ? `Delete "${folder.name}" and the ${nested} collection${nested === 1 ? '' : 's'} inside it? This cannot be undone.`
           : `Delete the folder "${folder.name}"?`;
-      if (!window.confirm(warning)) return;
+      const proceed = await confirm({
+        title: 'Delete Folder',
+        message: warning,
+        confirmLabel: 'Delete',
+        danger: true,
+      });
+      if (!proceed) return;
 
       let removed = 0;
       await mutate((draft) => {

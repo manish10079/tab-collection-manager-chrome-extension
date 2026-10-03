@@ -461,3 +461,42 @@
   background: var(--border);
   border-radius: 4px;
 }
+
+/* ===== Confirm dialog (ConfirmProvider) ===== */
+/* A question, not a view: no fixed body height, so the dialog hugs its message the way the legacy
+   `window.confirm()` did. The affirmative button is destructive-coloured on request, derived from
+   the `--danger` token rather than a second hard-coded red (skill.md §5.3). */
+.dl-confirm-dialog {
+  max-width: 420px;
+}
+
+.dl-confirm-body {
+  min-height: 0;
+}
+
+.dl-confirm-message {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.dl-btn-danger {
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--danger) 50%, transparent);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: var(--transition);
+}
+
+.dl-btn-danger:hover {
+  background: color-mix(in srgb, var(--danger) 20%, transparent);
+}

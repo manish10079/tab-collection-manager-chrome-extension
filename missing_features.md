@@ -1,6 +1,6 @@
 # Missing Features vs Ta Box (Tabox) 4.2.2
 
-Comparison of **Tab Collection Manager v2.5.1** against the Ta Box extension build
+Comparison of **Tab Collection Manager v2.6.0** against the Ta Box extension build
 (`ta box tab collection manager extension.zip`, Chrome Web Store build, webpack + React).
 
 Features we already have are **not** listed here: collection CRUD, drag & drop reorder,

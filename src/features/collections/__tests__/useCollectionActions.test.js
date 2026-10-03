@@ -1,9 +1,14 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { installChromeMock } from '../../../../tests/mocks/chrome.js';
 import { hydrate } from '../../../store/store.js';
 import { LIMITS } from '../../../shared/constants.js';
+import { getConfirm, resetConfirm, settleConfirm } from '../../../app/providers/confirmStore.js';
 import { useCollectionActions } from '../hooks/useCollectionActions.js';
+
+afterEach(() => {
+  resetConfirm();
+});
 
 /**
  * The drag actions against the real store and write queue. These cover the parts a component
@@ -149,13 +154,27 @@ describe('useCollectionActions administration actions', () => {
       autoSaveCollectionId: 'a',
     });
     await hydrate();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
-
-    await actions.deleteCollection('a');
+    // The delete asks first; answering the pending dialog is what lets it continue.
+    const done = actions.deleteCollection('a');
+    expect(getConfirm().options.title).toBe('Delete Collection');
+    settleConfirm(true);
+    await done;
 
     expect(store.autoSaveCollectionId).toBeNull();
     expect(store.collections).toEqual([]);
-    confirmSpy.mockRestore();
+  });
+
+  it('keeps the collection when the delete confirm is dismissed', async () => {
+    const { store, actions } = setup({
+      collections: [{ id: 'a', name: 'A', tabs: [] }],
+    });
+    await hydrate();
+
+    const done = actions.deleteCollection('a');
+    settleConfirm(false);
+    await done;
+
+    expect(store.collections).toHaveLength(1);
   });
 
   it('asks the worker to restore a collection', async () => {
@@ -232,9 +251,9 @@ describe('useCollectionActions administration actions', () => {
 });
 
 /**
- * Bulk deletion asks once, cascades folders into their collections, and refuses to take the live
- * Current Session with it. The confirmation is asserted through `window.confirm` so a cancel is
- * covered as well as an accept.
+ * Bulk deletion asks once through the confirm dialog, cascades folders into their collections, and
+ * refuses to take the live Current Session with it. The question is driven through `confirmStore`,
+ * so the wording it shows and a cancel are covered as well as an accept.
  */
 describe('useCollectionActions deleteMany', () => {
   it('removes the folders with their collections and the selected collections after one prompt', async () => {
@@ -247,18 +266,18 @@ describe('useCollectionActions deleteMany', () => {
       folders: [{ id: 'f1', name: 'Work' }],
     });
     await hydrate();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const done = actions.deleteMany({ folderIds: ['f1'], collectionIds: ['c'] });
 
-    const done = await actions.deleteMany({ folderIds: ['f1'], collectionIds: ['c'] });
+    // One question, marked destructive, naming the folder's own collection too.
+    expect(getConfirm().options.title).toBe('Delete Selected Items');
+    expect(getConfirm().options.danger).toBe(true);
+    expect(getConfirm().options.message).toContain('1 folder and 2 collections');
+    settleConfirm(true);
 
-    expect(done).toBe(true);
-    expect(confirmSpy).toHaveBeenCalledTimes(1);
-    // The folder's own collection is counted alongside the separately selected one.
-    expect(confirmSpy.mock.calls[0][0]).toContain('1 folder and 2 collections');
+    await expect(done).resolves.toBe(true);
     expect(store.collections.map((collection) => collection.id)).toEqual(['b']);
     expect(store.folders).toEqual([]);
     expect(legacy.toast).toHaveBeenCalledTimes(1);
-    confirmSpy.mockRestore();
   });
 
   it('changes nothing when the prompt is dismissed', async () => {
@@ -266,26 +285,22 @@ describe('useCollectionActions deleteMany', () => {
       collections: [{ id: 'a', name: 'A', tabs: [] }],
     });
     await hydrate();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const done = actions.deleteMany({ collectionIds: ['a'] });
+    settleConfirm(false);
 
-    const done = await actions.deleteMany({ collectionIds: ['a'] });
-
-    expect(done).toBe(false);
+    await expect(done).resolves.toBe(false);
     expect(store.collections).toHaveLength(1);
     expect(legacy.toast).not.toHaveBeenCalled();
-    confirmSpy.mockRestore();
   });
 
   it('does nothing at all for an empty selection', async () => {
     const { legacy, actions } = setup({ collections: [{ id: 'a', name: 'A', tabs: [] }] });
     await hydrate();
-    const confirmSpy = vi.spyOn(window, 'confirm');
+    await expect(actions.deleteMany({})).resolves.toBe(false);
 
-    await actions.deleteMany({});
-
-    expect(confirmSpy).not.toHaveBeenCalled();
+    // Nothing to delete is not a question worth asking.
+    expect(getConfirm()).toBeNull();
     expect(legacy.toast).not.toHaveBeenCalled();
-    confirmSpy.mockRestore();
   });
 });
 

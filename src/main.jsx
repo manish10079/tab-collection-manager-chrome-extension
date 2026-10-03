@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { App } from './app/App.jsx';
+import { ConfirmProvider } from './app/providers/ConfirmProvider.jsx';
 import { ToastProvider } from './app/providers/ToastProvider.jsx';
 import { hydrate, startStorageSync } from './store/store.js';
 
@@ -37,9 +38,11 @@ if (container) {
     startStorageSync();
     hydrate();
     createRoot(container).render(
-      <ToastProvider>
-        <App />
-      </ToastProvider>
+      <ConfirmProvider>
+        <ToastProvider>
+          <App />
+        </ToastProvider>
+      </ConfirmProvider>
     );
   }
 }

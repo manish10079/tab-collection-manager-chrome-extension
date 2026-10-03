@@ -1,9 +1,14 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { installChromeMock } from '../../../../tests/mocks/chrome.js';
 import { hydrate } from '../../../store/store.js';
 import { CURRENT_SESSION_ID, STORAGE_KEYS } from '../../../shared/storage-keys.js';
+import { getConfirm, resetConfirm, settleConfirm } from '../../../app/providers/confirmStore.js';
 import { useShellController } from '../hooks/useShellController.js';
+
+afterEach(() => {
+  resetConfirm();
+});
 
 /** @param {Record<string, unknown>} [initial] */
 function setup(initial = {}) {
@@ -152,10 +157,13 @@ describe('useShellController chrome actions', () => {
     });
     await hydrate();
     chrome.runtime.sendMessage = vi.fn(async () => ({ success: true }));
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
 
+    // The restore asks first; answering the pending dialog is what lets it continue.
+    const restore = controller.current.restoreBackup();
+    expect(getConfirm().options.title).toBe('Restore Backup');
+    settleConfirm(true);
     await act(async () => {
-      await controller.current.restoreBackup();
+      await restore;
     });
 
     // The whole snapshot goes to the worker — tabs *and* the group map they reference — because
@@ -166,7 +174,28 @@ describe('useShellController chrome actions', () => {
       backupData: backup,
     });
     expect(toast).toHaveBeenCalledWith('Restoring session…');
-    confirmSpy.mockRestore();
+  });
+
+  it('restores nothing when the backup confirm is dismissed', async () => {
+    const backup = {
+      collectionId: 'a',
+      name: 'Alpha',
+      tabs: [{ id: 't1', url: 'https://a.test', chromeGroupId: 6 }],
+      chromeGroups: { 6: { title: 'Docs', color: 'blue', collapsed: false } },
+    };
+    const { chrome, controller } = setup({
+      [STORAGE_KEYS.lastSessionBackup]: backup,
+    });
+    await hydrate();
+    chrome.runtime.sendMessage = vi.fn(async () => ({ success: true }));
+
+    const restore = controller.current.restoreBackup();
+    settleConfirm(false);
+    await act(async () => {
+      await restore;
+    });
+
+    expect(chrome.runtime.sendMessage).not.toHaveBeenCalled();
   });
 
   it('does nothing when there is no backup to restore', async () => {

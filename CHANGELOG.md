@@ -10,6 +10,31 @@ Entries are append-only: a released version's notes are never rewritten.
 
 ---
 
+## 2.6.0
+
+No new permissions. The permission set is unchanged from 2.3.0.
+
+### Changed
+
+- **Destructive actions now ask inside the panel, not in a browser popup.** Deleting a collection, a
+  folder or a bulk selection, restoring a session backup, and restoring or disconnecting Google
+  Drive all show the extension's own confirmation dialog in place of the browser's `Confirm` box.
+
+  It is styled like the rest of the panel, is reachable and dismissible from the keyboard (Escape,
+  Tab, Enter), announces itself to screen readers as a labelled dialog, and keeps naming what will
+  go — for example a folder delete still says "and the 2 collections inside it? This cannot be
+  undone." Answering it no longer blocks the browser's event loop the way the native box did.
+
+### Under the hood
+
+- A single reusable confirmation primitive (`ConfirmProvider` and `confirmStore`) backs every one of
+  those six questions, so the wording rules, the destructive-button styling and the
+  dismissal-counts-as-refusal behaviour exist in one place rather than being re-argued per caller.
+- 415 unit and component tests across 46 files, and 16 end-to-end Playwright specs against `dist/`
+  loaded unpacked.
+
+---
+
 ## 2.5.1
 
 No user-visible change to the panel. This release records the project's commit rules in

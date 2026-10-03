@@ -1,3 +1,4 @@
+import { useConfirm } from '../../../app/providers/useConfirm.js';
 import { SettingsCard } from './SettingsCard.jsx';
 import { SettingsRow } from './SettingsRow.jsx';
 import { ToggleSwitch } from './ToggleSwitch.jsx';
@@ -16,6 +17,7 @@ import { useGDrive } from '../hooks/useGDrive.js';
  * @returns {import('react').ReactElement}
  */
 export function GDriveSection({ actions }) {
+  const confirm = useConfirm();
   const gdrive = useGDrive(actions);
   const { status, busy } = gdrive;
   const lastBackup = status.lastBackupTimestamp
@@ -81,13 +83,14 @@ export function GDriveSection({ actions }) {
             type="button"
             className="sh-btn-secondary set-cloud-backup-btn"
             disabled={busy !== null}
-            onClick={() => {
-              if (
-                !confirm(
-                  'This will overwrite your current collections with the Google Drive backup. Continue?'
-                )
-              )
-                return;
+            onClick={async () => {
+              const proceed = await confirm({
+                title: 'Restore from Google Drive',
+                message:
+                  'This will overwrite your current collections with the Google Drive backup. Continue?',
+                confirmLabel: 'Restore',
+              });
+              if (!proceed) return;
               gdrive.restore();
             }}
           >
@@ -100,9 +103,14 @@ export function GDriveSection({ actions }) {
             type="button"
             className="sh-btn-outline set-cloud-backup-btn"
             disabled={busy !== null}
-            onClick={() => {
-              if (!confirm('Disconnect Google Drive? This will remove the backup from Drive.'))
-                return;
+            onClick={async () => {
+              const proceed = await confirm({
+                title: 'Disconnect Google Drive',
+                message: 'Disconnect Google Drive? This will remove the backup from Drive.',
+                confirmLabel: 'Disconnect',
+                danger: true,
+              });
+              if (!proceed) return;
               gdrive.disconnect();
             }}
           >

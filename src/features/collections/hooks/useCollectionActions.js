@@ -1,5 +1,6 @@
 import { getSnapshot, mutate } from '../../../store/store.js';
 import { LIMITS } from '../../../shared/constants.js';
+import { useConfirm } from '../../../app/providers/useConfirm.js';
 import { downloadJson } from '../../../lib/download.js';
 import { formatFileTimestamp } from '../../../lib/format.js';
 import { deleteCollection, renameCollection } from '../lib/collectionAdmin.js';
@@ -63,6 +64,7 @@ import { useTabActions } from './useTabActions.js';
  * @returns {CollectionActions}
  */
 export function useCollectionActions({ toast, addTabs, importTabs }) {
+  const confirm = useConfirm();
   const tabs = useTabActions({ toast, addTabs, importTabs });
   const folders = useFolderActions({ toast });
   const colors = useColorActions({ toast });
@@ -91,7 +93,13 @@ export function useCollectionActions({ toast, addTabs, importTabs }) {
     deleteMany: async ({ folderIds = [], collectionIds = [] } = {}) => {
       const summary = summarizeSelection(getSnapshot(), { folderIds, collectionIds });
       if (summary.folders + summary.collections === 0) return false;
-      if (!window.confirm(describeSelection(summary))) return false;
+      const proceed = await confirm({
+        title: 'Delete Selected Items',
+        message: describeSelection(summary),
+        confirmLabel: 'Delete',
+        danger: true,
+      });
+      if (!proceed) return false;
 
       let result = { removedFolders: 0, removedCollections: 0 };
       await mutate((draft) => {
@@ -145,7 +153,13 @@ export function useCollectionActions({ toast, addTabs, importTabs }) {
     },
 
     deleteCollection: async (id) => {
-      if (!window.confirm('Are you sure you want to remove this collection?')) return;
+      const proceed = await confirm({
+        title: 'Delete Collection',
+        message: 'Are you sure you want to remove this collection? This cannot be undone.',
+        confirmLabel: 'Delete',
+        danger: true,
+      });
+      if (!proceed) return;
       await mutate((draft) => {
         deleteCollection(draft, id);
       });

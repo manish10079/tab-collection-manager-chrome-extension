@@ -360,10 +360,13 @@ test('creates a folder and keeps its options menu on top of the empty card', asy
   });
   expect(onTop).toEqual({ center: true, bottom: true });
 
-  // The folder's own actions still work from that menu. Removing a folder confirms first, so
-  // Playwright must accept the dialog (it auto-dismisses otherwise).
-  panel.once('dialog', (dialog) => dialog.accept());
+  // The folder's own actions still work from that menu. Removing a folder asks first, in the
+  // panel's own confirm dialog rather than a native `window.confirm()`.
   await folder.getByRole('button', { name: 'Remove folder' }).click();
+  await panel
+    .getByRole('dialog', { name: 'Delete Folder' })
+    .getByRole('button', { name: 'Delete' })
+    .click();
   await expect(panel.locator('#collectionsContainer > .cc-folder')).toHaveCount(0);
 });
 
@@ -529,9 +532,12 @@ test('bulk-deletes a folder with its contents, a nested collection and a root co
   await (await cardFor(panel, 'E2E Keep')).locator('.cc-select-checkbox input').check();
   await expect(bar.locator('.sh-selection-count')).toHaveText('3 selected');
 
-  // Deleting asks once; Playwright has to accept the dialog (it auto-dismisses otherwise).
-  panel.once('dialog', (dialog) => dialog.accept());
+  // Deleting asks once, in the panel's own confirm dialog rather than a native `window.confirm()`.
   await bar.locator('#deleteSelectedBtn').click();
+  await panel
+    .getByRole('dialog', { name: 'Delete Selected Items' })
+    .getByRole('button', { name: 'Delete' })
+    .click();
 
   // The selected folder and its collection went with it, and so did the nested collection and the
   // root one — but the *unselected* second folder survives, now empty.

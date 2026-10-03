@@ -4,6 +4,7 @@ import { LIMITS } from '../../../shared/constants.js';
 import { CURRENT_SESSION_ID } from '../../../shared/storage-keys.js';
 import { formatFileTimestamp } from '../../../lib/format.js';
 import { downloadJson } from '../../../lib/download.js';
+import { useConfirm } from '../../../app/providers/useConfirm.js';
 import {
   createCollection,
   createFolder,
@@ -61,6 +62,7 @@ import { scrollIntoView } from '../lib/scrollIntoView.js';
  * @returns {ShellController}
  */
 export function useShellController({ toast }) {
+  const confirm = useConfirm();
   const [slide, setSlide] = useState(/** @type {ShellSlide} */ (null));
   const [query, setQuery] = useState('');
   const [createName, setCreateName] = useState('');
@@ -195,7 +197,12 @@ export function useShellController({ toast }) {
   const restoreBackup = useCallback(async () => {
     const backup = getSnapshot().lastSessionBackup;
     if (!backup || !Array.isArray(backup.tabs) || backup.tabs.length === 0) return;
-    if (!window.confirm(`Restore ${backup.tabs.length} tabs from backup?`)) return;
+    const proceed = await confirm({
+      title: 'Restore Backup',
+      message: `Restore ${backup.tabs.length} tabs from backup? This replaces the tabs currently open in this window.`,
+      confirmLabel: 'Restore',
+    });
+    if (!proceed) return;
 
     try {
       await chrome.runtime.sendMessage({
@@ -208,7 +215,7 @@ export function useShellController({ toast }) {
       console.error('[shell] failed to restore backup:', error);
       toast('Could not restore that session.');
     }
-  }, [toast]);
+  }, [toast, confirm]);
 
   const expandAll = useCallback(async () => {
     const { collections } = getSnapshot();
