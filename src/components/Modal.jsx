@@ -10,6 +10,7 @@ import { getPortalRoot } from './portalRoot.js';
  * @property {() => void} onClose                 Called by Escape, the close button and the overlay
  * @property {import('react').ReactNode} children Modal body
  * @property {string} [className]                 Extra class on `.modal` (size variants)
+ * @property {string} [overlayClassName]          Extra class on `.dl-modal-overlay`
  * @property {string} [bodyClassName]             Extra class on `.modal-body`
  * @property {import('react').ReactNode} [footer] Rendered in a `.modal-footer` below the body
  * @property {string} [footerClassName]           Extra class on `.modal-footer`
@@ -49,6 +50,7 @@ export function Modal({
   onClose,
   children,
   className = '',
+  overlayClassName = '',
   bodyClassName = '',
   footer,
   footerClassName = '',
@@ -121,7 +123,7 @@ export function Modal({
     // Click-to-dismiss convenience — Escape and the header's close button are the keyboard paths.
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div
-      className="dl-modal-overlay"
+      className={`dl-modal-overlay ${overlayClassName}`.trim()}
       style={zIndex === undefined ? undefined : { zIndex }}
       onClick={handleOverlayClick}
     >

@@ -425,11 +425,20 @@
 }
 
 /* ===== Settings Modal specific ===== */
-.set-settings-modal {
-  max-width: 420px;
+.dl-modal-overlay.set-settings-overlay {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 16px;
+}
+
+.dl-modal.set-settings-modal {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
   /* The card list is taller than most viewports: cap the modal to the overlay's padded box so the
      header stays put and `.set-settings-modal-body` does the scrolling. */
-  max-height: calc(100vh - 64px);
+  max-height: 100%;
 }
 
 /* ===== Cloud Backup Buttons ===== */

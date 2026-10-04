@@ -269,6 +269,120 @@ export async function backupToGDrive(accessToken) {
   };
 }
 
+function collectionNameKey(name) {
+  return String(name || '')
+    .trim()
+    .toLowerCase();
+}
+
+function tabUrl(tab) {
+  return typeof tab?.url === 'string' ? tab.url.trim() : '';
+}
+
+function mergeTabsInto(target, incoming) {
+  if (!Array.isArray(target.tabs)) target.tabs = [];
+  const seen = new Set(target.tabs.map(tabUrl).filter(Boolean));
+  let added = false;
+  for (const tab of incoming || []) {
+    const url = tabUrl(tab);
+    if (!url || seen.has(url)) continue;
+    seen.add(url);
+    target.tabs.push({ ...tab, id: crypto.randomUUID(), url });
+    added = true;
+  }
+  if (added) target.updatedAt = Date.now();
+}
+
+/**
+ * Merge a Drive backup into live state. Same-named collections keep their tabs; a URL already in
+ * that collection is skipped. Live collections/folders not in the backup are left in place.
+ *
+ * @param {Record<string, any>} state
+ * @param {Record<string, any>} restoredData
+ */
+function mergeDriveRestore(state, restoredData) {
+  if (!Array.isArray(state.folders)) state.folders = [];
+  if (!Array.isArray(state.customColors)) state.customColors = [];
+  if (!Array.isArray(state.collections)) state.collections = [];
+
+  for (const color of normalizeCustomColors(restoredData.customColors || [])) {
+    const exists = state.customColors.some(
+      (entry) =>
+        entry.id === color.id || collectionNameKey(entry.name) === collectionNameKey(color.name)
+    );
+    if (!exists) state.customColors.push(color);
+  }
+
+  const palette = state.customColors;
+  const knownColor = (colorId) =>
+    typeof colorId === 'string' &&
+    (isBuiltInColor(colorId) || palette.some((color) => color.id === colorId));
+
+  /** @type {Map<string, string>} */
+  const folderIdMap = new Map();
+  for (const raw of restoredData.folders || []) {
+    if (!raw || typeof raw !== 'object' || !raw.name) continue;
+    const name = String(raw.name).trim();
+    const existing = state.folders.find(
+      (folder) => collectionNameKey(folder.name) === collectionNameKey(name)
+    );
+    const color = raw.color && knownColor(raw.color) ? raw.color : null;
+    if (existing) {
+      if (raw.id) folderIdMap.set(String(raw.id), existing.id);
+      if (!existing.color && color) existing.color = color;
+      continue;
+    }
+    const id = crypto.randomUUID();
+    state.folders.push({
+      id,
+      name,
+      color,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      isExpanded: false,
+    });
+    if (raw.id) folderIdMap.set(String(raw.id), id);
+  }
+
+  for (const imported of restoredData.collections || []) {
+    if (!imported || typeof imported !== 'object') continue;
+    const isSession = imported.id === CURRENT_SESSION_ID || imported.isCurrentSession;
+    const existing = isSession
+      ? state.collections.find((collection) => collection.id === CURRENT_SESSION_ID)
+      : state.collections.find(
+          (collection) => collectionNameKey(collection.name) === collectionNameKey(imported.name)
+        );
+
+    if (existing) {
+      mergeTabsInto(existing, imported.tabs);
+      if (!existing.color && imported.color && knownColor(imported.color)) {
+        existing.color = imported.color;
+      }
+      continue;
+    }
+
+    const tabs = [];
+    mergeTabsInto({ tabs }, imported.tabs);
+    const folderId =
+      imported.folderId && folderIdMap.has(String(imported.folderId))
+        ? folderIdMap.get(String(imported.folderId))
+        : null;
+    state.collections.push({
+      id: crypto.randomUUID(),
+      name: String(imported.name || 'Untitled').trim() || 'Untitled',
+      tabs,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      isExpanded: false,
+      pinned: Boolean(imported.pinned),
+      folderId,
+      color: imported.color && knownColor(imported.color) ? imported.color : null,
+      chromeGroups: imported.chromeGroups || {},
+      windowGroups: imported.windowGroups || {},
+    });
+  }
+}
+
 /**
  * Restore extension data from the Drive backup, keeping the live Current Session.
  *
@@ -308,64 +422,7 @@ export async function restoreFromGDrive(accessToken) {
 
   // Apply through the serialized queue so a concurrent auto-save cannot overwrite the restore.
   await updateState((state) => {
-    const settings = restoredData.settings || {};
-    if (settings.autoSaveCollectionId !== undefined) {
-      state.autoSaveCollectionId = settings.autoSaveCollectionId;
-    }
-    if (settings.ramSaverEnabled !== undefined) {
-      state.ramSaverEnabled = !!settings.ramSaverEnabled;
-    }
-    if (settings.enforceMaxPinnedTabs !== undefined) {
-      state.enforceMaxPinnedTabs = !!settings.enforceMaxPinnedTabs;
-    }
-    if (settings.maxPinnedTabs !== undefined) state.maxPinnedTabs = settings.maxPinnedTabs;
-    if (settings.enforceMaxPinnedCollections !== undefined) {
-      state.enforceMaxPinnedCollections = !!settings.enforceMaxPinnedCollections;
-    }
-    if (settings.maxPinnedCollections !== undefined) {
-      state.maxPinnedCollections = settings.maxPinnedCollections;
-    }
-
-    if (Array.isArray(restoredData.sessionHistory)) {
-      state.sessionHistory = restoredData.sessionHistory;
-    }
-
-    // Folders travel with the backup; an older backup without them keeps the live folders.
-    if (Array.isArray(restoredData.folders)) state.folders = restoredData.folders;
-
-    // The colour palette travels with the backup; sanitize it, then drop any label that does not
-    // resolve against it or the built-ins, so a restore cannot leave a dangling colour reference.
-    if (Array.isArray(restoredData.customColors)) {
-      state.customColors = normalizeCustomColors(restoredData.customColors);
-    }
-    const palette = state.customColors || [];
-    const knownColor = (colorId) =>
-      typeof colorId === 'string' &&
-      (isBuiltInColor(colorId) || palette.some((color) => color.id === colorId));
-
-    // Keep the live Current Session; drop any Current Session from the backup.
-    const liveSession = state.collections.find((c) => c.id === CURRENT_SESSION_ID);
-    const newCollections = restoredData.collections.filter((c) => c.id !== CURRENT_SESSION_ID);
-    if (liveSession) newCollections.unshift(liveSession);
-    state.collections = newCollections;
-
-    // A restored collection may reference a folder that is not in this backup.
-    const folderIds = new Set(state.folders.map((folder) => folder.id));
-    for (const collection of state.collections) {
-      if (collection.folderId && !folderIds.has(collection.folderId)) collection.folderId = null;
-      if (collection.color && !knownColor(collection.color)) collection.color = null;
-    }
-    for (const folder of state.folders) {
-      if (folder.color && !knownColor(folder.color)) folder.color = null;
-    }
-
-    // A restored auto-save id may point at a collection that is not on this device.
-    const autoSaveExists =
-      state.autoSaveCollectionId &&
-      state.collections.some((c) => c.id === state.autoSaveCollectionId);
-    if (!autoSaveExists) {
-      state.autoSaveCollectionId = liveSession ? CURRENT_SESSION_ID : null;
-    }
+    mergeDriveRestore(state, restoredData);
   });
 
   await api.storage.local.set({ [GDRIVE_LAST_RESTORE_TIME_KEY]: Date.now() });

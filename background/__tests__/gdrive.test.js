@@ -115,4 +115,89 @@ describe('restoreFromGDrive colours', () => {
 
     expect(store.collections.find((c) => c.name === 'Red one').color).toBe('red');
   });
+
+  it('merges unique Current Session tabs and skips URLs already present', async () => {
+    const { store } = setup({
+      collections: [
+        {
+          id: CURRENT_SESSION_ID,
+          name: 'Current Session',
+          tabs: [{ id: 'live', url: 'https://already.example/' }],
+        },
+      ],
+      folders: [],
+    });
+    stubDriveFetch({
+      collections: [
+        {
+          id: CURRENT_SESSION_ID,
+          name: 'Current Session',
+          tabs: [
+            { id: 'a', url: 'https://already.example/' },
+            { id: 'b', url: 'https://from-drive.example/' },
+            { id: 'c', url: 'https://from-drive.example/' },
+            { id: 'd', url: '  ' },
+          ],
+        },
+      ],
+      folders: [],
+      settings: {},
+    });
+
+    await restoreFromGDrive();
+
+    expect(store.collections).toHaveLength(1);
+    expect(store.collections[0].id).toBe(CURRENT_SESSION_ID);
+    expect(store.collections[0].tabs.map((tab) => tab.url)).toEqual([
+      'https://already.example/',
+      'https://from-drive.example/',
+    ]);
+  });
+
+  it('merges same-named collections and keeps collections not in the backup', async () => {
+    const { store } = setup({
+      collections: [
+        {
+          id: CURRENT_SESSION_ID,
+          name: 'Current Session',
+          tabs: [],
+        },
+        {
+          id: 'work-local',
+          name: 'Work',
+          tabs: [{ id: 't1', url: 'https://keep.example/' }],
+        },
+        { id: 'only-here', name: 'Local Only', tabs: [] },
+      ],
+      folders: [{ id: 'f-local', name: 'Inbox', color: 'red' }],
+    });
+    stubDriveFetch({
+      collections: [
+        {
+          id: 'work-drive',
+          name: 'Work',
+          tabs: [
+            { id: 'a', url: 'https://keep.example/' },
+            { id: 'b', url: 'https://new.example/' },
+          ],
+        },
+      ],
+      folders: [{ id: 'f1', name: 'Inbox', color: 'blue' }],
+      settings: {},
+    });
+
+    await restoreFromGDrive();
+
+    expect(store.collections.map((c) => c.name)).toEqual([
+      'Current Session',
+      'Work',
+      'Local Only',
+    ]);
+    expect(store.collections.find((c) => c.name === 'Work').id).toBe('work-local');
+    expect(store.collections.find((c) => c.name === 'Work').tabs.map((tab) => tab.url)).toEqual([
+      'https://keep.example/',
+      'https://new.example/',
+    ]);
+    expect(store.folders[0]).toMatchObject({ id: 'f-local', name: 'Inbox', color: 'red' });
+  });
 });

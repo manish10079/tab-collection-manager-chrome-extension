@@ -37,6 +37,7 @@ export function SettingsModal({ onClose, actions }) {
       title="Settings"
       icon="fa-sliders-h"
       className="set-settings-modal"
+      overlayClassName="set-settings-overlay"
       bodyClassName="set-settings-modal-body"
       onClose={onClose}
     >
