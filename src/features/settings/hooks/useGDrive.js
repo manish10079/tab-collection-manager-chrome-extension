@@ -47,7 +47,9 @@ const TOKEN_KEY = 'gdriveAccessToken';
 const TOKEN_EXPIRES_KEY = 'gdriveAccessTokenExpiresAt';
 
 function tokenStorage() {
-  return globalThis.chrome?.storage?.session ?? globalThis.chrome?.storage?.local;
+  // Local, not session: MV3 service-worker idle and closing the side panel both wipe
+  // `storage.session`, which made Backup/Restore prompt again after a few minutes.
+  return globalThis.chrome?.storage?.local;
 }
 
 /** @returns {Promise<string>} */
@@ -149,8 +151,15 @@ async function requestAccessToken(options = {}) {
         reject(new Error(lastError?.message || 'Sign-in cancelled'));
         return;
       }
-      const hash = responseUrl.includes('#') ? responseUrl.slice(responseUrl.indexOf('#') + 1) : '';
-      const params = new URLSearchParams(hash);
+      let params;
+      try {
+        const parsed = new URL(responseUrl);
+        params = new URLSearchParams(parsed.hash.replace(/^#/, ''));
+        if (!params.get('access_token')) params = parsed.searchParams;
+      } catch {
+        const hash = responseUrl.includes('#') ? responseUrl.slice(responseUrl.indexOf('#') + 1) : '';
+        params = new URLSearchParams(hash);
+      }
       const token = params.get('access_token');
       if (!token) {
         reject(new Error('Google did not return an access token'));

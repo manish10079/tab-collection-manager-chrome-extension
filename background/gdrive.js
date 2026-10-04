@@ -68,25 +68,107 @@ export async function revokeAuthToken() {
  * @param {(token: string) => Promise<any>} fn
  * @returns {Promise<any>}
  */
+async function persistAccessToken(token, expiresIn) {
+  if (typeof token !== 'string' || !token) return;
+  const seconds = Number(expiresIn);
+  const ttlMs = Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : 3600 * 1000;
+  await api.storage.local.set({
+    [GDRIVE_ACCESS_TOKEN_KEY]: token,
+    [GDRIVE_ACCESS_TOKEN_EXPIRES_KEY]: Date.now() + ttlMs,
+  });
+}
+
 async function readStoredAccessToken() {
-  const area = api.storage.session || api.storage.local;
-  if (!area?.get) return '';
-  const data = await area.get([GDRIVE_ACCESS_TOKEN_KEY, GDRIVE_ACCESS_TOKEN_EXPIRES_KEY]);
+  const data = await api.storage.local.get([GDRIVE_ACCESS_TOKEN_KEY, GDRIVE_ACCESS_TOKEN_EXPIRES_KEY]);
   const token = data[GDRIVE_ACCESS_TOKEN_KEY];
   const expiresAt = Number(data[GDRIVE_ACCESS_TOKEN_EXPIRES_KEY]) || 0;
   if (typeof token === 'string' && token && expiresAt > Date.now() + 60_000) return token;
   return '';
 }
 
+function parseAccessTokenFromRedirect(responseUrl) {
+  let params;
+  try {
+    const parsed = new URL(responseUrl);
+    params = new URLSearchParams(parsed.hash.replace(/^#/, ''));
+    if (!params.get('access_token')) params = parsed.searchParams;
+  } catch {
+    const hash = responseUrl.includes('#') ? responseUrl.slice(responseUrl.indexOf('#') + 1) : '';
+    params = new URLSearchParams(hash);
+  }
+  const token = params.get('access_token');
+  return token ? { token, expiresIn: params.get('expires_in') } : null;
+}
+
+/**
+ * Refresh a Drive token with no UI. Works while Chrome still has the Google grant from Enable.
+ *
+ * @returns {Promise<{token: string, expiresIn: string|null}>}
+ */
+function requestSilentWebToken() {
+  return new Promise((resolve, reject) => {
+    const identity = api.identity;
+    if (!identity || typeof identity.launchWebAuthFlow !== 'function') {
+      reject(new Error('Google sign-in is not available'));
+      return;
+    }
+    const oauth2 = api.runtime.getManifest().oauth2;
+    const clientId = oauth2?.client_id;
+    const scopes = oauth2?.scopes;
+    if (!clientId || !Array.isArray(scopes) || scopes.length === 0) {
+      reject(new Error('OAuth client is not configured'));
+      return;
+    }
+    const redirectUrl =
+      typeof identity.getRedirectURL === 'function' ? identity.getRedirectURL() : '';
+    const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+    authUrl.searchParams.set('client_id', clientId);
+    authUrl.searchParams.set('response_type', 'token');
+    authUrl.searchParams.set('redirect_uri', redirectUrl);
+    authUrl.searchParams.set('scope', scopes.join(' '));
+    authUrl.searchParams.set('prompt', 'none');
+
+    identity.launchWebAuthFlow({ url: authUrl.href, interactive: false }, (responseUrl) => {
+      if (api.runtime.lastError || !responseUrl) {
+        reject(new Error(api.runtime.lastError?.message || 'Silent sign-in failed'));
+        return;
+      }
+      const parsed = parseAccessTokenFromRedirect(responseUrl);
+      if (!parsed) {
+        reject(new Error('Google did not return an access token'));
+        return;
+      }
+      resolve(parsed);
+    });
+  });
+}
+
+async function obtainSilentToken() {
+  try {
+    const result = await requestSilentWebToken();
+    await persistAccessToken(result.token, result.expiresIn);
+    return result.token;
+  } catch {
+    try {
+      return await getAuthToken(false);
+    } catch {
+      return '';
+    }
+  }
+}
+
 export async function withAuthRetry(_interactive, fn, providedToken) {
-  let token = providedToken || (await readStoredAccessToken()) || (await getAuthToken(false));
+  let token = providedToken || (await readStoredAccessToken()) || (await obtainSilentToken());
+  if (!token) throw new Error('Not signed in to Google Drive');
   try {
     return await fn(token);
   } catch (error) {
     if (error && error.status === 401) {
       if (providedToken) throw error;
       await removeCachedToken(token);
-      token = await getAuthToken(false);
+      await api.storage.local.remove([GDRIVE_ACCESS_TOKEN_KEY, GDRIVE_ACCESS_TOKEN_EXPIRES_KEY]);
+      token = await obtainSilentToken();
+      if (!token) throw error;
       return fn(token);
     }
     throw error;
@@ -252,7 +334,10 @@ export async function backupToGDrive(accessToken) {
     accessToken
   );
 
-  if (usedToken) await persistDriveAccount(usedToken);
+  if (usedToken) {
+    await persistAccessToken(usedToken);
+    await persistDriveAccount(usedToken);
+  }
 
   const timestamp = new Date().toISOString();
   await api.storage.local.set({
@@ -414,7 +499,10 @@ export async function restoreFromGDrive(accessToken) {
     accessToken
   );
 
-  if (usedToken) await persistDriveAccount(usedToken);
+  if (usedToken) {
+    await persistAccessToken(usedToken);
+    await persistDriveAccount(usedToken);
+  }
 
   if (!restoredData.collections || !Array.isArray(restoredData.collections)) {
     throw new Error('Invalid backup format: missing collections array.');
