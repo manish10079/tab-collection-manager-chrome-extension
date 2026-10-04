@@ -40,6 +40,8 @@ export function SettingsModal({ onClose, actions }) {
       bodyClassName="set-settings-modal-body"
       onClose={onClose}
     >
+      <GDriveSection actions={actions} />
+
       <SettingsCard icon="fa-clock" title="Session">
         <SettingsRow
           icon="fas fa-save"
@@ -92,8 +94,6 @@ export function SettingsModal({ onClose, actions }) {
       <SettingsCard icon="fa-keyboard" title="Keyboard Shortcuts">
         <ShortcutGrid />
       </SettingsCard>
-
-      <GDriveSection actions={actions} />
 
       <SettingsCard icon="fa-sliders-h" title="Limits">
         <SettingsRow

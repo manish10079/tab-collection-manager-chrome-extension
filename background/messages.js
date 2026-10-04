@@ -2,6 +2,9 @@
 // protocol is frozen (skill.md §2.3) — adding one is additive, changing a payload is breaking.
 import { api } from './api.js';
 import {
+  GDRIVE_ACCOUNT_EMAIL_KEY,
+  GDRIVE_ACCOUNT_NAME_KEY,
+  GDRIVE_ACCOUNT_PICTURE_KEY,
   GDRIVE_LAST_BACKUP_TIMESTAMP_KEY,
   GDRIVE_LAST_BACKUP_TIME_KEY,
   STORAGE_KEYS,
@@ -61,17 +64,17 @@ export function registerMessageHandlers() {
     }
 
     if (request.command === 'gdriveBackup') {
-      respondWith(backupToGDrive(), sendResponse);
+      respondWith(backupToGDrive(request.token), sendResponse);
       return true;
     }
 
     if (request.command === 'gdriveRestore') {
-      respondWith(restoreFromGDrive(), sendResponse);
+      respondWith(restoreFromGDrive(request.token), sendResponse);
       return true;
     }
 
     if (request.command === 'gdriveDeleteBackup') {
-      respondWith(deleteGDriveBackup(), sendResponse);
+      respondWith(deleteGDriveBackup(request.token), sendResponse);
       return true;
     }
 
@@ -96,14 +99,21 @@ export function registerMessageHandlers() {
           STORAGE_KEYS.gdriveAutoBackupEnabled,
           GDRIVE_LAST_BACKUP_TIME_KEY,
           GDRIVE_LAST_BACKUP_TIMESTAMP_KEY,
+          GDRIVE_ACCOUNT_EMAIL_KEY,
+          GDRIVE_ACCOUNT_NAME_KEY,
+          GDRIVE_ACCOUNT_PICTURE_KEY,
         ])
         .then((data) => {
           sendResponse({
             success: true,
-            enabled: !!data[STORAGE_KEYS.gdriveBackupEnabled],
+            enabled:
+              !!data[STORAGE_KEYS.gdriveBackupEnabled] && !!data[GDRIVE_LAST_BACKUP_TIME_KEY],
             autoBackupEnabled: !!data[STORAGE_KEYS.gdriveAutoBackupEnabled],
             lastBackupTime: data[GDRIVE_LAST_BACKUP_TIME_KEY] || null,
             lastBackupTimestamp: data[GDRIVE_LAST_BACKUP_TIMESTAMP_KEY] || null,
+            accountEmail: data[GDRIVE_ACCOUNT_EMAIL_KEY] || '',
+            accountName: data[GDRIVE_ACCOUNT_NAME_KEY] || '',
+            accountPicture: data[GDRIVE_ACCOUNT_PICTURE_KEY] || '',
           });
         });
       return true;

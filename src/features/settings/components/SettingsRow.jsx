@@ -7,6 +7,7 @@
  * @property {string} [badge]             Extra emphasis beside the label (e.g. "💾 Lazy Load")
  * @property {string} [title]             Tooltip for the whole row
  * @property {import('react').ReactNode} [children] Control shown on the right
+ * @property {string} [avatar]        Profile image URL; shown instead of the FA icon
  * @property {import('react').ReactNode} [below]    Content rendered under the row (e.g. actions)
  */
 
@@ -16,13 +17,17 @@
  * @param {SettingsRowProps} props
  * @returns {import('react').ReactElement}
  */
-export function SettingsRow({ icon, label, description, badge, title, children, below }) {
+export function SettingsRow({ icon, label, description, badge, title, avatar, children, below }) {
   return (
     <>
       <div className="set-settings-row" title={title}>
         <div className="set-settings-row-left">
-          <div className="set-settings-row-icon">
-            <i className={icon} />
+          <div className={`set-settings-row-icon${avatar ? ' set-settings-row-icon--avatar' : ''}`}>
+            {avatar ? (
+              <img className="set-account-avatar" src={avatar} alt="" referrerPolicy="no-referrer" />
+            ) : (
+              <i className={icon} />
+            )}
           </div>
           <div className="set-settings-row-text">
             <span className="set-settings-row-label">

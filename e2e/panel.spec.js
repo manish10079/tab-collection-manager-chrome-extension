@@ -323,6 +323,28 @@ test('opens the history and settings dialogs, and returns focus when each closes
   const settings = panel.getByRole('dialog', { name: 'Settings' });
   await expect(settings).toBeVisible();
 
+  // The settings card list is taller than the panel, so it scrolls *inside* the modal body: the
+  // overlay must not scroll at all (it used to, which pushed the modal's own header off the top of
+  // the screen) and the header must stay where it is while the list moves.
+  const settingsBody = settings.locator('.set-settings-modal-body');
+  expect(await settingsBody.evaluate((el) => el.scrollHeight - el.clientHeight)).toBeGreaterThan(0);
+  // Measured against the modal rather than the viewport: the entrance animation moves both, so
+  // only the header's offset *inside* the modal is comparable while it plays.
+  const headerOffset = () =>
+    settings.evaluate((el) => {
+      const header = el.querySelector('.dl-modal-header').getBoundingClientRect();
+      return Math.round(header.top - el.getBoundingClientRect().top);
+    });
+  const offsetBefore = await headerOffset();
+  await settingsBody.evaluate((el) => el.scrollTo(0, el.scrollHeight));
+  expect(await settingsBody.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+  expect(await headerOffset()).toBe(offsetBefore);
+  // No overlay scroll bar: the modal fits the panel, so there is only one thing that scrolls.
+  const settingsOverlay = panel.locator('.dl-modal-overlay');
+  expect(
+    await settingsOverlay.evaluate((el) => el.scrollHeight - el.clientHeight)
+  ).toBeLessThanOrEqual(1);
+
   // The switch is a checkbox behind a zero-size input, so click its visible track.
   await settings.locator('label.set-toggle-switch:has(#lightModeToggle) .set-toggle-track').click();
   await expect(settings.locator('#lightModeToggle')).toBeChecked();

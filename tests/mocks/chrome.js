@@ -22,7 +22,11 @@ export function installChromeMock(initial = {}) {
   const chrome = {
     runtime: {
       id: 'test-extension-id',
-      getManifest: () => ({ name: manifest.name, version: manifest.version }),
+      getManifest: () => ({
+        name: manifest.name,
+        version: manifest.version,
+        oauth2: manifest.oauth2,
+      }),
       sendMessage: async () => ({ success: true }),
       // Registration-only in tests unless a listener set is needed; the worker imports its
       // modules for their pure exports, and a module-level addListener must not throw.
@@ -70,6 +74,7 @@ export function installChromeMock(initial = {}) {
           for (const listener of changeListeners) listener(changes, 'local');
         },
       },
+      session: null,
       onChanged: {
         /** @param {(changes: any, area: string) => void} listener */
         addListener: (listener) => {
@@ -162,7 +167,18 @@ export function installChromeMock(initial = {}) {
         addListener: (listener) => void listener,
       },
     },
+    identity: {
+      getAuthToken: (_options, callback) => callback('test-token'),
+      removeCachedAuthToken: (_options, callback) => callback(),
+      getRedirectURL: () => 'https://test-extension-id.chromiumapp.org/',
+      launchWebAuthFlow: (_options, callback) =>
+        callback(
+          'https://test-extension-id.chromiumapp.org/#access_token=test-token&token_type=Bearer&expires_in=3600'
+        ),
+    },
   };
+
+  chrome.storage.session = chrome.storage.local;
 
   globalThis.chrome = /** @type {any} */ (chrome);
   return { store, chrome };

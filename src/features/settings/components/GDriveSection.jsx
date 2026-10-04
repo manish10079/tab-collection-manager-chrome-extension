@@ -20,7 +20,7 @@ export function GDriveSection({ actions }) {
   const confirm = useConfirm();
   const gdrive = useGDrive(actions);
   const { status, busy } = gdrive;
-  const lastBackup = status.lastBackupTimestamp
+  const lastBackup = status.lastBackupTime
     ? `Last backup: ${new Date(status.lastBackupTime).toLocaleDateString()} ${new Date(
         status.lastBackupTime
       ).toLocaleTimeString()}`
@@ -28,6 +28,15 @@ export function GDriveSection({ actions }) {
 
   return (
     <SettingsCard icon="fa-cloud" title="Cloud Backup" badge="☁️ Google Drive">
+      {status.enabled ? (
+        <SettingsRow
+          icon="fas fa-user-circle"
+          avatar={status.accountPicture || undefined}
+          label={status.accountName || 'Signed in'}
+          description={status.accountEmail || 'Google account connected'}
+        />
+      ) : null}
+
       <SettingsRow
         icon="fab fa-google-drive"
         label="Enable Cloud Backup"
@@ -38,7 +47,10 @@ export function GDriveSection({ actions }) {
           label="Enable Cloud Backup"
           checked={status.enabled}
           disabled={busy !== null}
-          onChange={gdrive.setEnabled}
+          onChange={(checked) => {
+            if (checked === true) gdrive.setEnabled(true);
+            else gdrive.setEnabled(false);
+          }}
         />
       </SettingsRow>
 

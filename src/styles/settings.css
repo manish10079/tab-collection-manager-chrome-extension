@@ -18,7 +18,11 @@
   flex-direction: column;
   gap: 12px;
   padding: 16px;
-  min-height: auto; /* Override default 360px min-height from .dl-modal-body */
+  /* Override the 360px min-height from .dl-modal-body, then allow the card list to be the
+     thing that shrinks and scrolls instead of the whole modal with the overlay. */
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /* Settings Cards - Material 3 elevated surface */
@@ -27,6 +31,9 @@
   border: 1px solid var(--border);
   border-radius: 16px;
   overflow: hidden;
+  /* The body is a fixed-height column that scrolls, so a card must keep its natural height
+     instead of being squashed to fit the space between the header and the footer. */
+  flex-shrink: 0;
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease;
@@ -204,6 +211,19 @@
   transition:
     transform 0.2s ease,
     background 0.2s ease;
+}
+
+.set-settings-row-icon--avatar {
+  padding: 0;
+  overflow: hidden;
+  background: var(--bg-translucent-strong);
+}
+
+.set-account-avatar {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  display: block;
 }
 
 .set-settings-row-icon i {
@@ -407,6 +427,9 @@
 /* ===== Settings Modal specific ===== */
 .set-settings-modal {
   max-width: 420px;
+  /* The card list is taller than most viewports: cap the modal to the overlay's padded box so the
+     header stays put and `.set-settings-modal-body` does the scrolling. */
+  max-height: calc(100vh - 64px);
 }
 
 /* ===== Cloud Backup Buttons ===== */

@@ -147,7 +147,7 @@ describe('SettingsModal', () => {
     fireEvent.click(screen.getByText('Backup Now'));
 
     await waitFor(() => {
-      expect(onMessage).toHaveBeenCalledWith({ command: 'gdriveBackup' });
+      expect(onMessage).toHaveBeenCalledWith({ command: 'gdriveBackup', token: 'test-token' });
     });
     // Toasts forwarded through the actions hook carry the legacy `(message, duration)` shape.
     expect(legacy.toast).toHaveBeenCalledWith(

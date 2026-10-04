@@ -65,6 +65,8 @@
   padding: 16px 20px;
   background: var(--modal-header-bg);
   border-bottom: 1px solid var(--modal-glass-border);
+  /* Never shrink: a modal capped below its content height scrolls its body, not its chrome. */
+  flex-shrink: 0;
 }
 
 .dl-modal-header h3 {

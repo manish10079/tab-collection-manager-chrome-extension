@@ -12,6 +12,11 @@ export const GDRIVE_BACKUP_FILENAME = 'tab_collection_manager_backup.json';
 export const GDRIVE_LAST_BACKUP_TIME_KEY = 'lastGDriveBackupTime';
 export const GDRIVE_LAST_BACKUP_TIMESTAMP_KEY = 'lastGDriveBackupTimestamp';
 export const GDRIVE_LAST_RESTORE_TIME_KEY = 'lastGDriveRestoreTime';
+export const GDRIVE_ACCOUNT_EMAIL_KEY = 'gdriveAccountEmail';
+export const GDRIVE_ACCOUNT_NAME_KEY = 'gdriveAccountName';
+export const GDRIVE_ACCOUNT_PICTURE_KEY = 'gdriveAccountPicture';
+export const GDRIVE_ACCESS_TOKEN_KEY = 'gdriveAccessToken';
+export const GDRIVE_ACCESS_TOKEN_EXPIRES_KEY = 'gdriveAccessTokenExpiresAt';
 
 /** Chrome alarm names. */
 export const ALARMS = Object.freeze({

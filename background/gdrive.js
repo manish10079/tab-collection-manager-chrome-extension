@@ -5,6 +5,11 @@ import { api } from './api.js';
 import {
   ALARMS,
   GDRIVE_BACKUP_FILENAME,
+  GDRIVE_ACCESS_TOKEN_EXPIRES_KEY,
+  GDRIVE_ACCESS_TOKEN_KEY,
+  GDRIVE_ACCOUNT_EMAIL_KEY,
+  GDRIVE_ACCOUNT_NAME_KEY,
+  GDRIVE_ACCOUNT_PICTURE_KEY,
   GDRIVE_LAST_BACKUP_TIMESTAMP_KEY,
   GDRIVE_LAST_BACKUP_TIME_KEY,
   GDRIVE_LAST_RESTORE_TIME_KEY,
@@ -63,17 +68,53 @@ export async function revokeAuthToken() {
  * @param {(token: string) => Promise<any>} fn
  * @returns {Promise<any>}
  */
-export async function withAuthRetry(interactive, fn) {
-  let token = await getAuthToken(interactive);
+async function readStoredAccessToken() {
+  const area = api.storage.session || api.storage.local;
+  if (!area?.get) return '';
+  const data = await area.get([GDRIVE_ACCESS_TOKEN_KEY, GDRIVE_ACCESS_TOKEN_EXPIRES_KEY]);
+  const token = data[GDRIVE_ACCESS_TOKEN_KEY];
+  const expiresAt = Number(data[GDRIVE_ACCESS_TOKEN_EXPIRES_KEY]) || 0;
+  if (typeof token === 'string' && token && expiresAt > Date.now() + 60_000) return token;
+  return '';
+}
+
+export async function withAuthRetry(_interactive, fn, providedToken) {
+  let token = providedToken || (await readStoredAccessToken()) || (await getAuthToken(false));
   try {
     return await fn(token);
   } catch (error) {
     if (error && error.status === 401) {
+      if (providedToken) throw error;
       await removeCachedToken(token);
-      token = await getAuthToken(interactive);
+      token = await getAuthToken(false);
       return fn(token);
     }
     throw error;
+  }
+}
+
+/**
+ * @param {string} token
+ * @returns {Promise<void>}
+ */
+export async function persistDriveAccount(token) {
+  try {
+    const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) return;
+    const profile = await response.json();
+    const email = typeof profile.email === 'string' ? profile.email : '';
+    const name = typeof profile.name === 'string' ? profile.name : '';
+    const picture = typeof profile.picture === 'string' ? profile.picture : '';
+    if (!email && !name && !picture) return;
+    await api.storage.local.set({
+      [GDRIVE_ACCOUNT_EMAIL_KEY]: email,
+      [GDRIVE_ACCOUNT_NAME_KEY]: name,
+      [GDRIVE_ACCOUNT_PICTURE_KEY]: picture,
+    });
+  } catch {
+    // Profile is display-only; a failed lookup must not fail the backup.
   }
 }
 
@@ -195,15 +236,23 @@ export async function uploadBackupFile(token, fileContent, existingFile) {
  *
  * @returns {Promise<Record<string, any>>}
  */
-export async function backupToGDrive() {
+export async function backupToGDrive(accessToken) {
   const payload = await buildBackupPayload();
   const fileContent = JSON.stringify(payload, null, 2);
 
-  const result = await withAuthRetry(true, async (token) => {
-    const existingFile = await findExistingBackup(token);
-    const uploaded = await uploadBackupFile(token, fileContent, existingFile);
-    return { uploaded, action: existingFile ? 'updated' : 'created' };
-  });
+  let usedToken = accessToken;
+  const result = await withAuthRetry(
+    true,
+    async (token) => {
+      usedToken = token;
+      const existingFile = await findExistingBackup(token);
+      const uploaded = await uploadBackupFile(token, fileContent, existingFile);
+      return { uploaded, action: existingFile ? 'updated' : 'created' };
+    },
+    accessToken
+  );
+
+  if (usedToken) await persistDriveAccount(usedToken);
 
   const timestamp = new Date().toISOString();
   await api.storage.local.set({
@@ -225,8 +274,12 @@ export async function backupToGDrive() {
  *
  * @returns {Promise<Record<string, any>>}
  */
-export async function restoreFromGDrive() {
-  const restoredData = await withAuthRetry(true, async (token) => {
+export async function restoreFromGDrive(accessToken) {
+  let usedToken = accessToken;
+  const restoredData = await withAuthRetry(
+    true,
+    async (token) => {
+    usedToken = token;
     const existingFile = await findExistingBackup(token);
     if (!existingFile) throw new Error('No backup file found on Google Drive.');
 
@@ -243,7 +296,11 @@ export async function restoreFromGDrive() {
     const data = await contentResponse.json();
     data.__modifiedTime = existingFile.modifiedTime;
     return data;
-  });
+    },
+    accessToken
+  );
+
+  if (usedToken) await persistDriveAccount(usedToken);
 
   if (!restoredData.collections || !Array.isArray(restoredData.collections)) {
     throw new Error('Invalid backup format: missing collections array.');
@@ -325,21 +382,31 @@ export async function restoreFromGDrive() {
 }
 
 /** Delete the backup file from Drive (disconnect / cleanup). */
-export async function deleteGDriveBackup() {
-  await withAuthRetry(true, async (token) => {
-    const existingFile = await findExistingBackup(token);
-    if (!existingFile) return;
+export async function deleteGDriveBackup(accessToken) {
+  await withAuthRetry(
+    true,
+    async (token) => {
+      const existingFile = await findExistingBackup(token);
+      if (!existingFile) return;
 
-    const response = await driveFetch(
-      `https://www.googleapis.com/drive/v3/files/${existingFile.id}`,
-      { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }
-    );
-    if (!response.ok && response.status !== 404) {
-      throw new Error(`Failed to delete backup: ${response.status}`);
-    }
-  });
+      const response = await driveFetch(
+        `https://www.googleapis.com/drive/v3/files/${existingFile.id}`,
+        { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!response.ok && response.status !== 404) {
+        throw new Error(`Failed to delete backup: ${response.status}`);
+      }
+    },
+    accessToken
+  );
 
-  await api.storage.local.remove([GDRIVE_LAST_BACKUP_TIME_KEY, GDRIVE_LAST_BACKUP_TIMESTAMP_KEY]);
+  await api.storage.local.remove([
+    GDRIVE_LAST_BACKUP_TIME_KEY,
+    GDRIVE_LAST_BACKUP_TIMESTAMP_KEY,
+    GDRIVE_ACCOUNT_EMAIL_KEY,
+    GDRIVE_ACCOUNT_NAME_KEY,
+    GDRIVE_ACCOUNT_PICTURE_KEY,
+  ]);
   console.log('GDrive backup deleted');
   return { success: true };
 }

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tab Collection Manager",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "description": "Auto-save and manage tab collections with premium dark mode UI",
   "permissions": [
     "tabs",
@@ -13,9 +13,17 @@
     "alarms",
     "identity"
   ],
+  "host_permissions": [
+    "https://www.googleapis.com/*",
+    "https://*.googleusercontent.com/*"
+  ],
   "oauth2": {
-    "client_id": "130868571588-ep7a8fmkqhg2s1qvshs2a7ir9fod72jj.apps.googleusercontent.com",
-    "scopes": ["https://www.googleapis.com/auth/drive.appdata"]
+    "client_id": "253670799468-43842mu557vot1ujirafl7n4fcbu09jt.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/drive.appdata",
+      "https://www.googleapis.com/auth/userinfo.email",
+      "https://www.googleapis.com/auth/userinfo.profile"
+    ]
   },
   "action": {
     "default_title": "Tab Collection Manager",
