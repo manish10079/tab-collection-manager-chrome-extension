@@ -99,7 +99,7 @@ export function GDriveSection({ actions }) {
               const proceed = await confirm({
                 title: 'Restore from Google Drive',
                 message:
-                  'This merges the Google Drive backup into this device. Same-named collections keep their tabs; duplicate URLs are skipped and new ones are added. Collections that exist only here are kept. Continue?',
+                  'This merges the Google Drive backup into this device. Same-named collections keep their tabs; duplicate URLs are skipped and new ones are added. Current Session from Drive is stored in Restored Current Session, not the live session. Collections that exist only here are kept. Continue?',
                 confirmLabel: 'Restore',
               });
               if (!proceed) return;

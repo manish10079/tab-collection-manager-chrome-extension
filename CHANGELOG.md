@@ -10,6 +10,18 @@ Entries are append-only: a released version's notes are never rewritten.
 
 ---
 
+## 2.9.0
+
+No new permissions. The permission set is unchanged from 2.3.0.
+
+### Changed
+
+- **Google Drive restore keeps the live Current Session.** Tabs from Drive's Current Session go into
+  a collection named Restored Current Session. The first restore creates it; later restores only add
+  new URLs there. Other collections still merge by name.
+
+---
+
 ## 2.6.0
 
 No new permissions. The permission set is unchanged from 2.3.0.

@@ -72,7 +72,11 @@ describe('restoreFromGDrive colours', () => {
       exportedAt: '2026-10-01T00:00:00.000Z',
       collections: [
         { id: 'x', name: 'Restored', tabs: [], color: 'custom-1' },
-        { id: CURRENT_SESSION_ID, name: 'Current Session', tabs: [{ id: 'live' }] },
+        {
+          id: CURRENT_SESSION_ID,
+          name: 'Current Session',
+          tabs: [{ id: 'live', url: 'https://from-drive.example/' }],
+        },
       ],
       folders: [{ id: 'f1', name: 'Work', color: 'blue' }],
       customColors: [{ id: 'custom-1', name: 'Sunset', value: '#ff8800' }],
@@ -83,8 +87,12 @@ describe('restoreFromGDrive colours', () => {
 
     expect(store.customColors).toEqual([{ id: 'custom-1', name: 'Sunset', value: '#ff8800' }]);
     expect(store.folders[0].color).toBe('blue');
-    // Current Session stays the live one, and the restored label comes with the collection.
+    // Live Current Session stays untouched; Drive session tabs land in Restored Current Session.
     expect(store.collections[0].id).toBe(CURRENT_SESSION_ID);
+    expect(store.collections[0].tabs).toEqual([]);
+    expect(store.collections.find((c) => c.name === 'Restored Current Session').tabs).toEqual([
+      expect.objectContaining({ url: 'https://from-drive.example/' }),
+    ]);
     expect(store.collections.find((c) => c.name === 'Restored').color).toBe('custom-1');
   });
 
@@ -116,7 +124,7 @@ describe('restoreFromGDrive colours', () => {
     expect(store.collections.find((c) => c.name === 'Red one').color).toBe('red');
   });
 
-  it('merges unique Current Session tabs and skips URLs already present', async () => {
+  it('stores Drive Current Session tabs in Restored Current Session', async () => {
     const { store } = setup({
       collections: [
         {
@@ -146,9 +154,53 @@ describe('restoreFromGDrive colours', () => {
 
     await restoreFromGDrive();
 
-    expect(store.collections).toHaveLength(1);
     expect(store.collections[0].id).toBe(CURRENT_SESSION_ID);
-    expect(store.collections[0].tabs.map((tab) => tab.url)).toEqual([
+    expect(store.collections[0].tabs.map((tab) => tab.url)).toEqual(['https://already.example/']);
+    const restored = store.collections.find((c) => c.name === 'Restored Current Session');
+    expect(restored.id).not.toBe(CURRENT_SESSION_ID);
+    expect(restored.tabs.map((tab) => tab.url)).toEqual([
+      'https://already.example/',
+      'https://from-drive.example/',
+    ]);
+  });
+
+  it('appends later Drive Current Session tabs into the same Restored Current Session', async () => {
+    const { store } = setup({
+      collections: [
+        {
+          id: CURRENT_SESSION_ID,
+          name: 'Current Session',
+          tabs: [],
+        },
+        {
+          id: 'restored-cs',
+          name: 'Restored Current Session',
+          tabs: [{ id: 'old', url: 'https://already.example/' }],
+        },
+      ],
+      folders: [],
+    });
+    stubDriveFetch({
+      collections: [
+        {
+          id: CURRENT_SESSION_ID,
+          name: 'Current Session',
+          tabs: [
+            { id: 'a', url: 'https://already.example/' },
+            { id: 'b', url: 'https://from-drive.example/' },
+          ],
+        },
+      ],
+      folders: [],
+      settings: {},
+    });
+
+    await restoreFromGDrive();
+
+    const restored = store.collections.filter((c) => c.name === 'Restored Current Session');
+    expect(restored).toHaveLength(1);
+    expect(restored[0].id).toBe('restored-cs');
+    expect(restored[0].tabs.map((tab) => tab.url)).toEqual([
       'https://already.example/',
       'https://from-drive.example/',
     ]);

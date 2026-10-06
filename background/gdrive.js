@@ -354,6 +354,8 @@ export async function backupToGDrive(accessToken) {
   };
 }
 
+const RESTORED_CURRENT_SESSION_NAME = 'Restored Current Session';
+
 function collectionNameKey(name) {
   return String(name || '')
     .trim()
@@ -381,6 +383,8 @@ function mergeTabsInto(target, incoming) {
 /**
  * Merge a Drive backup into live state. Same-named collections keep their tabs; a URL already in
  * that collection is skipped. Live collections/folders not in the backup are left in place.
+ * Current Session from Drive is never merged into the live session; its tabs go into a collection
+ * named Restored Current Session (created on first restore, appended on later restores).
  *
  * @param {Record<string, any>} state
  * @param {Record<string, any>} restoredData
@@ -432,11 +436,14 @@ function mergeDriveRestore(state, restoredData) {
   for (const imported of restoredData.collections || []) {
     if (!imported || typeof imported !== 'object') continue;
     const isSession = imported.id === CURRENT_SESSION_ID || imported.isCurrentSession;
-    const existing = isSession
-      ? state.collections.find((collection) => collection.id === CURRENT_SESSION_ID)
-      : state.collections.find(
-          (collection) => collectionNameKey(collection.name) === collectionNameKey(imported.name)
-        );
+    const importedName = isSession
+      ? RESTORED_CURRENT_SESSION_NAME
+      : String(imported.name || 'Untitled').trim() || 'Untitled';
+    const existing = state.collections.find(
+      (collection) =>
+        collection.id !== CURRENT_SESSION_ID &&
+        collectionNameKey(collection.name) === collectionNameKey(importedName)
+    );
 
     if (existing) {
       mergeTabsInto(existing, imported.tabs);
@@ -454,7 +461,7 @@ function mergeDriveRestore(state, restoredData) {
         : null;
     state.collections.push({
       id: crypto.randomUUID(),
-      name: String(imported.name || 'Untitled').trim() || 'Untitled',
+      name: importedName,
       tabs,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -469,7 +476,8 @@ function mergeDriveRestore(state, restoredData) {
 }
 
 /**
- * Restore extension data from the Drive backup, keeping the live Current Session.
+ * Restore extension data from the Drive backup. Live Current Session is left unchanged;
+ * Drive Current Session tabs land in Restored Current Session.
  *
  * @returns {Promise<Record<string, any>>}
  */
